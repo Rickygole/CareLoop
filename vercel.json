@@ -6,11 +6,17 @@
   "functions": {
     "api/index.py": {
       "maxDuration": 30,
-      "includeFiles": "{main.py,triage_engine.py,providers.py,responses.py,clinic.py,scheduler.py,mock_data/**}"
+      "includeFiles": "{main.py,triage_engine.py,providers.py,responses.py,clinic.py,scheduler.py,portal.py,followup.py,telephony.py,memory.py,contradiction.py,escalation.py,mock_data/**}"
     }
   },
   "rewrites": [
-    { "source": "/api/:path*", "destination": "/api/index" },
-    { "source": "/((?!api/).*)", "destination": "/index.html" }
+    {
+      "source": "/api/:path*",
+      "destination": "/api/index"
+    },
+    {
+      "source": "/((?!api/).*)",
+      "destination": "/index.html"
+    }
   ]
 }
