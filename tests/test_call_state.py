@@ -60,27 +60,40 @@ def test_placing_a_call_reports_ringing(configured):
     assert "ringing" in found["wording"].lower()
 
 
-def test_cutting_the_call_reports_that_it_is_ringing_you_back(configured):
+def test_cutting_the_call_reports_that_a_text_was_sent(configured, monkeypatch):
+    monkeypatch.setattr(telephony, "send_sms", lambda to, body: {"ok": True, "sid": "SM1"})
     client = TestClient(main.app)
-    session = "cs-redial"
+    session = "cs-texted"
     ring(client, session)
     report(client, session, 1, "completed", "CA1")
     found = state(client, session)
-    assert found["phase"] == main.CALL_PHASE_REDIALLING
-    assert found["retrying"] is True
-    assert found["attempt"] == 2
-    assert "ringing you again" in found["wording"]
+    assert found["phase"] == main.CALL_PHASE_TEXTED
+    assert found["retrying"] is False
+    assert "sent you a text" in found["wording"]
 
 
-def test_the_attempt_counter_is_visible_and_bounded(configured):
+def test_declining_the_call_sends_one_text_and_never_redials(configured, monkeypatch):
+    texts = []
+    monkeypatch.setattr(
+        telephony, "send_sms",
+        lambda to, body: texts.append((to, body)) or {"ok": True, "sid": "SM1"},
+    )
+    dials = []
+    monkeypatch.setattr(
+        telephony, "place_call",
+        lambda to, **kw: dials.append(to) or {"ok": True, "call_sid": "CA1", "status": "queued"},
+    )
     client = TestClient(main.app)
-    session = "cs-counter"
+    session = "cs-decline"
     ring(client, session)
-    for attempt in (1, 2):
-        report(client, session, attempt, "no-answer", f"CA{attempt}")
-    found = state(client, session)
-    assert found["attempt"] == 3
-    assert found["max_attempts"] == main.MAX_CALL_ATTEMPTS
+    before = len(dials)
+    report(client, session, 1, "busy", "CA1")
+
+    assert len(texts) == 1, "declining must send exactly one text"
+    assert len(dials) == before, "declining must not place another call"
+    assert texts[0][0] == "+15550002222"
+    assert "reminder to take your" in texts[0][1]
+    assert state(client, session)["phase"] == main.CALL_PHASE_TEXTED
 
 
 def test_answering_the_call_stops_the_retrying_state(configured):
@@ -98,15 +111,18 @@ def test_answering_the_call_stops_the_retrying_state(configured):
     assert found["retrying"] is False
 
 
-def test_after_the_last_attempt_it_says_it_stopped(configured):
+def test_a_text_that_fails_to_send_is_reported_not_hidden(configured, monkeypatch):
+    monkeypatch.setattr(
+        telephony, "send_sms",
+        lambda to, body: {"ok": False, "sid": None, "error": "http_400"},
+    )
     client = TestClient(main.app)
-    session = "cs-gaveup"
+    session = "cs-textfail"
     ring(client, session)
-    report(client, session, main.MAX_CALL_ATTEMPTS, "no-answer", "CAlast")
+    report(client, session, 1, "no-answer", "CAfail")
     found = state(client, session)
     assert found["phase"] == main.CALL_PHASE_GAVE_UP
-    assert found["retrying"] is False
-    assert "stopped calling" in found["wording"]
+    assert "did not send" in found["wording"]
 
 
 def test_one_visitor_never_sees_another_visitors_call(configured):

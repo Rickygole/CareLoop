@@ -88,6 +88,40 @@ class CallLimiter:
             _PROCESS_CALL_COUNT += 1
 
 
+def send_sms(to: str, body: str) -> dict:
+    missing = missing_env_vars()
+    if missing:
+        return {"ok": False, "sid": None, "error": "not_configured", "missing": missing}
+
+    account_sid = _env("TWILIO_ACCOUNT_SID")
+    auth_token = _env("TWILIO_AUTH_TOKEN")
+    from_number = _env("TWILIO_FROM_NUMBER")
+
+    form = {"To": to, "From": from_number, "Body": body}
+    data = urllib.parse.urlencode(form).encode("utf-8")
+    url = f"{TWILIO_API_BASE}/Accounts/{account_sid}/Messages.json"
+    request = urllib.request.Request(
+        url,
+        data=data,
+        headers={
+            "Content-Type": "application/x-www-form-urlencoded",
+            "Authorization": _basic_auth_header(account_sid, auth_token),
+        },
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=CALL_TIMEOUT_SECONDS) as response:
+            import json
+
+            payload = json.loads(response.read().decode("utf-8"))
+        return {"ok": True, "sid": payload.get("sid"), "status": payload.get("status")}
+    except urllib.error.HTTPError as exc:
+        raw = exc.read().decode("utf-8", errors="replace") if exc.fp else ""
+        return {"ok": False, "sid": None, "error": f"http_{exc.code}", "detail": _scrub(raw)[:200]}
+    except Exception as exc:
+        return {"ok": False, "sid": None, "error": type(exc).__name__, "detail": _scrub(str(exc))[:200]}
+
+
 def place_call(
     to: str,
     twiml_url: Optional[str] = None,

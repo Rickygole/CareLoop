@@ -8,6 +8,7 @@ import main
 client = TestClient(main.app)
 
 INSTRUCTIONS = ["please take it", "take it now", "you should take", "go ahead and take"]
+REMINDER = "this is a reminder to take your"
 
 
 def headers(name):
@@ -41,16 +42,15 @@ def flag_the_next_dose(session_name):
 
 
 @pytest.mark.parametrize("patient_id", ["p1", "p2"])
-def test_the_check_in_never_instructs_a_patient_to_take_a_medicine(patient_id):
+def test_the_check_in_reminds_the_patient_to_take_the_medicine(patient_id):
     spoken = greeting(patient_id, f"med-safety-{patient_id}")
-    for phrase in INSTRUCTIONS:
-        assert phrase not in spoken, f"{patient_id} was instructed: {phrase}"
+    assert REMINDER in spoken, f"{patient_id} was not reminded to take anything"
 
 
 @pytest.mark.parametrize("patient_id", ["p1", "p2"])
-def test_the_check_in_still_asks_whether_the_dose_was_taken(patient_id):
+def test_the_check_in_still_asks_how_they_have_been_feeling(patient_id):
     spoken = greeting(patient_id, f"med-asks-{patient_id}")
-    assert "have you been able to take it" in spoken
+    assert "how you have been feeling" in spoken
 
 
 def test_a_flagged_medicine_is_detected_as_flagged():
@@ -62,6 +62,7 @@ def test_a_flagged_medicine_is_not_prompted_for():
     flag_the_next_dose("med-flag-prompt")
     spoken = greeting("p2", "med-flag-prompt")
     assert "i am not going to ask you to take it" in spoken
+    assert REMINDER not in spoken
     for phrase in INSTRUCTIONS:
         assert phrase not in spoken
 
@@ -84,10 +85,10 @@ def test_withholding_the_prompt_is_recorded_on_the_trace():
     assert "DOSE_PROMPT_WITHHELD" in types
 
 
-def test_an_unflagged_regimen_is_prompted_for_normally():
+def test_an_unflagged_regimen_is_reminded_normally():
     spoken = greeting("p1", "med-unflagged")
     assert "i am not going to ask you to take it" not in spoken
-    assert "have you been able to take it" in spoken
+    assert REMINDER in spoken
 
 
 @pytest.mark.parametrize("path", ["/voice/checkin?patient_id=ghost"])

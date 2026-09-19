@@ -823,9 +823,10 @@ CHECKIN_GREETING = (
 )
 
 CHECKIN_DOSE_PROMPT = (
-    "{patient_first_name}, your prescriber's schedule has your {medication} "
-    "{indication}at about this time. Have you been able to take it? Tell me "
-    "yes or no, and tell me how you have been feeling since."
+    "{patient_first_name}, this is a reminder to take your "
+    "{medication}{indication}. Please take it now if you have not already. "
+    "When you have, tell me you took it, and tell me how you have been "
+    "feeling since."
 )
 
 CHECKIN_DOSE_PROMPT_FLAGGED = (
@@ -837,8 +838,22 @@ CHECKIN_DOSE_PROMPT_FLAGGED = (
 )
 
 CHECKIN_NO_ANSWER = (
-    "I did not hear anything, so I will try you again shortly. Please "
+    "I did not hear anything, so I will send you a text instead. Please "
     "remember to take your {medication}. Goodbye for now."
+)
+
+CHECKIN_SMS = (
+    "Hi {patient_first_name}, this is CareLoop. We could not reach you by "
+    "phone. This is a reminder to take your {medication}. Automated message "
+    "from a demonstration service, not medical advice. If you feel unwell, "
+    "contact your prescriber. In an emergency call 911."
+)
+
+CHECKIN_SMS_FLAGGED = (
+    "CareLoop here, {patient_first_name}. We could not reach you by phone. "
+    "Your {medication} is due, but something on your medication list is worth "
+    "asking your prescriber or pharmacist about first. Please do not start, "
+    "stop or change anything because of this message. In an emergency call 911."
 )
 
 CHECKIN_CLOSING = (
@@ -958,6 +973,7 @@ CALL_PHASE_RINGING = "ringing"
 CALL_PHASE_ANSWERED = "answered"
 CALL_PHASE_DISCONNECTED = "disconnected"
 CALL_PHASE_REDIALLING = "redialling"
+CALL_PHASE_TEXTED = "texted"
 CALL_PHASE_ENDED = "ended"
 CALL_PHASE_GAVE_UP = "gave_up"
 
@@ -967,7 +983,8 @@ CALL_PHASE_WORDING = {
     CALL_PHASE_DISCONNECTED: "The call was disconnected before the check-in finished.",
     CALL_PHASE_REDIALLING: "That call did not go through. CareLoop is ringing you again now.",
     CALL_PHASE_ENDED: "The check-in is finished.",
-    CALL_PHASE_GAVE_UP: "CareLoop stopped calling after three attempts.",
+    CALL_PHASE_GAVE_UP: "CareLoop could not reach you, and the text did not send either.",
+    CALL_PHASE_TEXTED: "You did not pick up, so CareLoop has sent you a text instead.",
 }
 
 
@@ -1032,7 +1049,7 @@ async def voice_checkin(
             else CHECKIN_DOSE_PROMPT.format(
                 patient_first_name=first_name,
                 medication=medication,
-                indication=f"{indication} " if indication else "",
+                indication=f", the one {indication}" if indication else "",
             )
         )
         + "</Gather>"
@@ -1138,10 +1155,9 @@ async def voice_checkin_status(
     engaged = bool(call_sid) and call_sid in session.answered_calls
     picked_up = engaged and not answered_by.startswith("machine")
 
-    if picked_up or attempt >= MAX_CALL_ATTEMPTS or not session.call_limiter.allow():
+    if picked_up:
         _set_call_state(
-            session, "checkin",
-            phase=CALL_PHASE_ENDED if picked_up else CALL_PHASE_GAVE_UP,
+            session, "checkin", phase=CALL_PHASE_ENDED,
             attempt=attempt, last_status=status,
         )
         await session.bus.emit("PHONE_CALL_ENDED", {
@@ -1150,20 +1166,28 @@ async def voice_checkin_status(
         })
         return Response(status_code=204)
 
-    _set_call_state(
-        session, "checkin", phase=CALL_PHASE_DISCONNECTED,
-        attempt=attempt, last_status=status,
-    )
-    await session.bus.emit("PHONE_CALL_RETRY", {
-        "leg": "checkin", "status": status, "duration": duration, "attempt": attempt + 1,
-    })
-    _set_call_state(session, "checkin", phase=CALL_PHASE_REDIALLING, attempt=attempt + 1)
+    patient = session.patients.get(patient_id)
+    first_name = _first_name(patient)
+    medication = _spoken_medication(patient)
+    flagged = _next_dose_is_flagged(patient)
+    template = CHECKIN_SMS_FLAGGED if flagged else CHECKIN_SMS
+    body = template.format(patient_first_name=first_name, medication=medication)
+
     to = telephony.demo_phone_number()
-    result = _dial_checkin(
-        str(request.base_url).rstrip("/"), session, patient_id, to, attempt + 1,
+    sent = telephony.send_sms(to, body)
+
+    _set_call_state(
+        session, "checkin",
+        phase=CALL_PHASE_TEXTED if sent["ok"] else CALL_PHASE_GAVE_UP,
+        attempt=attempt, last_status=status, message_sid=sent.get("sid"),
     )
-    session.call_limiter.record()
-    await _emit_call_result(session, "checkin", to, result)
+    await session.bus.emit(
+        "TEXT_MESSAGE_SENT" if sent["ok"] else "TEXT_MESSAGE_FAILED",
+        {
+            "leg": "checkin", "to": telephony.mask_phone(to),
+            "reason": status, "flagged": bool(flagged), "error": sent.get("error"),
+        },
+    )
     return Response(status_code=204)
 
 
