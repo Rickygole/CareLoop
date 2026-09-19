@@ -38,52 +38,6 @@ function Bar({ arm, entry, grown, placeholder }) {
   )
 }
 
-function OverallRow({ arms, overall }) {
-  return (
-    <dl className="flex flex-wrap items-end gap-x-8 gap-y-3">
-      {arms.map((arm) => (
-        <div key={arm.id}>
-          <dt className="font-mono text-micro uppercase text-console-muted">
-            {arm.label}
-          </dt>
-          <dd className="numeric mt-1 text-xl font-semibold tracking-[-0.02em] text-console-ink">
-            {overall[arm.id]}
-            <span className="ml-0.5 text-2xs font-normal text-console-muted">
-              %
-            </span>
-          </dd>
-        </div>
-      ))}
-    </dl>
-  )
-}
-
-function Directionality({ arms, directionality }) {
-  return (
-    <div>
-      <h3 className="font-mono text-micro uppercase text-console-muted">
-        Direction of every disagreement
-      </h3>
-      <ul className="mt-2 space-y-1">
-        {arms.map((arm) => {
-          const entry = directionality[arm.id] || {}
-          return (
-            <li
-              key={arm.id}
-              className="flex items-baseline justify-between gap-4 font-mono text-2xs"
-            >
-              <span className="text-console-muted">{arm.label}</span>
-              <span className="numeric text-console-ink-2">
-                {(entry.lower || 0) + ' lower, ' + (entry.higher || 0) + ' higher'}
-              </span>
-            </li>
-          )
-        })}
-      </ul>
-    </div>
-  )
-}
-
 export default function FairnessChart() {
   const [grown, setGrown] = useState(false)
   const placeholder = Boolean(evalResults.placeholder)
@@ -110,14 +64,15 @@ export default function FairnessChart() {
   )
 
   return (
-    <section
+    <details
       aria-label="Evaluation"
-      className="overflow-hidden rounded-card border border-console-line bg-console-panel"
+      className="overflow-hidden rounded-card border border-console-line bg-console-panel text-sm"
     >
-      <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2 border-b border-console-line bg-console-chrome px-6 py-3">
-        <h2 className="font-mono text-2xs font-bold uppercase tracking-[0.18em] text-console-ink">
-          Supporting evaluation
-        </h2>
+      <summary className="cursor-pointer list-none px-6 py-3 font-mono text-2xs font-bold uppercase tracking-[0.18em] text-console-ink marker:content-none">
+        Supporting evaluation: triage consistency across phrasing styles
+      </summary>
+
+      <div className="border-t border-console-line px-6 py-4">
         {placeholder ? (
           <span className="font-mono text-2xs text-dark-moderate">
             awaiting eval run
@@ -130,12 +85,9 @@ export default function FairnessChart() {
         )}
       </div>
 
-      <div className="grid gap-x-12 gap-y-8 p-6 lg:grid-cols-[minmax(0,20rem)_1fr]">
+      <div className="grid gap-x-12 gap-y-8 border-t border-console-line p-6 lg:grid-cols-[minmax(0,20rem)_1fr]">
         <div>
-          <h3 className="text-sm font-semibold text-console-ink">
-            Triage consistency across phrasing styles
-          </h3>
-          <p className="mt-1.5 text-2xs leading-relaxed text-console-ink-2">
+          <p className="text-2xs leading-relaxed text-console-ink-2">
             {evalResults.metric_label}
           </p>
           <p className="mt-3 max-w-[44ch] text-2xs leading-relaxed text-console-muted">
@@ -143,21 +95,6 @@ export default function FairnessChart() {
               ? 'The harness has not been run, so every bar is empty on purpose. The three arms and four phrasing styles are the design of the evaluation, not a result.'
               : 'No meaningful difference between arms at this sample size.'}
           </p>
-
-          {!placeholder && evalResults.overall ? (
-            <div className="mt-6">
-              <OverallRow arms={arms} overall={evalResults.overall} />
-            </div>
-          ) : null}
-
-          {!placeholder && evalResults.directionality ? (
-            <div className="mt-6 border-t border-console-line pt-4">
-              <Directionality
-                arms={arms}
-                directionality={evalResults.directionality}
-              />
-            </div>
-          ) : null}
         </div>
 
         <div className="grid gap-x-10 gap-y-6 sm:grid-cols-2">
@@ -205,6 +142,6 @@ export default function FairnessChart() {
           {CAPTION}
         </p>
       </div>
-    </section>
+    </details>
   )
 }

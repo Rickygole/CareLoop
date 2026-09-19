@@ -8,7 +8,7 @@ function Kbd({ children }) {
   )
 }
 
-export default function FreeTextTriage({ busy, error, onSubmit }) {
+export default function FreeTextTriage({ busy, error, scenarios, onSubmit }) {
   const [text, setText] = useState('')
   const [focused, setFocused] = useState(false)
   const input = useRef(null)
@@ -38,6 +38,11 @@ export default function FreeTextTriage({ busy, error, onSubmit }) {
     onSubmit(value)
   }
 
+  const pick = (scenario) => {
+    setText(scenario.transcript)
+    if (input.current) input.current.focus()
+  }
+
   return (
     <form
       onSubmit={submit}
@@ -61,11 +66,11 @@ export default function FreeTextTriage({ busy, error, onSubmit }) {
       </div>
 
       <p className="mt-1.5 max-w-[68ch] text-2xs leading-relaxed text-console-muted">
-        Nothing here is scripted. This goes straight to POST /triage and the
-        trace below is the pipeline reacting to your words.
+        Nothing here is scripted. This goes straight to POST /loop/run and
+        every panel below renders what that one response returned.
       </p>
 
-      <div className="mt-4 flex flex-col gap-3 sm:flex-row">
+      <div className="mt-4 flex flex-col gap-3 lg:flex-row lg:items-center">
         <div
           className={
             'flex min-w-0 flex-1 items-center rounded-control border bg-console-inset px-3 transition-colors duration-150 ' +
@@ -93,12 +98,32 @@ export default function FreeTextTriage({ busy, error, onSubmit }) {
             className="min-w-0 flex-1 bg-transparent py-3.5 font-mono text-base text-console-ink outline-none placeholder:text-console-muted/60"
           />
         </div>
+
+        {scenarios && scenarios.length ? (
+          <div
+            role="group"
+            aria-label="Scenario"
+            className="flex flex-wrap items-center gap-1.5"
+          >
+            {scenarios.map((scenario) => (
+              <button
+                key={scenario.id}
+                type="button"
+                onClick={() => pick(scenario)}
+                className="rounded-full border border-console-line px-2.5 py-1 text-2xs font-medium text-console-muted transition-colors duration-150 hover:border-console-line-2 hover:text-console-ink"
+              >
+                {scenario.label}
+              </button>
+            ))}
+          </div>
+        ) : null}
+
         <button
           type="submit"
           disabled={busy || !text.trim()}
           className="shrink-0 rounded-control bg-console-accent px-5 py-3.5 text-sm font-bold uppercase tracking-[0.04em] text-console-accent-ink transition-[background-color,transform] duration-150 ease-out hover:bg-console-accent-deep active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-40"
         >
-          {busy ? 'Running...' : 'Run triage'}
+          {busy ? 'Calling...' : 'Call Now'}
         </button>
       </div>
 

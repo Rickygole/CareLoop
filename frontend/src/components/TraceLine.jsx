@@ -1,27 +1,6 @@
 import { clockTime, styleFor, summarize } from '../lib/trace.js'
 import { LANES, laneFor } from '../lib/loop.js'
 
-function LaneGutter({ lane }) {
-  const clinic = lane.id === LANES.clinic.id
-  return (
-    <span
-      aria-hidden="true"
-      className="relative w-7 shrink-0"
-      title={lane.label}
-    >
-      <span className="absolute inset-y-0 left-[7px] w-px bg-console-line" />
-      <span className="absolute inset-y-0 left-[19px] w-px bg-console-line" />
-      <span
-        className="absolute top-[7px] size-[7px] rounded-full"
-        style={{
-          background: lane.color,
-          left: clinic ? '16px' : '4px',
-        }}
-      />
-    </span>
-  )
-}
-
 export default function TraceLine({ event, dimmed, isNew }) {
   const style = styleFor(event.event_type)
   const lane = laneFor(event.event_type)
@@ -55,7 +34,6 @@ export default function TraceLine({ event, dimmed, isNew }) {
       <span className="numeric w-9 shrink-0 pr-2.5 text-right text-[#4b5462]">
         {event.seq}
       </span>
-      <LaneGutter lane={lane} />
       <span className="numeric shrink-0 pl-2 pr-4 text-console-muted">
         {clockTime(event.timestamp)}
       </span>

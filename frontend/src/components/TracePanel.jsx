@@ -1,16 +1,10 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useLayoutEffect, useMemo, useRef } from 'react'
 
 import TraceLine from './TraceLine.jsx'
 import { LANES, laneFor } from '../lib/loop.js'
 import { TRACE_STATUS } from '../lib/useTrace.js'
 
 const DIM_AFTER = 14
-
-const FILTERS = [
-  { id: 'all', label: 'both' },
-  { id: 'patient', label: 'patient' },
-  { id: 'clinic', label: 'clinic' },
-]
 
 function transportLabel(status, retries, maxRetries) {
   switch (status) {
@@ -46,15 +40,8 @@ function LaneKey({ lane, count, offset }) {
   )
 }
 
-export default function TracePanel({ events, status, retries, maxRetries, onClear }) {
+export default function TracePanel({ events, status, retries, maxRetries }) {
   const scroller = useRef(null)
-  const [pinned, setPinned] = useState(true)
-  const [filter, setFilter] = useState('all')
-  const baseline = useRef(null)
-
-  if (baseline.current === null && events.length) {
-    baseline.current = events[events.length - 1].seq
-  }
 
   const counts = useMemo(() => {
     let patient = 0
@@ -66,31 +53,15 @@ export default function TracePanel({ events, status, retries, maxRetries, onClea
     return { patient, clinic }
   }, [events])
 
-  const visible = useMemo(() => {
-    if (filter === 'all') return events
-    return events.filter((event) => laneFor(event.event_type).id === filter)
-  }, [events, filter])
-
-  const onScroll = useCallback(() => {
-    const el = scroller.current
-    if (!el) return
-    const distance = el.scrollHeight - el.scrollTop - el.clientHeight
-    setPinned(distance < 48)
-  }, [])
-
   useLayoutEffect(() => {
     const el = scroller.current
-    if (el && pinned) el.scrollTop = el.scrollHeight
-  }, [visible, pinned])
-
-  useEffect(() => {
-    if (!events.length) baseline.current = null
-  }, [events.length])
+    if (el) el.scrollTop = el.scrollHeight
+  }, [events])
 
   const transport = transportLabel(status, retries, maxRetries)
   const degraded =
     status === TRACE_STATUS.RECONNECTING || status === TRACE_STATUS.OFFLINE
-  const lastIndex = visible.length - 1
+  const lastIndex = events.length - 1
 
   return (
     <section
@@ -108,74 +79,39 @@ export default function TracePanel({ events, status, retries, maxRetries, onClea
             </span>
           </div>
 
-          <div className="flex items-center gap-4">
-            <span className="inline-flex items-center gap-2 font-mono text-2xs text-console-ink-2">
-              <span
-                aria-hidden="true"
-                className="size-1.5 rounded-full"
-                style={{
-                  background: transport.dot,
-                  animation: transport.pulse
-                    ? 'live-pulse 2.4s ease-in-out infinite'
-                    : undefined,
-                }}
-              />
-              {transport.text}
-            </span>
-            <button
-              type="button"
-              onClick={onClear}
-              className="rounded-[6px] border border-console-line px-2 py-1 font-mono text-2xs lowercase text-console-muted transition-colors duration-150 hover:border-console-line-2 hover:text-console-ink"
-            >
-              clear
-            </button>
-          </div>
+          <span className="inline-flex items-center gap-2 font-mono text-2xs text-console-ink-2">
+            <span
+              aria-hidden="true"
+              className="size-1.5 rounded-full"
+              style={{
+                background: transport.dot,
+                animation: transport.pulse
+                  ? 'live-pulse 2.4s ease-in-out infinite'
+                  : undefined,
+              }}
+            />
+            {transport.text}
+          </span>
         </div>
 
-        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-console-line bg-console-chrome px-4 py-2">
-          <div className="flex items-center gap-4">
-            <LaneKey lane={LANES.patient} count={counts.patient} offset="0px" />
-            <LaneKey lane={LANES.clinic} count={counts.clinic} offset="7px" />
-            <span className="hidden font-mono text-2xs text-console-muted lg:inline">
-              two tracks, two conversations
-            </span>
-          </div>
-
-          <div
-            role="group"
-            aria-label="Filter trace lanes"
-            className="flex items-center gap-1"
-          >
-            {FILTERS.map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                aria-pressed={filter === item.id}
-                onClick={() => setFilter(item.id)}
-                className={
-                  'rounded-[6px] px-2 py-1 font-mono text-2xs transition-colors duration-150 ' +
-                  (filter === item.id
-                    ? 'bg-console-accent/15 text-console-accent'
-                    : 'text-console-muted hover:text-console-ink')
-                }
-              >
-                {item.label}
-              </button>
-            ))}
-          </div>
+        <div className="flex flex-wrap items-center gap-4 border-t border-console-line bg-console-chrome px-4 py-2">
+          <LaneKey lane={LANES.patient} count={counts.patient} offset="0px" />
+          <LaneKey lane={LANES.clinic} count={counts.clinic} offset="7px" />
+          <span className="hidden font-mono text-2xs text-console-muted lg:inline">
+            two tracks, two conversations
+          </span>
         </div>
       </header>
 
       <div className="relative min-h-0 flex-1">
         <ol
           ref={scroller}
-          onScroll={onScroll}
           className="h-full overflow-y-auto py-2 font-mono text-trace"
         >
-          {visible.length === 0 ? (
+          {events.length === 0 ? (
             <li className="flex h-full flex-col justify-end px-5 pb-6">
               <p className="font-mono text-2xs uppercase tracking-[0.16em] text-console-muted">
-                {events.length ? 'Nothing on this track yet' : 'Awaiting events'}
+                Awaiting events
               </p>
               <p className="mt-3 max-w-[56ch] text-xs leading-relaxed text-console-ink-2">
                 Every line the pipeline emits lands here in order, on the track
@@ -192,12 +128,12 @@ export default function TracePanel({ events, status, retries, maxRetries, onClea
               </p>
             </li>
           ) : (
-            visible.map((event, index) => (
+            events.map((event, index) => (
               <TraceLine
                 key={event.seq}
                 event={event}
                 dimmed={index < lastIndex - DIM_AFTER}
-                isNew={baseline.current !== null && event.seq > baseline.current}
+                isNew={false}
               />
             ))
           )}
@@ -211,20 +147,6 @@ export default function TracePanel({ events, status, retries, maxRetries, onClea
             </li>
           ) : null}
         </ol>
-
-        {!pinned && visible.length ? (
-          <button
-            type="button"
-            onClick={() => {
-              setPinned(true)
-              const el = scroller.current
-              if (el) el.scrollTop = el.scrollHeight
-            }}
-            className="enter-fade absolute bottom-4 right-5 rounded-full border border-console-line-2 bg-console-panel px-3 py-1.5 font-mono text-2xs text-console-ink shadow-console transition-colors duration-150 hover:border-console-accent hover:text-console-accent"
-          >
-            jump to latest
-          </button>
-        ) : null}
       </div>
     </section>
   )

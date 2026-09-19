@@ -1,91 +1,92 @@
-import TierBadge from './TierBadge.jsx'
+import { tierMeta } from './TierBadge.jsx'
 
-function Field({ label, value }) {
-  return (
-    <div className="min-w-0">
-      <dt className="font-mono text-micro uppercase text-console-muted">
-        {label}
-      </dt>
-      <dd className="mt-1 break-words font-mono text-xs text-console-ink">
-        {value}
-      </dd>
-    </div>
-  )
+function titleCase(value) {
+  const word = String(value || '').toLowerCase()
+  return word ? word.charAt(0).toUpperCase() + word.slice(1) : 'Unknown'
 }
 
-export default function TriageResult({ result, latencyMs, booking, onBook, bookingBusy }) {
+export default function TriageResult({ result, latencyMs }) {
   if (!result) {
     return (
-      <section className="rounded-card border border-dashed border-console-line bg-console-panel/60 p-5">
+      <section
+        aria-label="Verdict"
+        className="rounded-card border border-dashed border-console-line bg-console-panel/60 p-6"
+      >
         <h2 className="font-mono text-2xs font-bold uppercase tracking-[0.18em] text-console-muted">
-          Result
+          Verdict
         </h2>
-        <p className="mt-2.5 max-w-[42ch] text-2xs leading-relaxed text-console-muted">
-          The classification, its source, and the response the agent would
-          speak will appear here after the first run.
+        <p className="mt-2.5 max-w-[48ch] text-sm leading-relaxed text-console-muted">
+          The tier, its source, and the round trip time will appear here
+          after the first run.
         </p>
       </section>
     )
   }
 
-  const tier = String(result.tier).toLowerCase()
+  const tier = String(result.tier || '').toLowerCase()
+  const meta = tierMeta(tier)
   const emergency = tier === 'emergency'
-  const bookable = !emergency && (tier === 'moderate' || tier === 'severe')
+  const ruleOnly = result.source === 'rule'
 
   return (
     <section
       aria-live="polite"
-      className="enter-rise overflow-hidden rounded-card border border-console-line bg-console-panel"
+      aria-label="Verdict"
+      className="enter-rise relative overflow-hidden rounded-card border border-console-line bg-console-panel pl-1"
     >
-      <div className="flex items-center justify-between gap-3 border-b border-console-line bg-console-chrome px-5 py-2.5">
-        <h2 className="font-mono text-2xs font-bold uppercase tracking-[0.18em] text-console-ink">
-          Result
-        </h2>
-        {typeof latencyMs === 'number' ? (
-          <p className="numeric font-mono text-2xs text-console-muted">
-            <span className="text-console-ink">{latencyMs}</span> ms round trip
-          </p>
-        ) : null}
-      </div>
+      <span
+        aria-hidden="true"
+        className="absolute inset-y-0 left-0 w-1"
+        style={{ background: meta.darkRail }}
+      />
 
-      <div className="p-5">
-        <div className="flex flex-wrap items-center gap-2.5">
-          <TierBadge tier={result.tier} tone="dark" />
+      <div className="p-6">
+        <div className="flex flex-wrap items-baseline justify-between gap-3">
+          <h1
+            className="font-display text-3xl font-semibold tracking-[-0.02em]"
+            style={{ color: meta.darkRail }}
+          >
+            {meta.label}
+          </h1>
           {result.is_crisis ? (
             <span className="rounded-full border border-dark-emergency/45 px-2.5 py-1 text-micro font-semibold uppercase text-dark-emergency">
               Crisis route, 988
             </span>
-          ) : null}
-          {emergency && !result.is_crisis ? (
+          ) : emergency ? (
             <span className="rounded-full border border-dark-emergency/45 px-2.5 py-1 text-micro font-semibold uppercase text-dark-emergency">
               Emergency route, 911
             </span>
           ) : null}
         </div>
 
-        <dl className="mt-5 grid grid-cols-2 gap-x-5 gap-y-4">
-          <Field label="source" value={result.source || 'unknown'} />
-          <Field
-            label="confidence"
-            value={
-              typeof result.confidence === 'number'
-                ? result.confidence.toFixed(2)
-                : 'n/a'
-            }
-          />
-          <Field
-            label="rules"
-            value={
-              result.matched_rules && result.matched_rules.length
-                ? result.matched_rules.join(', ')
-                : 'none'
-            }
-          />
-          <Field label="normalized" value={result.normalized_text || 'n/a'} />
-        </dl>
+        <div className="mt-5 flex flex-wrap items-center gap-x-8 gap-y-3">
+          <div>
+            <p className="font-mono text-micro uppercase text-console-muted">
+              source
+            </p>
+            <p className="mt-1 text-sm font-medium text-console-ink">
+              {titleCase(result.source) || 'Unknown'}
+            </p>
+          </div>
+          <div>
+            <p className="font-mono text-micro uppercase text-console-muted">
+              round trip
+            </p>
+            <p className="numeric mt-1 text-sm font-medium text-console-ink">
+              {typeof latencyMs === 'number' ? latencyMs + ' ms' : 'n/a'}
+            </p>
+          </div>
+        </div>
+
+        {ruleOnly ? (
+          <p className="mt-5 max-w-[62ch] text-sm leading-relaxed text-console-accent">
+            No model was consulted. This tier came from a deterministic rule
+            match, which is also why it came back fastest.
+          </p>
+        ) : null}
 
         {result.reasoning ? (
-          <p className="mt-5 max-w-[62ch] text-xs leading-relaxed text-console-ink-2">
+          <p className="mt-5 max-w-[62ch] text-sm leading-relaxed text-console-ink-2">
             {result.reasoning}
           </p>
         ) : null}
@@ -99,39 +100,6 @@ export default function TriageResult({ result, latencyMs, booking, onBook, booki
           </p>
         </blockquote>
       </div>
-
-      {bookable ? (
-        <div className="border-t border-console-line bg-console-chrome px-5 py-4">
-          <div className="flex flex-wrap items-center gap-3">
-            <button
-              type="button"
-              onClick={onBook}
-              disabled={bookingBusy || Boolean(booking)}
-              className="rounded-control border border-console-accent/50 bg-console-accent/10 px-3.5 py-2 text-xs font-semibold text-console-accent transition-[background-color,transform] duration-150 ease-out hover:bg-console-accent/20 active:scale-[0.99] disabled:opacity-50"
-            >
-              {bookingBusy ? 'Calling clinic...' : 'Book the follow-up'}
-            </button>
-            {booking ? (
-              <p className="numeric font-mono text-xs text-console-accent">
-                confirmed {booking.provider_name} ({booking.specialty}){' '}
-                {booking.time}
-              </p>
-            ) : (
-              <p className="text-2xs text-console-muted">
-                Step 04. CareLoop contacts the clinic and books the visit.
-              </p>
-            )}
-          </div>
-        </div>
-      ) : null}
-
-      {emergency ? (
-        <div className="border-t border-console-line bg-dark-emergency/8 px-5 py-3">
-          <p className="font-mono text-xs text-dark-emergency">
-            Booking is disabled on the emergency path by design.
-          </p>
-        </div>
-      ) : null}
     </section>
   )
 }
