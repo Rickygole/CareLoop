@@ -166,3 +166,45 @@ def test_a_worrying_answer_still_asks_before_booking(talking):
         if v["status"] == "booked" and v.get("source") == "check_in"
     ]
     assert not booked, "the triage branch booked without asking"
+
+
+def test_the_model_is_not_asked_to_narrate_over_a_booking_it_did_not_make(monkeypatch):
+    monkeypatch.setattr(conversation, "is_configured", lambda: True)
+    calls = []
+
+    def fake(history, context):
+        calls.append(list(history))
+        return answer(
+            "While I cannot book the appointment directly, I would encourage "
+            "you to reach out to your prescriber.",
+        )
+
+    monkeypatch.setattr(conversation, "reply", fake)
+    session = "conv-no-contradiction"
+    speak(session, WORRYING)
+    xml = speak(session, "yes please")
+    assert "cannot book" not in xml.lower(), (
+        "the model was asked to comment on the same turn the system just "
+        "confirmed a booking, and it contradicted the confirmation the "
+        "patient just heard"
+    )
+    assert not calls, (
+        "the model was called on the booking confirmation turn at all, "
+        "which is exactly what produces the contradiction"
+    )
+    assert "booked you with" in xml
+
+
+def test_declining_the_offer_also_skips_the_model(monkeypatch):
+    monkeypatch.setattr(conversation, "is_configured", lambda: True)
+    calls = []
+
+    def fake(history, context):
+        calls.append(list(history))
+        return answer()
+
+    monkeypatch.setattr(conversation, "reply", fake)
+    session = "conv-decline-no-model"
+    speak(session, WORRYING)
+    speak(session, "no thanks")
+    assert not calls, "the model was called on the decline turn"

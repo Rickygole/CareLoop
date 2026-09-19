@@ -1230,8 +1230,26 @@ def _agent_turns(session: SessionState, patient_id: str) -> int:
     )
 
 
+CONVERSATION_ANYTHING_ELSE = "Is there anything else on your mind today, {patient_first_name}?"
+
+
+def _loop_back(base_url: str, patient_id: str, session_id: str, said: str, closing: str) -> str:
+    action = base_url.rstrip("/") + "/voice/checkin/respond?" + urlencode({
+        "patient_id": patient_id, SESSION_QUERY_PARAM: session_id,
+    })
+    return (
+        f'<Gather input="speech" action="{xml_escape(action)}" method="POST" '
+        'speechTimeout="auto" timeout="8" language="en-US">'
+        + _say(said)
+        + "</Gather>"
+        + _say(CONVERSATION_GOODBYE)
+        + closing
+    )
+
+
 async def _keep_talking(
     session: SessionState, patient: dict, patient_id: str, base_url: str, lead: str = "",
+    ask_model: bool = True,
 ) -> str:
     first_name = _first_name(patient)
     closing = _say(CHECKIN_CLOSING.format(patient_first_name=first_name)) + "<Hangup/>"
@@ -1239,6 +1257,13 @@ async def _keep_talking(
     def hang_up(text: str) -> str:
         _remember_turn(session, patient_id, "agent", text)
         return (_say(text) if text else "") + closing
+
+    if not ask_model:
+        if not conversation.is_configured() or _agent_turns(session, patient_id) >= conversation.MAX_TURNS:
+            return hang_up(lead)
+        said = (lead + " " + CONVERSATION_ANYTHING_ELSE.format(patient_first_name=first_name)).strip()
+        _remember_turn(session, patient_id, "agent", said)
+        return _loop_back(base_url, patient_id, session.session_id, said, closing)
 
     if not conversation.is_configured():
         return hang_up(lead)
@@ -1274,17 +1299,7 @@ async def _keep_talking(
             "transcript": recent[-1] if recent else "",
         }
 
-    action = base_url.rstrip("/") + "/voice/checkin/respond?" + urlencode({
-        "patient_id": patient_id, SESSION_QUERY_PARAM: session.session_id,
-    })
-    return (
-        f'<Gather input="speech" action="{xml_escape(action)}" method="POST" '
-        'speechTimeout="auto" timeout="8" language="en-US">'
-        + _say(said)
-        + "</Gather>"
-        + _say(CONVERSATION_GOODBYE)
-        + closing
-    )
+    return _loop_back(base_url, patient_id, session.session_id, said, closing)
 
 
 def _set_call_state(session: SessionState, leg: str, **fields) -> dict:
@@ -1521,13 +1536,15 @@ async def voice_checkin_respond(
                 "I could not find an opening right now, so please call the "
                 "clinic yourself."
             )
-        return _twiml(await _keep_talking(session, patient, patient_id, str(request.base_url), ack))
+        return _twiml(await _keep_talking(
+            session, patient, patient_id, str(request.base_url), ack, ask_model=False,
+        ))
 
     if pending and _declines_appointment(transcript):
         session.pending_bookings.pop(patient_id, None)
         return _twiml(await _keep_talking(
             session, patient, patient_id, str(request.base_url),
-            "No problem, I will not book anything.",
+            "No problem, I will not book anything.", ask_model=False,
         ))
 
     if result["tier"] in ("moderate", "severe"):
