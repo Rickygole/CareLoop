@@ -132,6 +132,14 @@ export function ringClinic(patientId, specialty) {
   })
 }
 
+export function callState(leg) {
+  return request('/call/state?leg=' + encodeURIComponent(leg || 'checkin'))
+}
+
+export function followups(patientId) {
+  return request('/followups/' + encodeURIComponent(patientId))
+}
+
 export function fetchEventsSince(since) {
   return request('/trace/events?since=' + since)
 }

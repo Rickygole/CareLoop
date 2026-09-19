@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 
 import CheckIn from './CheckIn.jsx'
 import Notice from './Notice.jsx'
+import { callState } from '../lib/api.js'
 import { clockLabel, dateTimeLabel } from '../lib/format.js'
 import { BTN_HERO, BTN_PRIMARY, BTN_QUIET, PANEL } from '../lib/ui.js'
 import {
@@ -21,11 +22,31 @@ const GAP = 900
 const GAP_LONG = 1100
 const GAP_REDUCED = 200
 
+const POLL_MS = 2000
+const MAX_POLL_FAILURES = 5
+
 const SAFETY =
   'Please do not describe your own real health. This is a demonstration and every record in it is made up.'
 
 const FALLBACK_RESPONSE =
   'Thank you for telling me. I have passed that on and made a note of it on your record.'
+
+const RING = String.fromCharCode(9679)
+const DASH = String.fromCharCode(8213)
+const CHECK = String.fromCharCode(10003)
+const DIAMOND = String.fromCharCode(9670)
+
+const PHASE_WORD = {
+  dialling: { word: 'Calling', glyph: RING },
+  ringing: { word: 'Ringing', glyph: RING },
+  disconnected: { word: 'Disconnected', glyph: DASH },
+  redialling: { word: 'Calling again', glyph: RING },
+  answered: { word: 'On the call', glyph: CHECK },
+  ended: { word: 'Call ended', glyph: DASH },
+  gave_up: { word: 'Stopped calling', glyph: DIAMOND },
+}
+
+const POLL_DONE = ['answered', 'ended', 'gave_up']
 
 function reducedMotion() {
   if (typeof window === 'undefined' || !window.matchMedia) return false
@@ -41,28 +62,29 @@ function firstNameOf(name) {
   return String(name || '').trim().split(/\s+/)[0] || 'there'
 }
 
-function greetingLine(first, dose) {
-  const medication = dose && dose.medication ? 'your ' + dose.medication : 'your medication'
+function greetingLine(first) {
   return (
-    'Hi ' +
+    'Hello ' +
     first +
-    ', this is CareLoop calling to check in on ' +
-    medication +
-    ". Quick note, I'm an automated check-in assistant, not a medical " +
-    'professional, and this is a demonstration. Do you have a couple of ' +
-    'minutes?'
+    '. This is CareLoop, your medication assistant. Quick note before we ' +
+    'start. I am an automated assistant, not a medical professional, and ' +
+    'this is a demonstration.'
   )
 }
 
-function doseLine(dose) {
-  if (!dose || !dose.medication) {
-    return 'Did you take your medication today, and how have you been feeling since?'
-  }
-  const named = dose.dosage
-    ? 'your ' + dose.dosage + ' ' + dose.medication
-    : 'your ' + dose.medication
-  const when = dose.time ? ' It is on your schedule for ' + clockLabel(dose.time) + '.' : ''
-  return 'Did you take ' + named + ' today?' + when + ' And how have you been feeling since?'
+function doseLine(first, dose) {
+  const named = dose && dose.medication ? dose.medication : 'medication'
+  const amount = dose && dose.dosage ? ', ' + dose.dosage : ''
+  const why = dose && dose.indication ? ' ' + dose.indication : ''
+  return (
+    first +
+    ", your prescriber's schedule has your " +
+    named +
+    amount +
+    why +
+    ' at about this time. Have you been able to take it? Tell me yes or no, ' +
+    'and tell me how you have been feeling since.'
+  )
 }
 
 function bookingLine(booking) {
@@ -130,6 +152,33 @@ const RING_WORDING = {
     'Your phone is ringing now. Pick up and CareLoop will greet you by name. If you miss it, it rings you back.',
 }
 
+function Path({ state, label, heading, body, children }) {
+  const active = state === 'active'
+  const meta =
+    state === 'active'
+      ? { glyph: RING, tone: 'text-clay' }
+      : { glyph: DASH, tone: 'text-ink-2' }
+
+  return (
+    <div
+      className={
+        'ledge ledge-strong rounded-card border px-6 py-6 ' +
+        (active ? 'border-line-strong bg-surface' : 'border-line bg-sunken')
+      }
+    >
+      <p className={'flex items-center gap-3 ' + meta.tone}>
+        <span aria-hidden="true" className="text-[1.1em] leading-none">
+          {meta.glyph}
+        </span>
+        <span className="smallcaps text-micro">{label}</span>
+      </p>
+      <h3 className="display-tight mt-3 text-lg text-ink">{heading}</h3>
+      <div className="measure mt-2 text-sm text-ink-2">{body}</div>
+      {children}
+    </div>
+  )
+}
+
 export default function SimulatedCall({
   patientName,
   nextDose,
@@ -144,8 +193,11 @@ export default function SimulatedCall({
   const [ringState, setRingState] = useState(CALL_STATUS.IDLE)
   const [ringSid, setRingSid] = useState('')
   const [ringMissing, setRingMissing] = useState([])
+  const [live, setLive] = useState(null)
+  const [stateUnread, setStateUnread] = useState(false)
   const alive = useRef(true)
   const seq = useRef(0)
+  const poll = useRef(null)
 
   useEffect(() => {
     alive.current = true
@@ -153,6 +205,41 @@ export default function SimulatedCall({
       alive.current = false
     }
   }, [])
+
+  const stopPolling = useCallback(() => {
+    if (poll.current) {
+      clearInterval(poll.current)
+      poll.current = null
+    }
+  }, [])
+
+  useEffect(() => stopPolling, [stopPolling])
+
+  const startPolling = useCallback(() => {
+    stopPolling()
+    let failures = 0
+    const read = async () => {
+      let state = null
+      try {
+        state = await callState('checkin')
+      } catch {
+        state = null
+      }
+      if (!alive.current) return
+      if (!state) {
+        failures += 1
+        setStateUnread(true)
+        if (failures >= MAX_POLL_FAILURES) stopPolling()
+        return
+      }
+      failures = 0
+      setStateUnread(false)
+      setLive(state)
+      if (POLL_DONE.includes(state.phase)) stopPolling()
+    }
+    read()
+    poll.current = setInterval(read, POLL_MS)
+  }, [stopPolling])
 
   const say = useCallback((speaker, text, note) => {
     seq.current += 1
@@ -163,10 +250,11 @@ export default function SimulatedCall({
   const begin = useCallback(async () => {
     setTurns([])
     setPhase('greeting')
-    say('careloop', greetingLine(firstNameOf(patientName), nextDose))
+    const first = firstNameOf(patientName)
+    say('careloop', greetingLine(first))
     await pause(GAP_LONG)
     if (!alive.current) return
-    say('careloop', doseLine(nextDose))
+    say('careloop', doseLine(first, nextDose))
     await pause(GAP_SHORT)
     if (!alive.current) return
     setPhase('awaiting')
@@ -210,19 +298,45 @@ export default function SimulatedCall({
   const ring = useCallback(async () => {
     setRingState(CALL_STATUS.DIALLING)
     setRingMissing([])
+    setLive(null)
+    setStateUnread(false)
     let payload = null
     try {
       payload = await onRing()
     } catch {
       payload = null
     }
+    const next = statusFromPayload(payload)
     setRingSid(callSidFrom(payload))
     setRingMissing(missingFrom(payload))
-    setRingState(statusFromPayload(payload))
-  }, [onRing])
+    setRingState(next)
+    if (next === CALL_STATUS.RINGING) startPolling()
+  }, [onRing, startPolling])
 
   const speaking = phase === 'greeting'
   const thinking = phase === 'thinking'
+
+  const phoneWorking =
+    ringState === CALL_STATUS.DIALLING ||
+    (ringState === CALL_STATUS.RINGING &&
+      (!live || !POLL_DONE.includes(live.phase) || live.phase === 'answered'))
+  const writtenRunning = phase !== 'idle' && phase !== 'ended'
+
+  const phoneState = phoneWorking ? 'active' : 'waiting'
+  const writtenState = writtenRunning ? 'active' : 'waiting'
+  const phoneLabel = phoneLive
+    ? phoneWorking
+      ? 'Running now, the real call'
+      : writtenRunning
+        ? 'Not the path you are on'
+        : 'The real call'
+    : 'Not switched on here'
+  const writtenLabel = writtenRunning
+    ? 'Running now, in writing'
+    : phoneWorking
+      ? 'Not the path you are on'
+      : 'A written stand-in'
+  const phaseWord = live ? PHASE_WORD[live.phase] : null
 
   return (
     <div className="mt-10">
@@ -231,21 +345,137 @@ export default function SimulatedCall({
         className={PANEL + ' px-6 py-8 sm:px-10 sm:py-10'}
       >
         <h2 id="simulated-call-heading" className="display text-xl text-ink">
-          A simulated check-in call
+          The check-in call, one way or the other
         </h2>
         <p className="measure mt-3 text-ink-2">
-          {phoneLive
-            ? 'Ring your own phone and CareLoop will greet you by name and ask you to take your dose, or read the same check-in here instead. Either way the decision comes from the real CareLoop service.'
-            : 'The spoken version needs a voice service that is not switched on here, so the call plays out in writing, turn by turn. Every decision in it comes from the real CareLoop service.'}
+          There are two ways to take this check-in and only one of them runs at
+          a time. Take the real phone call, or read the same check-in in
+          writing. The decision at the end comes from the real CareLoop service
+          either way.
         </p>
 
-        <Notice tone="caution" word="Simulated" className="mt-7">
-          {SIMULATION_DISCLOSURE}
-        </Notice>
-
-        <Notice tone="quiet" word="Safety" className="mt-5" size="sm">
+        <Notice tone="quiet" word="Safety" className="mt-7" size="sm">
           {SAFETY}
         </Notice>
+
+        <div className="mt-8 grid gap-6 lg:grid-cols-2">
+          <Path
+            state={phoneLive ? phoneState : 'waiting'}
+            label={phoneLabel}
+            heading="Take the real phone call"
+            body={
+              phoneLive
+                ? 'This is the real thing. CareLoop dials the number on the record and talks to you on an ordinary phone call. No app and no screen.'
+                : 'Outbound calling needs telephony credentials that are not set here, so no phone will ring. Nothing is faked to cover for it.'
+            }
+          >
+            {phoneLive ? (
+              <div className="mt-6">
+                <button
+                  type="button"
+                  onClick={ring}
+                  disabled={phoneWorking || writtenRunning}
+                  className={BTN_HERO}
+                >
+                  {ringState === CALL_STATUS.DIALLING
+                    ? 'Ringing your phone...'
+                    : 'Call my phone now'}
+                </button>
+
+                <div role="status" aria-live="polite" className="empty:hidden">
+                  {RING_WORDING[ringState] && !phaseWord ? (
+                    <p className="measure mt-6 text-sm font-semibold text-ink">
+                      {RING_WORDING[ringState]}
+                      {ringSid ? (
+                        <span className="numeric ml-3 font-mono text-xs font-normal text-ink-2">
+                          {ringSid}
+                        </span>
+                      ) : null}
+                    </p>
+                  ) : null}
+
+                  {phaseWord ? (
+                    <div className="mt-6">
+                      <p className="flex items-center gap-3 text-clay">
+                        <span aria-hidden="true" className="text-[1.1em] leading-none">
+                          {phaseWord.glyph}
+                        </span>
+                        <span className="smallcaps text-micro">
+                          {phaseWord.word}
+                        </span>
+                      </p>
+                      <p className="measure mt-2 text-sm font-semibold text-ink">
+                        {live.wording}
+                      </p>
+                      {live.retrying && live.attempt ? (
+                        <p className="numeric mt-2 text-sm text-ink-2">
+                          Attempt {live.attempt} of {live.max_attempts}
+                        </p>
+                      ) : null}
+                      {live.call_sid ? (
+                        <p className="numeric mt-2 font-mono text-xs text-ink-2">
+                          {live.call_sid}
+                        </p>
+                      ) : null}
+                    </div>
+                  ) : null}
+
+                  {stateUnread ? (
+                    <p className="measure mt-4 text-sm text-ink-2">
+                      CareLoop could not read the state of the call just now,
+                      so nothing here has moved on. The call itself is
+                      unaffected.
+                    </p>
+                  ) : null}
+
+                  {ringState === CALL_STATUS.UNAVAILABLE ? (
+                    <p className="measure mt-6 text-sm font-semibold text-severe">
+                      <span aria-hidden="true" className="mr-3">
+                        {DIAMOND}
+                      </span>
+                      The call was not placed.
+                      {ringMissing.length
+                        ? ' Missing settings: ' + ringMissing.join(', ') + '.'
+                        : ' Nothing was dialled and nothing was recorded.'}
+                    </p>
+                  ) : null}
+                </div>
+              </div>
+            ) : null}
+          </Path>
+
+          <Path
+            state={writtenState}
+            label={writtenLabel}
+            heading="Read the same check-in in writing"
+            body={
+              <>
+                <span className="block">
+                  A written stand-in for the voice agent, turn by turn. It is
+                  not a recording of the real phone call and not a transcript of
+                  one. It says what the phone call says, and your answer goes to
+                  the same CareLoop service.
+                </span>
+                <Notice tone="caution" word="Simulated" className="mt-5" size="sm">
+                  {SIMULATION_DISCLOSURE}
+                </Notice>
+              </>
+            }
+          >
+            <div className="mt-6">
+              <button
+                type="button"
+                onClick={begin}
+                disabled={phoneWorking || writtenRunning}
+                className={phoneLive ? BTN_QUIET : BTN_HERO}
+              >
+                {writtenRunning
+                  ? 'The written check-in is running'
+                  : 'Read the check-in in writing'}
+              </button>
+            </div>
+          </Path>
+        </div>
 
         {turns.length ? (
           <ol
@@ -259,11 +489,7 @@ export default function SimulatedCall({
               <Turn key={turn.id} turn={turn} index={index} />
             ))}
           </ol>
-        ) : (
-          <p className="measure mt-9 text-ink-2">
-            No call has been placed yet.
-          </p>
-        )}
+        ) : null}
 
         <div role="status" aria-live="polite" className="empty:hidden">
           {speaking || thinking ? (
@@ -281,74 +507,26 @@ export default function SimulatedCall({
           ) : null}
         </div>
 
-        {phase === 'idle' ? (
-          <div className="mt-9 flex flex-wrap items-center gap-x-6 gap-y-4">
-            {phoneLive ? (
-              <button
-                type="button"
-                onClick={ring}
-                disabled={
-                  ringState === CALL_STATUS.DIALLING ||
-                  ringState === CALL_STATUS.RINGING
-                }
-                className={BTN_HERO}
-              >
-                {ringState === CALL_STATUS.DIALLING
-                  ? 'Ringing your phone...'
-                  : 'Call my phone now'}
-              </button>
-            ) : null}
-            <button
-              type="button"
-              onClick={begin}
-              className={phoneLive ? BTN_QUIET : BTN_HERO}
-            >
-              Start the simulated call
-            </button>
-          </div>
-        ) : null}
-
-        <div role="status" aria-live="polite" className="empty:hidden">
-          {RING_WORDING[ringState] ? (
-            <p className="measure mt-6 text-sm font-semibold text-ink">
-              {RING_WORDING[ringState]}
-              {ringSid ? (
-                <span className="numeric ml-3 font-mono text-xs font-normal text-ink-2">
-                  {ringSid}
-                </span>
-              ) : null}
-            </p>
-          ) : null}
-          {ringState === CALL_STATUS.UNAVAILABLE ? (
-            <p className="measure mt-6 text-sm font-semibold text-severe">
-              The call was not placed.
-              {ringMissing.length
-                ? ' Missing settings: ' + ringMissing.join(', ') + '.'
-                : ' Nothing was dialled and nothing was recorded.'}
-            </p>
-          ) : null}
-        </div>
-
         {phase === 'ended' ? (
           <div className="mt-9 flex flex-wrap items-center gap-x-6 gap-y-4">
             <Link to="/decision" className={BTN_PRIMARY}>
               See what CareLoop decided
             </Link>
             <button type="button" onClick={begin} className={BTN_QUIET}>
-              Run the call again
+              Read it again
             </button>
           </div>
         ) : null}
       </section>
 
-      {phase === 'idle' || phase === 'ended' ? null : (
+      {writtenRunning ? (
         <CheckIn
           busy={busy || phase !== 'awaiting'}
           error={error}
           scenarios={scenarios}
           onSubmit={reply}
         />
-      )}
+      ) : null}
     </div>
   )
 }

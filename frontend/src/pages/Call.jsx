@@ -19,14 +19,23 @@ const FAILED =
 
 export default function CallPage() {
   const navigate = useNavigate()
-  const { patientId, record, schedule, clockShiftMs, recordRun } = useSession()
+  const { patientId, record, medications, schedule, clockShiftMs, recordRun } =
+    useSession()
 
   const [busy, setBusy] = useState(false)
   const [failed, setFailed] = useState(false)
 
   const spoken = isConfigured()
   const plan = applyClockShift(schedule, clockShiftMs)
-  const next = plan && plan.next_dose
+  const dose = plan && plan.next_dose
+  const prescribed =
+    dose &&
+    (medications || []).find(
+      (item) => item.medication_id === dose.medication_id,
+    )
+  const next = dose
+    ? { ...dose, indication: (prescribed && prescribed.indication) || '' }
+    : dose
   const due = next && (next.status === 'due_now' || next.status === 'due_soon')
   const who = record ? record.name : patientName(patientId)
 
@@ -66,44 +75,32 @@ export default function CallPage() {
   )
 
   return (
-    <Screen
-      title="The call CareLoop makes"
-      lead={
-        'When a dose comes due, CareLoop rings ' +
-        who +
-        ' and asks two things: did you take it, and how are you feeling. It decides what to do about the answer while the line is still open. Take that call now.'
-      }
-    >
+    <Screen title="Check-in">
       <Notice tone="info" word={due ? 'Due now' : 'Coming up'} className="measure">
         {next ? (
           due ? (
             <span>
               <strong className="font-semibold">
                 {next.medication}
-                {next.dosage ? ' ' + next.dosage : ''} is due now,
-              </strong>{' '}
-              so this is the call CareLoop would be placing.
+                {next.dosage ? ' ' + next.dosage : ''} is due now.
+              </strong>
             </span>
           ) : (
             <span>
               <strong className="font-semibold">
-                The next call is at {clockLabel(next.time)},
+                Next call at {clockLabel(next.time)},
               </strong>{' '}
               about {next.medication}
               {next.dosage ? ' ' + next.dosage : ''}. You do not have to wait
-              for it. Answer now and CareLoop handles it exactly as it would on
-              the hour.
+              for it.
             </span>
           )
         ) : (
-          <span>
-            Nothing is due right now. You can still talk to CareLoop, and it
-            will handle what you say exactly as it would on a scheduled call.
-          </span>
+          <span>Nothing is due right now. You can still take the check-in.</span>
         )}
       </Notice>
 
-      <PhoneCallCard patientName={who} />
+      {spoken ? <PhoneCallCard patientName={who} /> : null}
 
       <VoicePanel
         patientId={patientId}
@@ -132,8 +129,7 @@ export default function CallPage() {
             word="On the call"
             className="enter-fade measure mt-10"
           >
-            CareLoop is on the call. Listening, checking, and deciding what to
-            do.
+            The check-in is running.
           </Notice>
         ) : null}
       </div>
