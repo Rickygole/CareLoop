@@ -117,7 +117,7 @@ export default function TodayPage() {
             >
               <p className="text-lg leading-[1.45] text-ink">
                 Two of your medicines are worth asking about:{' '}
-                <strong className="font-semibold capitalize">
+                <strong className="inline-block font-semibold first-letter:uppercase">
                   {flagged[0].ingredients.join(' and ')}
                 </strong>
                 .

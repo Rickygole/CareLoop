@@ -96,7 +96,7 @@ export function InteractionLimits({ regimen }) {
                     <span className="smallcaps text-micro text-clay">
                       {severityMeta(finding.severity).word}
                     </span>
-                    <span className="text-sm font-semibold capitalize text-ink">
+                    <span className="inline-block text-sm font-semibold text-ink first-letter:uppercase">
                       {pairLabel(finding.ingredients)}
                     </span>
                   </p>
@@ -157,7 +157,7 @@ export default function InteractionFlags({ regimen, flash }) {
                     </span>
                     <span className="smallcaps text-micro">{meta.word}</span>
                   </p>
-                  <p className="display-tight mt-4 text-xl capitalize text-ink">
+                  <p className="display-tight mt-4 text-xl text-ink first-letter:uppercase">
                     {pairLabel(finding.ingredients)}
                   </p>
                   <p className="measure mt-3 text-ink">
