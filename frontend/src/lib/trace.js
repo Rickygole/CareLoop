@@ -25,6 +25,13 @@ export const EVENT_STYLE = {
     noFade: true,
     accent: true,
   },
+  ESCALATION_FIRED: {
+    color: '#ff968c',
+    label: 'escalation',
+    bold: true,
+    noFade: true,
+    accent: true,
+  },
 }
 
 export const DEFAULT_STYLE = { color: '#b3c0cf', label: 'event' }
@@ -97,6 +104,11 @@ export function summarize(event) {
         String(p.specialty || '?') +
         ') ' +
         String(p.time || '')
+      )
+    case 'ESCALATION_FIRED':
+      return (
+        p.headline ||
+        String(p.kind || '?').toUpperCase() + ', would notify ' + String(p.would_notify || '?')
       )
     default:
       return compact(p)

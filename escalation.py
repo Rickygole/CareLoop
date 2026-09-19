@@ -1,12 +1,27 @@
+import os
 import uuid
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional
 
+from providers import find_by_name
+
+ALERT_PHONE_ENV = "ESCALATION_ALERT_PHONE"
+
+ALERT_TIERS = {"emergency", "severe", "crisis"}
+
+ALERT_SNIPPET_CHARS = 160
+
 ESCALATION_IS_A_RECORD_ONLY = (
-    "CareLoop does not notify anyone. These records describe what a deployed "
-    "system would do. No message, call, page or alert is sent to any person by "
-    "this software, and the acknowledgement windows are simulated timers with "
-    "no recipient on the other end."
+    "CareLoop does not notify a care team. These records describe what a "
+    "deployed system would do. The acknowledgement windows are simulated "
+    "timers with no recipient on the other end."
+)
+
+ESCALATION_ALERT_GOES_TO_ONE_PHONE = (
+    "When an alert number is configured, the most serious tiers also send one "
+    "text message to that single number. It belongs to the person running this "
+    "demonstration, not to any clinician, and every patient in this system is "
+    "invented."
 )
 
 NEVER_CONTACTS_EMERGENCY_SERVICES = (
@@ -70,7 +85,8 @@ def record_escalation(
         "fired_at": fired_at.isoformat(),
         "would_notify": rule["notified_party"],
         "notification_delivered": False,
-        "notification_transport": "none, no recipient is configured in this prototype",
+        "notification_transport": "none",
+        "alert_sms": None,
         "ack_window_would_expire_at": ack_window_would_expire_at.isoformat(),
         "ack_state": rule["initial_ack_state"],
         "mocked": kind == "crisis",
@@ -116,3 +132,62 @@ def reset_escalations(
         store.clear()
     else:
         store.pop(patient_id, None)
+
+
+def alert_phone() -> str:
+    return (os.environ.get(ALERT_PHONE_ENV) or "").strip()
+
+
+def wants_alert(kind: Optional[str]) -> bool:
+    return kind in ALERT_TIERS
+
+
+def assigned_provider(patient: dict) -> dict:
+    prescribers = [
+        request.get("prescriber")
+        for request in patient.get("medication_requests", [])
+        if request.get("status") == "active" and request.get("prescriber")
+    ]
+    for name in prescribers:
+        listed = find_by_name(name)
+        if listed:
+            return {
+                "provider_id": listed["provider_id"],
+                "name": listed["name"],
+                "specialty": listed["specialty"],
+                "in_directory": True,
+            }
+    if prescribers:
+        return {
+            "provider_id": None,
+            "name": prescribers[0],
+            "specialty": None,
+            "in_directory": False,
+        }
+    return {
+        "provider_id": None,
+        "name": "the on call clinician",
+        "specialty": None,
+        "in_directory": False,
+    }
+
+
+def _snippet(transcript: str) -> str:
+    said = " ".join((transcript or "").split())
+    if len(said) <= ALERT_SNIPPET_CHARS:
+        return said
+    return said[:ALERT_SNIPPET_CHARS].rstrip() + "..."
+
+
+def compose_alert(
+    patient_name: str, provider_name: str, kind: str, transcript: str, fired_at: datetime,
+) -> str:
+    stamp = fired_at.strftime("%d %b %Y, %I:%M %p %Z").replace(" 0", " ")
+    return (
+        "CareLoop demonstration alert. This is not a real clinical alert and "
+        "the patient is invented.\n"
+        f"{kind.upper()} for {patient_name}.\n"
+        f"Assigned provider: {provider_name}.\n"
+        f"At: {stamp}.\n"
+        f'Patient said: "{_snippet(transcript)}"'
+    )

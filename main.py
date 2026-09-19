@@ -30,6 +30,7 @@ from pydantic import BaseModel, Field
 
 load_dotenv()
 
+import conversation
 import telephony
 from clinic import FRONT_DESK_DISCLOSURE, plan_clinic_call
 from contradiction import (
@@ -39,7 +40,9 @@ from contradiction import (
     check_regimen,
     patient_message,
 )
+import escalation
 from escalation import (
+    ESCALATION_ALERT_GOES_TO_ONE_PHONE,
     ESCALATION_IS_A_RECORD_ONLY,
     NEVER_CONTACTS_EMERGENCY_SERVICES,
     get_escalations,
@@ -208,6 +211,7 @@ class SessionState:
         self.regimen_snapshots: Dict[str, List[dict]] = {}
         self.bookings: Dict[str, List[dict]] = {}
         self.pending_bookings: Dict[str, dict] = {}
+        self.conversations: Dict[str, List[dict]] = {}
         self.answered_calls: Dict[str, bool] = {}
         self.callback_nonces: Dict[str, bool] = {}
         self.consumed_callbacks: Dict[str, bool] = {}
@@ -575,6 +579,43 @@ async def elevenlabs_webhook(body: ToolCall, session: SessionState = Depends(get
     raise HTTPException(400, f"unknown tool {body.tool_name!r}")
 
 
+async def _maybe_alert_provider(
+    session: SessionState, patient: dict, escalation_record: dict, transcript: str,
+) -> None:
+    kind = escalation_record["kind"]
+    if not escalation.wants_alert(kind):
+        return
+    phone = escalation.alert_phone()
+    if not phone:
+        escalation_record["notification_transport"] = "no_alert_phone_configured"
+        return
+
+    provider = escalation.assigned_provider(patient)
+    fired_at = datetime.now(timezone.utc)
+    message = escalation.compose_alert(
+        patient.get("name", "the patient"), provider["name"], kind, transcript, fired_at,
+    )
+    result = await _offload(telephony.send_sms, phone, message)
+
+    escalation_record["notification_transport"] = "sms"
+    escalation_record["notification_delivered"] = bool(result.get("ok"))
+    escalation_record["alert_sms"] = {
+        "ok": result.get("ok"),
+        "sid": result.get("sid"),
+        "error": result.get("error"),
+        "provider_name": provider["name"],
+        "provider_id": provider["provider_id"],
+    }
+
+
+def _escalation_headline(escalation_record: dict, provider_name: Optional[str]) -> str:
+    if escalation_record.get("alert_sms") is None:
+        return ""
+    if escalation_record["notification_delivered"]:
+        return f"ESCALATED, {provider_name} notified"
+    return f"ESCALATION ALERT FAILED, {provider_name} not reached"
+
+
 class RunLoopRequest(BaseModel):
     patient_id: str
     transcript: str
@@ -742,11 +783,15 @@ async def run_loop(
         body.patient_id, result["tier"], result["is_crisis"], now, store=session.escalations,
     )
     if escalation_record:
+        provider = escalation.assigned_provider(patient)
+        await _maybe_alert_provider(session, patient, escalation_record, body.transcript)
         await session.bus.emit("ESCALATION_FIRED", {
             "kind": escalation_record["kind"],
             "would_notify": escalation_record["would_notify"],
             "notification_delivered": escalation_record["notification_delivered"],
             "ack_window_would_expire_at": escalation_record["ack_window_would_expire_at"],
+            "provider_name": provider["name"],
+            "headline": _escalation_headline(escalation_record, provider["name"]),
         })
 
     action_taken = "booked_appointment" if booking else (
@@ -780,6 +825,7 @@ async def run_loop(
             body.patient_id, now, store=session.escalations,
         ),
         "escalation_is_a_record_only": ESCALATION_IS_A_RECORD_ONLY,
+        "escalation_alert_disclosure": ESCALATION_ALERT_GOES_TO_ONE_PHONE,
         "safety_statement": NEVER_CONTACTS_EMERGENCY_SERVICES,
         "events": session.bus.since(start),
         "boot_id": session.bus.boot_id,
@@ -802,6 +848,7 @@ def patient_escalations(patient_id: str, session: SessionState = Depends(get_ses
         "patient_id": patient_id,
         "escalations": get_escalations(patient_id, store=session.escalations),
         "escalation_is_a_record_only": ESCALATION_IS_A_RECORD_ONLY,
+        "escalation_alert_disclosure": ESCALATION_ALERT_GOES_TO_ONE_PHONE,
         "safety_statement": NEVER_CONTACTS_EMERGENCY_SERVICES,
     }
 
@@ -1133,6 +1180,113 @@ CALL_PHASE_WORDING = {
 }
 
 
+CONVERSATION_HISTORY_LIMIT = 24
+
+CONVERSATION_GOODBYE = "I will let you go for now."
+
+
+def _conversation_context(patient: dict) -> str:
+    plan = build_day_plan(patient)
+    return conversation.build_context(
+        patient, plan["next_dose"], _next_dose_is_flagged(patient),
+    )
+
+
+def _checkin_opener(patient: dict) -> str:
+    first_name = _first_name(patient)
+    medication = _spoken_medication(patient)
+    indication = _spoken_indication(patient)
+    flagged = _next_dose_is_flagged(patient)
+    when_phrase, due_now = _dose_timing(patient)
+    if flagged:
+        return CHECKIN_DOSE_PROMPT_FLAGGED.format(
+            patient_first_name=first_name,
+            medication=medication,
+            when=when_phrase,
+        )
+    return CHECKIN_DOSE_PROMPT.format(
+        patient_first_name=first_name,
+        medication=medication,
+        indication=f", the one {indication}" if indication else "",
+        when=when_phrase,
+        take=DOSE_TAKE_NOW if due_now else DOSE_TAKE_LATER,
+    )
+
+
+def _remember_turn(session: SessionState, patient_id: str, role: str, text: str) -> None:
+    said = (text or "").strip()
+    if not said:
+        return
+    history = session.conversations.setdefault(patient_id, [])
+    history.append({"role": role, "text": said})
+    if len(history) > CONVERSATION_HISTORY_LIMIT:
+        del history[: len(history) - CONVERSATION_HISTORY_LIMIT]
+
+
+def _agent_turns(session: SessionState, patient_id: str) -> int:
+    return sum(
+        1 for turn in session.conversations.get(patient_id, [])
+        if turn["role"] == "agent"
+    )
+
+
+async def _keep_talking(
+    session: SessionState, patient: dict, patient_id: str, lead: str = "",
+) -> str:
+    first_name = _first_name(patient)
+    closing = _say(CHECKIN_CLOSING.format(patient_first_name=first_name)) + "<Hangup/>"
+
+    def hang_up(text: str) -> str:
+        _remember_turn(session, patient_id, "agent", text)
+        return (_say(text) if text else "") + closing
+
+    if not conversation.is_configured():
+        return hang_up(lead)
+    if _agent_turns(session, patient_id) >= conversation.MAX_TURNS:
+        return hang_up(lead)
+
+    try:
+        reply = await _offload(
+            conversation.reply,
+            list(session.conversations.get(patient_id, [])),
+            _conversation_context(patient),
+        )
+    except Exception:
+        reply = None
+
+    if reply is None:
+        return hang_up(lead)
+
+    said = (lead + " " + reply["say"]).strip() if lead else reply["say"]
+    _remember_turn(session, patient_id, "agent", said)
+
+    if reply["end_call"]:
+        return _say(said) + closing
+
+    if reply["offer_booking"] and patient_id not in session.pending_bookings:
+        recent = [
+            turn["text"] for turn in session.conversations.get(patient_id, [])
+            if turn["role"] == "patient"
+        ]
+        session.pending_bookings[patient_id] = {
+            "specialty": "Internal Medicine",
+            "tier": "moderate",
+            "transcript": recent[-1] if recent else "",
+        }
+
+    action = "/voice/checkin/respond?" + urlencode({
+        "patient_id": patient_id, SESSION_QUERY_PARAM: session.session_id,
+    })
+    return (
+        f'<Gather input="speech" action="{xml_escape(action)}" method="POST" '
+        'speechTimeout="auto" timeout="8" language="en-US">'
+        + _say(said)
+        + "</Gather>"
+        + _say(CONVERSATION_GOODBYE)
+        + closing
+    )
+
+
 def _set_call_state(session: SessionState, leg: str, **fields) -> dict:
     state = session.call_state.get(leg, {"leg": leg, "attempt": 1, "max_attempts": MAX_CALL_ATTEMPTS})
     state.update(fields)
@@ -1182,26 +1336,20 @@ async def voice_checkin(
     action = str(request.base_url).rstrip("/") + "/voice/checkin/respond?" + urlencode({
         "patient_id": patient_id, SESSION_QUERY_PARAM: session.session_id,
     })
+
+    opener = _checkin_opener(patient)
+    session.conversations.pop(patient_id, None)
+    _remember_turn(
+        session, patient_id, "agent",
+        CHECKIN_GREETING.format(patient_first_name=first_name) + " " + opener,
+    )
+
     return _twiml(
         _say(CHECKIN_GREETING.format(patient_first_name=first_name))
         + '<Pause length="1"/>'
         + f'<Gather input="speech" action="{xml_escape(action)}" method="POST" '
         'speechTimeout="auto" timeout="8" language="en-US">'
-        + _say(
-            CHECKIN_DOSE_PROMPT_FLAGGED.format(
-                patient_first_name=first_name,
-                medication=medication,
-                when=when_phrase,
-            )
-            if flagged
-            else CHECKIN_DOSE_PROMPT.format(
-                patient_first_name=first_name,
-                medication=medication,
-                indication=f", the one {indication}" if indication else "",
-                when=when_phrase,
-                take=DOSE_TAKE_NOW if due_now else DOSE_TAKE_LATER,
-            )
-        )
+        + _say(opener)
         + "</Gather>"
         + _say(
             (CHECKIN_NO_ANSWER_FLAGGED if flagged else CHECKIN_NO_ANSWER).format(
@@ -1235,7 +1383,10 @@ def _fallback_twiml_body(transcript: str, fallback_base_url: str = "") -> str:
     return _say(CHECKIN_TRIAGE_UNAVAILABLE) + "<Hangup/>"
 
 
-async def _record_voice_escalation(session: SessionState, patient_id: str, result: dict) -> None:
+async def _record_voice_escalation(
+    session: SessionState, patient_id: str, result: dict, transcript: str = "",
+) -> None:
+    patient = session.patients.get(patient_id)
     record = record_escalation(
         patient_id,
         result["tier"],
@@ -1244,12 +1395,17 @@ async def _record_voice_escalation(session: SessionState, patient_id: str, resul
         store=session.escalations,
     )
     if record:
+        provider = escalation.assigned_provider(patient) if patient else {"name": "the on call clinician"}
+        if patient:
+            await _maybe_alert_provider(session, patient, record, transcript)
         await session.bus.emit("ESCALATION_FIRED", {
             "kind": record["kind"],
             "would_notify": record["would_notify"],
             "notification_delivered": record["notification_delivered"],
             "ack_window_would_expire_at": record["ack_window_would_expire_at"],
             "channel": "voice",
+            "provider_name": provider["name"],
+            "headline": _escalation_headline(record, provider["name"]),
         })
 
 
@@ -1275,6 +1431,14 @@ async def voice_checkin_respond(
             _say(silent_template.format(medication=_spoken_medication(patient)))
             + "<Hangup/>"
         )
+
+    if not session.conversations.get(patient_id):
+        _remember_turn(
+            session, patient_id, "agent",
+            CHECKIN_GREETING.format(patient_first_name=first_name)
+            + " " + _checkin_opener(patient),
+        )
+    _remember_turn(session, patient_id, "patient", transcript)
 
     call_sid = (fields.get("CallSid") or "").strip()
     if call_sid:
@@ -1304,7 +1468,7 @@ async def voice_checkin_respond(
 
     if result["is_crisis"]:
         try:
-            await _record_voice_escalation(session, patient_id, result)
+            await _record_voice_escalation(session, patient_id, result, transcript)
         except Exception:
             pass
         return _twiml(
@@ -1318,7 +1482,7 @@ async def voice_checkin_respond(
 
     if result["is_emergency"]:
         try:
-            await _record_voice_escalation(session, patient_id, result)
+            await _record_voice_escalation(session, patient_id, result, transcript)
         except Exception:
             pass
         return _twiml(
@@ -1348,30 +1512,22 @@ async def voice_checkin_respond(
                 "disclosure": call["disclosure"],
                 "simulated_front_desk": call["simulated"],
             }, pending["transcript"])
-            ack = _say(
+            ack = (
                 f"Great, I have booked you with {call['provider']['name']} at "
                 f"{followup.format_slot(call['slot'])}."
             )
         else:
-            ack = _say(
+            ack = (
                 "I could not find an opening right now, so please call the "
                 "clinic yourself."
             )
-        return _twiml(
-            ack
-            + '<Pause length="1"/>'
-            + _say(CHECKIN_CLOSING.format(patient_first_name=first_name))
-            + "<Hangup/>"
-        )
+        return _twiml(await _keep_talking(session, patient, patient_id, ack))
 
     if pending and _declines_appointment(transcript):
         session.pending_bookings.pop(patient_id, None)
-        return _twiml(
-            _say("No problem, I will not book anything.")
-            + '<Pause length="1"/>'
-            + _say(CHECKIN_CLOSING.format(patient_first_name=first_name))
-            + "<Hangup/>"
-        )
+        return _twiml(await _keep_talking(
+            session, patient, patient_id, "No problem, I will not book anything."
+        ))
 
     if result["tier"] in ("moderate", "severe"):
         session.pending_bookings[patient_id] = {
@@ -1382,6 +1538,7 @@ async def voice_checkin_respond(
         action = "/voice/checkin/respond?" + urlencode({
             "patient_id": patient_id, SESSION_QUERY_PARAM: session.session_id,
         })
+        _remember_turn(session, patient_id, "agent", result["suggested_agent_response"])
         return _twiml(
             f'<Gather input="speech" action="{xml_escape(action)}" method="POST" '
             'speechTimeout="auto" timeout="8" language="en-US">'
@@ -1394,12 +1551,9 @@ async def voice_checkin_respond(
             + "<Hangup/>"
         )
 
-    return _twiml(
-        _say(result["suggested_agent_response"])
-        + '<Pause length="1"/>'
-        + _say(CHECKIN_CLOSING.format(patient_first_name=first_name))
-        + "<Hangup/>"
-    )
+    return _twiml(await _keep_talking(
+        session, patient, patient_id, result["suggested_agent_response"]
+    ))
 
 
 @app.api_route("/voice/checkin/hold", methods=["GET", "POST"])

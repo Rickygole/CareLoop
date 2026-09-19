@@ -38,6 +38,16 @@ def accepts_payer(provider: dict, payer_id: Optional[str]) -> bool:
     return payer_id in provider["accepted_payers"]
 
 
+def find_by_name(name: str) -> Optional[dict]:
+    wanted = (name or "").strip().lower()
+    if not wanted:
+        return None
+    for provider in PROVIDERS:
+        if provider["name"].lower() == wanted:
+            return provider
+    return None
+
+
 def find_provider(specialty: str, payer_id: Optional[str]) -> Optional[dict]:
     wanted = (specialty or "").strip().lower()
     for provider in PROVIDERS:
