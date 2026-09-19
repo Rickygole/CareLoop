@@ -2,6 +2,7 @@ export const EVENT_STYLE = {
   CALL_INITIATED: { color: '#7B8C9E', label: 'call' },
   CALL_CONNECTED: { color: '#4FA8C9', label: 'call' },
   CALL_ENDED: { color: '#778799', label: 'call' },
+  REMINDER_DUE: { color: '#E9E3D7', label: 'reminder' },
   AGENT_SPEECH: { color: '#A695CB', label: 'speech' },
   PATIENT_SPEECH: { color: '#E9E3D7', label: 'speech' },
   TIER_0_CHECK: { color: '#8A9AAB', label: 'tier 0' },
@@ -10,7 +11,12 @@ export const EVENT_STYLE = {
   TIER_1_CLASSIFY: { color: '#63C9AC', label: 'tier 1', accent: true },
   ACTION_DECIDED: { color: '#D2694B', label: 'action', accent: true },
   TOOL_CALL: { color: '#9A8FBE', label: 'tool' },
+  CLINIC_CALL_INITIATED: { color: '#4FA8C9', label: 'clinic call' },
+  CLINIC_AGENT_SPEECH: { color: '#A695CB', label: 'clinic speech' },
+  CLINIC_DESK_SPEECH: { color: '#4FA8C9', label: 'clinic speech' },
+  CLINIC_CALL_ENDED: { color: '#778799', label: 'clinic call' },
   BOOKING_CONFIRMED: { color: '#4FB89B', label: 'booking' },
+  PATIENT_CONFIRMED: { color: '#4FB89B', label: 'confirm' },
   BACKBOARD_WRITE: { color: '#77839A', label: 'memory' },
   EMERGENCY_ESCALATION: {
     color: '#F2635A',
@@ -41,6 +47,16 @@ export function summarize(event) {
   switch (event.event_type) {
     case 'PATIENT_SPEECH':
     case 'AGENT_SPEECH':
+    case 'CLINIC_AGENT_SPEECH':
+    case 'CLINIC_DESK_SPEECH':
+      return quote(p.text)
+    case 'REMINDER_DUE':
+      return String(p.medication || '?') + ' ' + String(p.time || '') + ' (' + String(p.status || '?') + ')'
+    case 'CLINIC_CALL_INITIATED':
+      return String(p.provider || '?') + ' (' + String(p.specialty || '?') + ')'
+    case 'CLINIC_CALL_ENDED':
+      return p.booked ? 'booked' : 'ended, not booked'
+    case 'PATIENT_CONFIRMED':
       return quote(p.text)
     case 'TIER_0_CHECK':
       return quote(p.transcript)

@@ -28,7 +28,7 @@ export const LOOP_STEPS = [
     title: 'Reminder',
     detail: 'CareLoop places the call when a dose is due, from the schedule on file.',
     patientDetail: 'CareLoop calls you when a dose is due.',
-    events: ['CALL_INITIATED', 'CALL_CONNECTED'],
+    events: ['CALL_INITIATED', 'CALL_CONNECTED', 'REMINDER_DUE'],
   },
   {
     id: 'checkin',
@@ -52,15 +52,21 @@ export const LOOP_STEPS = [
     title: 'Action',
     detail: 'On moderate or severe, CareLoop calls the clinic and books the appointment.',
     patientDetail: 'If you need to be seen, CareLoop books the appointment for you.',
-    events: ['ACTION_DECIDED', 'TOOL_CALL', 'BOOKING_CONFIRMED'],
+    events: [
+      'ACTION_DECIDED',
+      'TOOL_CALL',
+      'BOOKING_CONFIRMED',
+      'CLINIC_CALL_INITIATED',
+      'CLINIC_CALL_ENDED',
+    ],
   },
   {
     id: 'memory',
     number: '05',
-    title: 'Memory',
+    title: 'Confirm and remember',
     detail: 'The next call starts knowing what happened on this one.',
     patientDetail: 'The next call starts knowing what happened on this one.',
-    events: ['BACKBOARD_WRITE'],
+    events: ['BACKBOARD_WRITE', 'PATIENT_CONFIRMED', 'CALL_ENDED'],
   },
 ]
 
@@ -73,6 +79,21 @@ export function stepIdFor(eventType) {
   const name = String(eventType || '')
   if (name.startsWith(CLINIC_PREFIX)) return 'action'
   return STEP_BY_EVENT[name] || null
+}
+
+export function stepsFromEvents(events) {
+  const buckets = LOOP_STEPS.map((step) => ({ ...step, matches: [] }))
+  const indexById = new Map(buckets.map((step, index) => [step.id, index]))
+
+  for (const event of events || []) {
+    const id = stepIdFor(event.event_type)
+    if (!id) continue
+    const index = indexById.get(id)
+    if (index === undefined) continue
+    buckets[index].matches.push(event)
+  }
+
+  return buckets
 }
 
 export function loopProgress(events) {
