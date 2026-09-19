@@ -1,11 +1,3 @@
-"""What the voice agent says back, keyed by outcome.
-
-These are static strings on purpose. The agent reads them back in its own
-voice, but it never invents them: an LLM improvising the sentence that
-follows a suicide disclosure or a cardiac symptom is not a risk worth
-taking for a demo, and static lookup adds zero latency to a live call.
-"""
-
 from triage_engine import Severity
 
 SUGGESTED_RESPONSE = {
@@ -29,8 +21,7 @@ SUGGESTED_RESPONSE = {
     ),
 }
 
-# A crisis is EMERGENCY severity, but "call 911 and hang up" is the wrong
-# answer and is contraindicated by most crisis guidance.
+
 CRISIS_RESPONSE = (
     "I'm really glad you told me that. I want to connect you with someone "
     "who can help right now. You can call or text 988, the Suicide and "

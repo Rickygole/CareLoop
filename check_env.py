@@ -1,8 +1,3 @@
-"""Verify .env is present and populated. Never prints key values.
-
-    python check_env.py
-"""
-
 import os
 from pathlib import Path
 
@@ -31,8 +26,7 @@ missing_required = []
 for name, purpose, required in REQUIRED:
     value = (os.environ.get(name) or "").strip()
     if value:
-        # Show only length and last 4 chars -- enough to tell two keys apart,
-        # not enough to leak one.
+
         status = f"SET ({len(value)} chars, ...{value[-4:]})"
     else:
         status = "MISSING" if required else "empty (not wired up yet)"

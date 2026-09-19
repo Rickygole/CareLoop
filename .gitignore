@@ -1,9 +1,7 @@
-# Environment
 .env
 *.env
 !.env.example
 
-# Python
 __pycache__/
 *.py[cod]
 .venv/
@@ -11,5 +9,4 @@ venv/
 .pytest_cache/
 *.egg-info/
 
-# OS
 .DS_Store

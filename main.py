@@ -1,17 +1,3 @@
-"""
-CareLoop API.
-
-Transport only. Every clinical decision lives in triage_engine.py, which
-knows nothing about HTTP and can be unit tested standalone.
-
-    POST /portal/connect       patient_id -> derived dosing schedule
-    POST /triage               transcript -> severity tier + reasoning
-    POST /book                 specialty + urgency -> appointment confirmation
-    POST /webhook/elevenlabs   tool-call receiver for the voice agent
-    WS   /trace                live structured event log for the judge console
-    GET  /trace/events         polling fallback for hosts without WebSockets
-"""
-
 import asyncio
 import json
 import os
@@ -24,13 +10,12 @@ from fastapi import FastAPI, HTTPException, Query, WebSocket, WebSocketDisconnec
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
-# Load .env at the entry point, before importing the engine. The engine stays
-# dependency free and just reads os.environ; populating it is this layer's job.
+
 load_dotenv()
 
-from providers import find_provider, specialties  # noqa: E402
-from responses import suggested_response  # noqa: E402
-from triage_engine import Severity, triage  # noqa: E402
+from providers import find_provider, specialties
+from responses import suggested_response
+from triage_engine import Severity, triage
 
 app = FastAPI(
     title="CareLoop API",
@@ -38,8 +23,7 @@ app = FastAPI(
     version="0.2.0",
 )
 
-# The frontend is hosted separately (Vercel / GitHub Pages), so it is a
-# different origin from this API.
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -51,10 +35,6 @@ DATA_DIR = Path(__file__).parent / "mock_data"
 WEBHOOK_SECRET = os.environ.get("CARELOOP_WEBHOOK_SECRET", "")
 
 
-# ---------------------------------------------------------------------------
-# Patient store
-# ---------------------------------------------------------------------------
-
 def load_patients() -> Dict[str, dict]:
     with open(DATA_DIR / "patients.json") as f:
         return {p["patient_id"]: p for p in json.load(f)["patients"]}
@@ -64,45 +44,43 @@ PATIENTS = load_patients()
 
 
 def derive_schedule(medication_requests: List[dict]) -> List[dict]:
-    """Flatten FHIR-ish MedicationRequests into one entry per dose time.
-
-    This is the shape the voice agent needs to ask "did you take your 8am
-    pill?", sorted by clock time.
-    """
     schedule = []
     for req in medication_requests:
         if req.get("status") != "active":
             continue
         for hour in req["timing"]["preferred_hours"]:
-            schedule.append({
-                "medication": req["medication"],
-                "dosage": req["dosage_text"],
-                "time": f"{hour:02d}:00",
-                "frequency": req["frequency"],
-                "prescriber": req["prescriber"],
-                "medication_id": req["medication_id"],
-            })
+            schedule.append(
+                {
+                    "medication": req["medication"],
+                    "dosage": req["dosage_text"],
+                    "time": f"{hour:02d}:00",
+                    "frequency": req["frequency"],
+                    "prescriber": req["prescriber"],
+                    "medication_id": req["medication_id"],
+                }
+            )
     return sorted(schedule, key=lambda d: d["time"])
 
 
-# ---------------------------------------------------------------------------
-# Trace event bus
-# ---------------------------------------------------------------------------
-
 EVENT_TYPES = {
-    "CALL_INITIATED", "CALL_CONNECTED", "CALL_ENDED", "AGENT_SPEECH",
-    "PATIENT_SPEECH", "TIER_0_CHECK", "TIER_0_MATCH", "NORMALIZE",
-    "TIER_1_CLASSIFY", "ACTION_DECIDED", "TOOL_CALL", "BOOKING_CONFIRMED",
-    "BACKBOARD_WRITE", "EMERGENCY_ESCALATION",
+    "CALL_INITIATED",
+    "CALL_CONNECTED",
+    "CALL_ENDED",
+    "AGENT_SPEECH",
+    "PATIENT_SPEECH",
+    "TIER_0_CHECK",
+    "TIER_0_MATCH",
+    "NORMALIZE",
+    "TIER_1_CLASSIFY",
+    "ACTION_DECIDED",
+    "TOOL_CALL",
+    "BOOKING_CONFIRMED",
+    "BACKBOARD_WRITE",
+    "EMERGENCY_ESCALATION",
 }
 
 
 class TraceBus:
-    """Fan-out of structured events to every connected console.
-
-    Keeps a bounded replay buffer so the polling fallback (/trace/events)
-    behaves identically to the WebSocket for a judge watching the panel.
-    """
 
     def __init__(self, capacity: int = 500):
         self._events: List[dict] = []
@@ -119,7 +97,7 @@ class TraceBus:
             "payload": payload or {},
         }
         self._events.append(event)
-        del self._events[:-self._capacity]
+        del self._events[: -self._capacity]
 
         for client in list(self._clients):
             try:
@@ -144,7 +122,6 @@ bus = TraceBus()
 
 @app.websocket("/trace")
 async def trace_socket(ws: WebSocket, token: str = Query(default="")):
-    """Live event stream. Shared-secret gated: this carries patient-shaped data."""
     if WEBHOOK_SECRET and token != WEBHOOK_SECRET:
         await ws.close(code=1008)
         return
@@ -164,13 +141,8 @@ async def trace_socket(ws: WebSocket, token: str = Query(default="")):
 
 @app.get("/trace/events")
 def trace_events(since: int = 0):
-    """Polling fallback for hosts that cannot hold a WebSocket open."""
     return {"events": bus.since(since)}
 
-
-# ---------------------------------------------------------------------------
-# POST /portal/connect
-# ---------------------------------------------------------------------------
 
 class ConnectRequest(BaseModel):
     patient_id: str = Field(..., examples=["p1"])
@@ -193,10 +165,6 @@ async def portal_connect(body: ConnectRequest):
     }
 
 
-# ---------------------------------------------------------------------------
-# POST /triage
-# ---------------------------------------------------------------------------
-
 class TriageRequest(BaseModel):
     transcript: str = Field(..., examples=["my chest is killing me"])
     patient_id: Optional[str] = None
@@ -211,7 +179,6 @@ def _source_for(result) -> str:
 
 
 async def run_triage(transcript: str, patient_id: Optional[str] = None) -> dict:
-    """Run triage and emit the trace events the judge console renders."""
     await bus.emit("PATIENT_SPEECH", {"text": transcript, "patient_id": patient_id})
     await bus.emit("TIER_0_CHECK", {"transcript": transcript})
 
@@ -222,11 +189,14 @@ async def run_triage(transcript: str, patient_id: Optional[str] = None) -> dict:
     if result.normalized_text:
         await bus.emit("NORMALIZE", {"normalized_text": result.normalized_text})
     if result.tier == "tier_1":
-        await bus.emit("TIER_1_CLASSIFY", {
-            "severity": result.severity.label,
-            "confidence": result.confidence,
-            "source": _source_for(result),
-        })
+        await bus.emit(
+            "TIER_1_CLASSIFY",
+            {
+                "severity": result.severity.label,
+                "confidence": result.confidence,
+                "source": _source_for(result),
+            },
+        )
 
     payload = {
         "tier": result.severity.label.lower(),
@@ -243,9 +213,13 @@ async def run_triage(transcript: str, patient_id: Optional[str] = None) -> dict:
     }
 
     if result.is_emergency:
-        await bus.emit("EMERGENCY_ESCALATION", {
-            "rules": result.matched_rules, "is_crisis": result.is_crisis,
-        })
+        await bus.emit(
+            "EMERGENCY_ESCALATION",
+            {
+                "rules": result.matched_rules,
+                "is_crisis": result.is_crisis,
+            },
+        )
     await bus.emit("ACTION_DECIDED", {"tier": payload["tier"]})
     return payload
 
@@ -254,10 +228,6 @@ async def run_triage(transcript: str, patient_id: Optional[str] = None) -> dict:
 async def triage_transcript(body: TriageRequest):
     return await run_triage(body.transcript, body.patient_id)
 
-
-# ---------------------------------------------------------------------------
-# POST /book
-# ---------------------------------------------------------------------------
 
 URGENCIES = {"routine", "urgent"}
 
@@ -288,11 +258,15 @@ async def book_appointment(body: BookRequest):
             409, f"{provider['name']} has no bookable slots. Emergencies are not booked."
         )
 
-    # Slots are never consumed. See providers.py for why.
     slot = provider["available_slots"][0]
-    await bus.emit("BOOKING_CONFIRMED", {
-        "provider_name": provider["name"], "time": slot, "specialty": provider["specialty"],
-    })
+    await bus.emit(
+        "BOOKING_CONFIRMED",
+        {
+            "provider_name": provider["name"],
+            "time": slot,
+            "specialty": provider["specialty"],
+        },
+    )
     return {
         "confirmed": True,
         "provider_name": provider["name"],
@@ -300,10 +274,6 @@ async def book_appointment(body: BookRequest):
         "specialty": provider["specialty"],
     }
 
-
-# ---------------------------------------------------------------------------
-# POST /webhook/elevenlabs
-# ---------------------------------------------------------------------------
 
 class ToolCall(BaseModel):
     tool_name: str
@@ -316,7 +286,6 @@ class ToolCall(BaseModel):
 
 @app.post("/webhook/elevenlabs")
 async def elevenlabs_webhook(body: ToolCall):
-    """Receives tool calls from the voice agent. Shared-secret gated."""
     if WEBHOOK_SECRET and body.secret != WEBHOOK_SECRET:
         raise HTTPException(401, "unauthorized")
 
@@ -329,11 +298,13 @@ async def elevenlabs_webhook(body: ToolCall):
         return await run_triage(body.transcript or "", body.patient_id)
 
     if body.tool_name == "book_appointment":
-        return await book_appointment(BookRequest(
-            specialty=body.specialty or "Internal Medicine",
-            urgency=body.urgency or "routine",
-            patient_id=body.patient_id,
-        ))
+        return await book_appointment(
+            BookRequest(
+                specialty=body.specialty or "Internal Medicine",
+                urgency=body.urgency or "routine",
+                patient_id=body.patient_id,
+            )
+        )
 
     raise HTTPException(400, f"unknown tool {body.tool_name!r}")
 

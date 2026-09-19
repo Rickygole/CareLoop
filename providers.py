@@ -1,12 +1,3 @@
-"""Static provider registry and booking logic.
-
-Deliberately does NOT consume slots. v1 popped a slot on every booking,
-which meant that with four non-emergency slots the demo broke for good by
-the second or third run. A science fair is many repeat runs. Nobody is
-judging double-booking correctness; they are judging whether triage and
-booking look right, every single time a judge walks up.
-"""
-
 from typing import List, Optional
 
 PROVIDERS: List[dict] = [
@@ -42,14 +33,12 @@ PROVIDERS: List[dict] = [
 
 
 def accepts_payer(provider: dict, payer_id: Optional[str]) -> bool:
-    """Wildcard providers accept everyone. Absent payer matches nothing but wildcard."""
     if "*" in provider["accepted_payers"]:
         return True
     return payer_id in provider["accepted_payers"]
 
 
 def find_provider(specialty: str, payer_id: Optional[str]) -> Optional[dict]:
-    """First provider matching BOTH specialty and payer. Case insensitive."""
     wanted = (specialty or "").strip().lower()
     for provider in PROVIDERS:
         if provider["specialty"].lower() == wanted and accepts_payer(provider, payer_id):

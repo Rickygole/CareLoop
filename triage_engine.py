@@ -1,25 +1,3 @@
-"""
-CareLoop triage engine.
-
-A two-tier system for classifying what a patient reports during an
-automated medication check-in call.
-
-    Tier 0  deterministic regex emergency detection. No network, no LLM,
-            no ambiguity. If it matches, we return EMERGENCY immediately.
-    Tier 1  an LLM (Gemini) classifies everything Tier 0 did not catch.
-
-The safety property this module exists to guarantee:
-
-    THE LLM CAN ONLY RAISE SEVERITY, NEVER LOWER IT.
-
-Tier 0 establishes a floor. Tier 1 may push the result above that floor
-but can never pull it below. When Tier 0 does not match, the floor is the
-lowest severity and Tier 1 has its full mild/moderate/severe range.
-
-This module has zero dependency on FastAPI or any web framework. It is a
-pure importable unit you can unit test standalone.
-"""
-
 from __future__ import annotations
 
 import json
@@ -30,17 +8,10 @@ from enum import IntEnum
 from typing import List, Optional
 
 
-# Overridable via GEMINI_MODEL so a retired model id is a config fix, not a
-# code change at 4am.
 DEFAULT_MODEL = "gemini-1.5-flash"
 
 
 class Severity(IntEnum):
-    """Triage tiers, ordered so that a bigger number is more urgent.
-
-    The integer ordering is what makes "never downgrade" a one-line
-    guarantee: we take max() of the Tier 0 floor and the Tier 1 result.
-    """
 
     MILD = 1
     MODERATE = 2
@@ -51,18 +22,6 @@ class Severity(IntEnum):
     def label(self) -> str:
         return self.name
 
-
-# --------------------------------------------------------------------------
-# Tier 0: deterministic emergency detection
-# --------------------------------------------------------------------------
-#
-# Each rule is (name, regex). The regexes are deliberately written to cover
-# informal, indirect and dialectal phrasing, because a patient in an actual
-# emergency rarely uses clinical vocabulary. "my chest is killing me" and
-# "I am experiencing chest pain" must both hit Tier 0.
-#
-# Design rule for this table: patterns here must be UNAMBIGUOUS emergencies.
-# A false positive costs a nurse callback. A false negative costs a patient.
 
 EMERGENCY_RULES: List[tuple] = [
     (
@@ -160,14 +119,11 @@ EMERGENCY_RULES: List[tuple] = [
     ),
 ]
 
-# Smart punctuation is the difference between EMERGENCY and MILD if we let it
-# be. macOS turns a typed apostrophe into U+2019, so "can't breathe" and
-# "can’t breathe" are different strings to a regex. Normalize first, always.
+
 _APOSTROPHES = {"\u2019": "'", "\u2018": "'", "\u02bc": "'", "\u00b4": "'", "`": "'"}
 
 
 def normalize_input(text: str) -> str:
-    """Fold the variations a keyboard introduces, before any pattern runs."""
     if not text:
         return ""
     for fancy, plain in _APOSTROPHES.items():
@@ -175,9 +131,6 @@ def normalize_input(text: str) -> str:
     return re.sub(r"\s+", " ", text).strip()
 
 
-# A pattern match is not automatically a finding. "no chest pain today" and
-# "I had a seizure back in 2011" contain emergency words but report the
-# absence or the history of one. We scope each match against its context.
 _NEGATION_BEFORE = re.compile(
     r"\b(no|not|never|none|without|deny|denies|denied|"
     r"do(n'?t| not)|does(n'?t| not)|did(n'?t| not)|have(n'?t| not)|has(n'?t| not)|"
@@ -198,16 +151,11 @@ _HIST_WINDOW = 30
 
 
 def _is_scoped_out(text: str, start: int, end: int) -> bool:
-    """True when a matched span is negated, hypothetical, or historical."""
-    before = text[max(0, start - _NEG_WINDOW):start]
-    after = text[end:end + _HIST_WINDOW]
+    before = text[max(0, start - _NEG_WINDOW) : start]
+    after = text[end : end + _HIST_WINDOW]
     return bool(_NEGATION_BEFORE.search(before) or _HISTORY_AFTER.search(after))
 
 
-# Rules that are emergencies but must NOT be answered with "call 911 and hang up".
-# A suicide disclosure routed to police and then abandoned is the single most
-# criticized failure mode in AI mental health. These still carry the full
-# EMERGENCY severity floor; only the recommended RESPONSE differs.
 CRISIS_RULES = {"suicidal_ideation", "overdose"}
 
 _COMPILED_EMERGENCY_RULES = [
@@ -217,17 +165,16 @@ _COMPILED_EMERGENCY_RULES = [
 
 @dataclass
 class TriageResult:
-    """The outcome of a triage run, with enough detail to explain itself."""
 
     severity: Severity
-    tier: str                      # "tier_0" or "tier_1"
+    tier: str
     reasoning: str
     matched_rules: List[str] = field(default_factory=list)
     llm_severity: Optional[Severity] = None
     llm_raw: Optional[str] = None
     normalized_text: Optional[str] = None
     confidence: Optional[float] = None
-    escalated: bool = False        # True when Tier 1 raised above the Tier 0 floor
+    escalated: bool = False
 
     @property
     def is_emergency(self) -> bool:
@@ -235,11 +182,6 @@ class TriageResult:
 
     @property
     def is_crisis(self) -> bool:
-        """True when this is a mental health crisis rather than a medical one.
-
-        Both are EMERGENCY severity. They need different responses: a crisis
-        needs a warm handoff to 988 and the caller stays on the line.
-        """
         return bool(CRISIS_RULES.intersection(self.matched_rules))
 
     def to_dict(self) -> dict:
@@ -258,14 +200,6 @@ class TriageResult:
 
 
 def detect_emergency(transcript: str) -> List[str]:
-    """Tier 0. Return the names of every emergency rule the transcript trips.
-
-    Input is normalized first, then every candidate match is scoped against
-    its context so that reporting the absence of a symptom ("no chest pain
-    today") or its history ("a seizure back in 2011") does not escalate.
-
-    An empty list means Tier 0 found nothing and Tier 1 should run.
-    """
     text = normalize_input(transcript)
     if not text:
         return []
@@ -278,17 +212,6 @@ def detect_emergency(transcript: str) -> List[str]:
                 break
     return matched
 
-
-# --------------------------------------------------------------------------
-# Tier 1: LLM classification
-# --------------------------------------------------------------------------
-
-# One call, not two. v1 specified a NORMALIZE call followed by a CLASSIFY
-# call, which put 2.7 to 5.0 seconds of dead air into a live phone call and
-# up to 9.3 in the bad case. Because JSON keys generate in order, asking for
-# normalized_text BEFORE tier means the model still writes the clinical
-# restatement first and conditions the tier on it. Same mechanism, one round
-# trip. The two-call version is kept in the eval, where latency is free.
 
 TIER1_PROMPT = """You are a clinical triage classifier for a medication \
 adherence check-in call. A patient was asked how they are feeling on their \
@@ -328,14 +251,13 @@ _LLM_WORD_TO_SEVERITY = {
     "SEVERE": Severity.SEVERE,
 }
 
-# Hard ceiling on how long a live call will wait for the classifier.
+
 LLM_TIMEOUT_SECONDS = 2.5
 LLM_MAX_OUTPUT_TOKENS = 200
 
 
 @dataclass
 class LLMVerdict:
-    """What Tier 1 came back with. None severity means it could not answer."""
 
     severity: Optional[Severity]
     raw: Optional[str] = None
@@ -345,12 +267,10 @@ class LLMVerdict:
 
 
 def _parse_llm_severity(raw: str) -> Optional[Severity]:
-    """Pull a severity out of the model's reply. Returns None if unparseable."""
     if not raw:
         return None
     text = raw.strip().upper()
-    # Most urgent first, so a chatty reply mentioning several resolves to the
-    # highest one mentioned. Fail loud, not quiet.
+
     for word in ("SEVERE", "MODERATE", "MILD"):
         if re.search(r"\b" + word + r"\b", text):
             return _LLM_WORD_TO_SEVERITY[word]
@@ -358,7 +278,6 @@ def _parse_llm_severity(raw: str) -> Optional[Severity]:
 
 
 def _parse_llm_response(raw: str) -> LLMVerdict:
-    """Prefer the structured JSON; fall back to scanning for a severity word."""
     if not raw:
         return LLMVerdict(severity=None)
 
@@ -383,12 +302,6 @@ def _parse_llm_response(raw: str) -> LLMVerdict:
 
 
 def classify_with_llm(transcript: str, model_name: str = None) -> LLMVerdict:
-    """Tier 1. Ask Gemini to normalize and classify in a single call.
-
-    Never raises into triage. Any failure (missing key, network, timeout,
-    unparseable reply) comes back as a verdict with severity None, and the
-    caller decides what that means.
-    """
     api_key = os.environ.get("GEMINI_API_KEY")
     if not api_key:
         return LLMVerdict(severity=None)
@@ -415,7 +328,6 @@ def classify_with_llm(transcript: str, model_name: str = None) -> LLMVerdict:
 
 
 def _coerce_verdict(value) -> LLMVerdict:
-    """Accept either an LLMVerdict or the legacy (severity, raw) tuple."""
     if isinstance(value, LLMVerdict):
         return value
     if isinstance(value, tuple):
@@ -425,29 +337,12 @@ def _coerce_verdict(value) -> LLMVerdict:
     return LLMVerdict(severity=None)
 
 
-# --------------------------------------------------------------------------
-# The public entry point
-# --------------------------------------------------------------------------
-
 def triage(transcript: str, llm_classifier=None) -> TriageResult:
-    """Run the full two-tier triage on a patient transcript.
-
-    Args:
-        transcript: what the patient said, as text.
-        llm_classifier: optional callable(transcript) -> (Severity|None, str|None).
-            Defaults to Gemini. Injectable so tests can run Tier 1 offline.
-
-    Returns:
-        TriageResult. Its severity is never below the Tier 0 floor.
-    """
     transcript = (transcript or "").strip()
 
-    # --- Tier 0 -----------------------------------------------------------
     matched = detect_emergency(transcript)
     if matched:
-        # Hard stop. We do not spend a network round trip, and more
-        # importantly we do not give a language model the opportunity to
-        # talk us down from an emergency.
+
         return TriageResult(
             severity=Severity.EMERGENCY,
             tier="tier_0",
@@ -460,23 +355,16 @@ def triage(transcript: str, llm_classifier=None) -> TriageResult:
             confidence=1.0,
         )
 
-    # Tier 0 did not fire, so the floor is the lowest severity and Tier 1
-    # has its full mild-to-severe range.
     floor = Severity.MILD
 
-    # When Tier 1 cannot answer we do NOT hold at the floor. An unreachable or
-    # rate-limited classifier marking every symptom MILD is a silent failure
-    # that fails toward less attention. We fail toward more.
     unavailable_floor = Severity.MODERATE
 
-    # --- Tier 1 -----------------------------------------------------------
     classifier = llm_classifier or classify_with_llm
     verdict = _coerce_verdict(classifier(transcript))
     llm_severity, llm_raw = verdict.severity, verdict.raw
 
     if llm_severity is None:
-        # The LLM was unavailable or gave us something we could not parse.
-        # We hold at the floor rather than inventing a severity, and we say so.
+
         return TriageResult(
             severity=unavailable_floor,
             tier="tier_1",
@@ -490,7 +378,6 @@ def triage(transcript: str, llm_classifier=None) -> TriageResult:
             normalized_text=verdict.normalized_text,
         )
 
-    # The one line that enforces the safety property.
     final = Severity(max(floor, llm_severity))
     escalated = final > floor
 
