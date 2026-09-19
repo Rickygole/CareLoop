@@ -72,7 +72,7 @@ export default function ConnectPage() {
 
       await wait(names.length * MED_MS + TAIL_MS)
       applyPortal(portal.patient, state)
-      navigate('/meds')
+      navigate('/')
     } catch {
       timers.current.forEach(clearTimeout)
       setPhase('error')
@@ -83,8 +83,8 @@ export default function ConnectPage() {
 
   return (
     <Screen
-      title="Start here. Connect MyHealth once."
-      lead="CareLoop then reads your medicines out of the portal, works out the hour every dose is due, and phones you at those hours to ask how you are. You never log in and you never type a medicine in."
+      title="Connect MyHealth"
+      lead="CareLoop reads your medicines from the portal and calls you when a dose is due. You never type a medicine in."
     >
       {connected && !syncing ? (
         <div>
@@ -93,12 +93,11 @@ export default function ConnectPage() {
             <strong className="font-semibold">
               {record ? record.name : patientName(patientId)}
             </strong>
-            . The medicines came across and CareLoop has already worked out when
-            to call.
+            .
           </p>
           <div className="mt-9 flex flex-wrap items-center gap-6">
-            <Link to="/meds" className={BTN_PRIMARY}>
-              See your medicines and call times
+            <Link to="/" className={BTN_PRIMARY}>
+              Go to Today
             </Link>
             <button
               type="button"
@@ -121,8 +120,7 @@ export default function ConnectPage() {
               Who is this check-in for?
             </legend>
             <p className="measure mt-2 text-ink-2">
-              Pick the record CareLoop should read. Every screen after this one
-              belongs to that person.
+              Pick the record to read.
             </p>
 
             <div className="mt-6 grid gap-4 sm:grid-cols-2">
@@ -185,7 +183,6 @@ export default function ConnectPage() {
             Connect MyHealth for {patientName(patientId)}
           </button>
           <p className="measure mt-4 text-ink-2">
-            MyHealth is the portal your pharmacy and your clinic already use.
             Nothing is read until you press Allow.
           </p>
 

@@ -1,11 +1,11 @@
 import FairnessChart from '../components/FairnessChart.jsx'
 import Screen from '../components/Screen.jsx'
 
-export default function EvidencePage() {
+export default function SafetyPage() {
   return (
     <Screen
-      title="How well the triage holds up"
-      lead="People describe the same symptom in very different ways. A system that calls one phrasing urgent and another routine is not safe, whatever its average accuracy looks like. This is the test we ran on that, and everything it does not prove."
+      title="Safety"
+      lead="How the triage behaves when the same symptom is described in different ways, and what that test does not prove."
     >
       <FairnessChart />
     </Screen>

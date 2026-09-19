@@ -1,43 +1,29 @@
-export const SCREENS = [
-  {
-    path: '/',
-    mark: '01',
-    nav: 'Connect',
-    title: 'Connect MyHealth',
-    blurb: 'One press, and CareLoop goes and gets your medicines.',
-  },
-  {
-    path: '/meds',
-    mark: '02',
-    nav: 'Medicines',
-    title: 'Your medicines',
-    blurb: 'What came back, and the time CareLoop will phone you about each one.',
-  },
-  {
-    path: '/call',
-    mark: '03',
-    nav: 'The call',
-    title: 'The check-in call',
-    blurb: 'Hear the call CareLoop makes, and answer it in your own words.',
-  },
-  {
-    path: '/decision',
-    mark: '04',
-    nav: 'Decision',
-    title: 'What CareLoop decided',
-    blurb: 'What CareLoop made of your answer and what it did about it.',
-  },
-  {
-    path: '/evidence',
-    mark: '05',
-    nav: 'Evidence',
-    title: 'How well it holds up',
-    blurb: 'The test we ran on whether it treats everyone the same.',
-  },
+export const TABS = [
+  { path: '/', label: 'Today' },
+  { path: '/meds', label: 'Medications' },
+  { path: '/call', label: 'Check-in' },
+  { path: '/appointments', label: 'Appointments' },
+  { path: '/safety', label: 'Safety' },
 ]
 
-export function screenIndex(pathname) {
-  const path = String(pathname || '/').replace(/\/+$/, '') || '/'
-  const found = SCREENS.findIndex((screen) => screen.path === path)
-  return found === -1 ? 0 : found
+const TITLES = {
+  '/': 'Today',
+  '/meds': 'Medications',
+  '/call': 'Check-in',
+  '/appointments': 'Appointments',
+  '/safety': 'Safety',
+  '/connect': 'Connect MyHealth',
+  '/decision': 'Check-in summary',
+}
+
+export function cleanPath(pathname) {
+  return String(pathname || '/').replace(/\/+$/, '') || '/'
+}
+
+export function tabIndex(pathname) {
+  return TABS.findIndex((tab) => tab.path === cleanPath(pathname))
+}
+
+export function sectionTitle(pathname) {
+  return TITLES[cleanPath(pathname)] || 'CareLoop'
 }

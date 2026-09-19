@@ -1,10 +1,10 @@
 import { useEffect, useRef } from 'react'
 import { Navigate, Outlet, useLocation } from 'react-router-dom'
 
-import FlowNav, { FlowPager } from './FlowNav.jsx'
+import FlowNav from './FlowNav.jsx'
 import Masthead from './Masthead.jsx'
 import { DashboardFooter } from './Disclaimers.jsx'
-import { SCREENS, screenIndex } from '../lib/flow.js'
+import { sectionTitle } from '../lib/flow.js'
 import { useSession } from '../lib/session.jsx'
 
 export default function Layout() {
@@ -14,14 +14,7 @@ export default function Layout() {
   const first = useRef(true)
 
   useEffect(() => {
-    const screen = SCREENS[screenIndex(location.pathname)]
-    document.title =
-      'CareLoop, step ' +
-      (SCREENS.indexOf(screen) + 1) +
-      ' of ' +
-      SCREENS.length +
-      ', ' +
-      screen.title
+    document.title = sectionTitle(location.pathname) + ' - CareLoop'
 
     if (first.current) {
       first.current = false
@@ -49,9 +42,6 @@ export default function Layout() {
 
       <main id="main" ref={main} tabIndex={-1} className="focus:outline-none">
         <Outlet />
-        <div className="hold pb-24">
-          <FlowPager />
-        </div>
       </main>
 
       <DashboardFooter />

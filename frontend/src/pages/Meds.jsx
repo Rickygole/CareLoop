@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Link } from 'react-router-dom'
 
 import CallSchedule from '../components/CallSchedule.jsx'
+import DemoControls from '../components/DemoControls.jsx'
 import InteractionFlags from '../components/InteractionFlags.jsx'
 import MedicationCard from '../components/MedicationCard.jsx'
 import NextUpCard from '../components/NextUpCard.jsx'
@@ -11,12 +13,11 @@ import RegimenSnapshot from '../components/RegimenSnapshot.jsx'
 import Screen from '../components/Screen.jsx'
 import TimeTravel from '../components/TimeTravel.jsx'
 import { Rule } from '../components/Block.jsx'
-import { syncPortal } from '../lib/api.js'
 import { applyClockShift } from '../lib/clock.js'
-import { clockLabel, groupSchedule } from '../lib/format.js'
-import { CARD } from '../lib/ui.js'
+import { clockLabel, dateTimeLabel, groupSchedule } from '../lib/format.js'
+import { BTN_PRIMARY, CARD } from '../lib/ui.js'
+import { usePortal } from '../lib/usePortal.js'
 import { useSession } from '../lib/session.jsx'
-import { patientName } from '../data/patients.js'
 
 const CASCADE_STEPS = [
   'A new regimen snapshot is written',
@@ -37,19 +38,16 @@ function arrivalSentence(applied) {
 
 export default function MedsPage() {
   const {
-    patientId,
-    record,
     medications,
     schedule,
     regimen,
-    applyRegimen,
+    connected,
     clockShiftMs,
     setClockShiftMs,
   } = useSession()
 
-  const [portal, setPortal] = useState(null)
-  const [loading, setLoading] = useState(!schedule)
-  const [loadFailed, setLoadFailed] = useState(false)
+  const { portal, loading, loadFailed, reload, sync } = usePortal(connected)
+
   const [checking, setChecking] = useState(false)
   const [pulling, setPulling] = useState(false)
   const [syncFailed, setSyncFailed] = useState(false)
@@ -57,11 +55,6 @@ export default function MedsPage() {
   const [stage, setStage] = useState(0)
   const [announcement, setAnnouncement] = useState('')
   const timers = useRef([])
-  const haveData = useRef(Boolean(schedule))
-
-  useEffect(() => {
-    haveData.current = Boolean(schedule)
-  }, [schedule])
 
   useEffect(
     () => () => {
@@ -70,38 +63,17 @@ export default function MedsPage() {
     [],
   )
 
-  const load = useCallback(async () => {
-    setLoadFailed(false)
-    setSyncFailed(false)
-    try {
-      const result = await syncPortal(patientId, false)
-      applyRegimen(result)
-      setPortal(result)
-    } catch {
-      if (haveData.current) setSyncFailed(true)
-      else setLoadFailed(true)
-    } finally {
-      setLoading(false)
-    }
-  }, [applyRegimen, patientId])
-
-  useEffect(() => {
-    load()
-  }, [load])
-
   const check = useCallback(async () => {
     setChecking(true)
     setSyncFailed(false)
     try {
-      const result = await syncPortal(patientId, false)
-      applyRegimen(result)
-      setPortal(result)
+      await sync(false)
     } catch {
       setSyncFailed(true)
     } finally {
       setChecking(false)
     }
-  }, [applyRegimen, patientId])
+  }, [sync])
 
   const pull = useCallback(async () => {
     setPulling(true)
@@ -110,13 +82,11 @@ export default function MedsPage() {
     const gap = reducedMotion() ? 320 : 850
 
     try {
-      const result = await syncPortal(patientId, true)
+      const result = await sync(true)
 
       timers.current.forEach(clearTimeout)
       setPrior(before)
       setStage(1)
-      applyRegimen(result)
-      setPortal(result)
       setAnnouncement(
         arrivalSentence(result.applied) +
           'Snapshot ' + result.regimen.content_hash + ' replaces ' +
@@ -156,7 +126,7 @@ export default function MedsPage() {
     } finally {
       setPulling(false)
     }
-  }, [applyRegimen, clockShiftMs, medications, patientId, regimen, schedule])
+  }, [clockShiftMs, medications, regimen, schedule, sync])
 
   const cascading = Boolean(prior)
   const shownRequests = cascading && stage < 2 ? prior.medications : medications
@@ -182,41 +152,42 @@ export default function MedsPage() {
     }))
   }, [plan, shownRequests])
 
-  const who = record ? record.name : patientName(patientId)
-  const count = (shownRequests || []).length
+  if (!connected) {
+    return (
+      <Screen title="Medications">
+        <div className={CARD + ' measure px-7 py-8'}>
+          <h2 className="display-tight text-xl text-ink">
+            Connect MyHealth to see your medicines
+          </h2>
+          <p className="mt-3 text-ink-2">
+            The list comes from the portal. You never type a medicine in.
+          </p>
+          <Link to="/connect" className={BTN_PRIMARY + ' mt-7'}>
+            Connect MyHealth
+          </Link>
+        </div>
+      </Screen>
+    )
+  }
+
+  const syncedAt = portal && portal.synced_at
 
   return (
-    <Screen
-      title="CareLoop went and got these"
-      lead={
-        count
-          ? count +
-            (count === 1 ? ' medicine came ' : ' medicines came ') +
-            'across from MyHealth for ' +
-            who +
-            '. Nobody typed a word of it. CareLoop worked out the hour of every dose, and the call that goes with it, from the list itself.'
-          : 'CareLoop reads the medicine list straight out of MyHealth and works out the hour of every dose, and the call that goes with it, from the list itself.'
-      }
-    >
+    <Screen title="Medications">
       {loading ? (
         <p
           aria-live="polite"
           aria-busy="true"
           className="text-lg font-semibold text-ink-2"
         >
-          Reading MyHealth...
+          Loading...
         </p>
       ) : null}
 
       {loadFailed ? (
-        <Notice
-          role="alert"
-          tone="alarm"
-          word="MyHealth did not answer"
-          className="measure"
-        >
-          CareLoop could not read the portal.{' '}
-          <button type="button" onClick={load} className="font-semibold underline">
+        <Notice role="alert" tone="alarm" word="Not loaded" className="measure">
+          MyHealth did not answer.{' '}
+          <button type="button" onClick={reload} className="font-semibold underline">
             Try again
           </button>
           .
@@ -229,10 +200,8 @@ export default function MedsPage() {
 
           <div className="mt-12 grid gap-x-12 gap-y-14 lg:grid-cols-[minmax(0,1fr)_21rem]">
             <div className="min-w-0">
-              <h2 className="display text-2xl text-ink">
-                Your medicines, and when the call comes
-              </h2>
-              <Rule tone="sand" />
+              <h2 className="display text-2xl text-ink">Your medications</h2>
+              <Rule />
 
               {list.length ? (
                 <ul className="mt-8 flex flex-col gap-6">
@@ -242,19 +211,13 @@ export default function MedsPage() {
                 </ul>
               ) : (
                 <p className="measure mt-8 text-ink-2">
-                  There are no medicines on this record, so CareLoop has nothing
-                  to call about.
+                  There are no medicines on this record.
                 </p>
               )}
             </div>
 
             <aside className="lg:pt-2">
               <CallSchedule plan={plan} flash={cascading && stage >= 2} />
-              <TimeTravel
-                plan={shownPlanRaw}
-                shiftMs={clockShiftMs}
-                onShift={setClockShiftMs}
-              />
               <PortalShared
                 allergies={portal && portal.allergies}
                 window={portal && portal.preferred_contact_window}
@@ -269,18 +232,13 @@ export default function MedsPage() {
 
           <section aria-labelledby="change-heading" className="mt-12">
             <h2 id="change-heading" className="display text-2xl text-ink">
-              If MyHealth changes, the times change on their own
+              Connected to MyHealth
+              {syncedAt ? ', last synced ' + dateTimeLabel(syncedAt) : ''}
             </h2>
-            <Rule tone="sand" />
-            <p className="measure mt-6 text-ink-2">
-              When a prescriber sends a new prescription to the portal, it
-              arrives here on its own. Nobody types it in and nobody edits a
-              schedule. The call times and the safety check work themselves out
-              again.
-            </p>
+            <Rule />
 
             <PortalUpdate
-              syncedAt={portal && portal.synced_at}
+              syncedAt={syncedAt}
               summary={portal && portal.diff_summary}
               pending={Boolean(portal && portal.portal_has_pending_change)}
               checking={checking}
@@ -343,6 +301,14 @@ export default function MedsPage() {
               flash={cascading && stage >= 1}
             />
           </section>
+
+          <DemoControls>
+            <TimeTravel
+              plan={shownPlanRaw}
+              shiftMs={clockShiftMs}
+              onShift={setClockShiftMs}
+            />
+          </DemoControls>
         </div>
       ) : null}
     </Screen>
