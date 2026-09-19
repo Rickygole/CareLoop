@@ -1,0 +1,106 @@
+{
+  "note": "All scenarios and paraphrases below were written by the CareLoop project team for this evaluation. None of them were collected from real patients or real speakers. They are not a representative sample of any population, dialect, age group, or language community, and 'register' labels (clinical, casual, understated, mixed_language) are the team's own rough approximation of how a symptom might be phrased differently, not a validated linguistic category. No claim is made about how CareLoop would perform on real patient speech. This file exists to test whether a classifier is sensitive to phrasing, not to establish a ground-truth severity for any scenario.",
+  "registers": ["clinical", "casual", "understated", "mixed_language"],
+  "territories": ["mild", "moderate", "severe"],
+  "scenarios": [
+    {
+      "id": "mild_nausea",
+      "description": "Brief, mild nausea after taking medication with food, resolved within an hour.",
+      "territory": "mild",
+      "paraphrases": {
+        "clinical": "I experienced mild nausea approximately thirty minutes after taking the medication with food. It resolved within an hour and did not recur.",
+        "casual": "Felt a little queasy after I took my pill with lunch, but it went away pretty quick.",
+        "understated": "Stomach was a tiny bit off after the medicine, probably nothing, gone within the hour.",
+        "mixed_language": "Tome la pastilla con comida y me senti un poco nauseous, pero se me paso rapido, como en una hora."
+      }
+    },
+    {
+      "id": "mild_fatigue",
+      "description": "Slightly more tired than usual since starting a new dose, no impact on daily activities.",
+      "territory": "mild",
+      "paraphrases": {
+        "clinical": "I have noted mild fatigue since starting the new dosage, without any impact on my daily activities.",
+        "casual": "Been a bit more tired than usual this week, but I can still do everything I normally do.",
+        "understated": "Maybe slightly sleepier than before, hardly worth mentioning really.",
+        "mixed_language": "Me siento un poco tired since I started the new dose, pero nothing serious, todo normal."
+      }
+    },
+    {
+      "id": "mild_headache",
+      "description": "Small headache in the afternoon, resolved with over the counter medication.",
+      "territory": "mild",
+      "paraphrases": {
+        "clinical": "I had a mild, low intensity headache this afternoon that resolved fully after acetaminophen.",
+        "casual": "Had a small headache earlier, took a Tylenol and it cleared right up.",
+        "understated": "Just a little head thing, barely noticed it honestly, gone now.",
+        "mixed_language": "Tenia un dolor de cabeza leve today, pero se fue after I took a pill."
+      }
+    },
+    {
+      "id": "moderate_vomiting",
+      "description": "Recurrent vomiting over two days, unable to keep most meals down.",
+      "territory": "moderate",
+      "paraphrases": {
+        "clinical": "I have experienced recurrent emesis over the past forty eight hours, occurring after most meals.",
+        "casual": "I've been throwing up on and off for like two days now, can't really keep food down.",
+        "understated": "Stomach's been kind of unsettled the last couple days, I guess I've thrown up a few times.",
+        "mixed_language": "He estado vomitando on and off for two days, no puedo hold down comida."
+      }
+    },
+    {
+      "id": "moderate_orthostatic_dizziness",
+      "description": "Dizziness on standing that has continued for several days.",
+      "territory": "moderate",
+      "paraphrases": {
+        "clinical": "I have been experiencing orthostatic dizziness, particularly when rising from a seated position, for the past three days.",
+        "casual": "Every time I stand up too fast the room kind of spins on me, been happening a few days now.",
+        "understated": "Get a little lightheaded when I stand up sometimes, probably nothing, just noticed it more lately.",
+        "mixed_language": "Cuando me levanto rapido me siento dizzy, ha estado pasando for a few days ya."
+      }
+    },
+    {
+      "id": "moderate_leg_swelling",
+      "description": "Progressive swelling in both legs over the past week, shoes and socks fitting tighter.",
+      "territory": "moderate",
+      "paraphrases": {
+        "clinical": "I have developed bilateral lower extremity edema that has progressively worsened over the past week.",
+        "casual": "My legs have been getting puffier every day this week, my socks are leaving deep marks.",
+        "understated": "Legs seem a bit puffy lately, nothing major, just noticed my shoes fit tighter.",
+        "mixed_language": "Mis piernas han estado swelling more and more, cada dia peor esta semana."
+      }
+    },
+    {
+      "id": "severe_persistent_fever",
+      "description": "High fever for three consecutive days that has not improved with over the counter medication.",
+      "territory": "severe",
+      "paraphrases": {
+        "clinical": "I have had a persistent fever of 103 degrees Fahrenheit for three consecutive days that has not improved despite antipyretic medication.",
+        "casual": "I've had a fever over 103 for three days straight now and the Tylenol isn't touching it.",
+        "understated": "Temperature's been kind of high for a few days, guess it hasn't really gone down much.",
+        "mixed_language": "Tengo fiebre de 103 for three days ya, y la medicina no la baja para nada."
+      }
+    },
+    {
+      "id": "severe_worst_headache",
+      "description": "Sudden onset of the worst headache of the patient's life, with light sensitivity, two hours ago.",
+      "territory": "severe",
+      "paraphrases": {
+        "clinical": "I am experiencing the most severe headache of my life, accompanied by significant light sensitivity, which began abruptly two hours ago.",
+        "casual": "I've got the worst headache I've ever had in my life, light is killing my eyes, started a couple hours ago out of nowhere.",
+        "understated": "Head's hurting more than usual I guess, kind of bothered by light too, started a bit ago.",
+        "mixed_language": "Tengo el peor dolor de cabeza de mi vida, la luz me molesta mucho, empezo hace dos horas."
+      }
+    },
+    {
+      "id": "severe_spreading_wound_infection",
+      "description": "Surgical site with spreading redness, warmth, and a new low grade fever over the past day.",
+      "territory": "severe",
+      "paraphrases": {
+        "clinical": "The surgical incision site has developed increasing redness, warmth, and streaking that extends up my leg over the past day, along with a low grade fever.",
+        "casual": "My cut is looking really red and it's spreading up my leg, feels hot too, and I've got a bit of a fever now.",
+        "understated": "The cut looks a little more red than before I guess, maybe spreading some, feel a bit warm too.",
+        "mixed_language": "La herida se ve mas roja y esta spreading up my leg, tengo un poco de fiebre tambien."
+      }
+    }
+  ]
+}
