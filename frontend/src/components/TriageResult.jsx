@@ -25,7 +25,6 @@ export default function TriageResult({ result, latencyMs }) {
 
   return (
     <section
-      aria-live="polite"
       aria-labelledby="verdict-heading"
       className="enter-verdict relative overflow-hidden rounded-panel border-2 border-line-ink bg-surface shadow-lift"
     >

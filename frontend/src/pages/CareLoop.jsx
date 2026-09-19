@@ -11,7 +11,7 @@ import NextUpCard from '../components/NextUpCard.jsx'
 import RunNarrative from '../components/RunNarrative.jsx'
 import Section, { MARK, ROW_GRID } from '../components/Section.jsx'
 import TechnicalDetail from '../components/TechnicalDetail.jsx'
-import TierBadge from '../components/TierBadge.jsx'
+import TierBadge, { tierMeta } from '../components/TierBadge.jsx'
 import TriageResult from '../components/TriageResult.jsx'
 import VoicePanel from '../components/VoicePanel.jsx'
 import { DashboardFooter } from '../components/Disclaimers.jsx'
@@ -120,16 +120,16 @@ export default function CareLoopPage() {
         <div className="grid gap-x-16 gap-y-12 pt-16 lg:grid-cols-[minmax(0,1fr)_19rem] lg:pt-24">
           <div>
             <p className="smallcaps text-micro text-brand-deep">
-              A check-in call that does the next part for you
+              For people who take medicine every day
             </p>
             <h1 className="font-display mt-5 max-w-[13ch] text-3xl font-semibold text-ink sm:text-4xl">
               We call you. You just talk.
             </h1>
             <p className="measure mt-8 text-ink-2">
-              CareLoop telephones you when a dose of your medicine is due. It
-              asks whether you took it and how you are feeling. If what you say
-              needs a doctor, it telephones the clinic and books the
-              appointment itself, then tells you when it is.
+              CareLoop rings you when a dose of your medicine is due. It asks
+              whether you took it and how you are feeling. If what you say needs
+              a doctor, CareLoop phones the clinic itself, books the
+              appointment, and then tells you when it is.
             </p>
           </div>
 
@@ -178,9 +178,9 @@ export default function CareLoopPage() {
         <Section
           id="try"
           mark="02"
-          label="See it happen"
-          title="Say how you are feeling"
-          lead="Everything below is real. What you say goes to the triage engine, and what comes back is what a patient would actually be told."
+          label="Try it"
+          title="See a real call happen"
+          lead="Nothing below is scripted. What you say is judged by the same system a patient would reach, and what comes back is what a patient would actually be told."
         >
           <VoicePanel
             patientId={patientId}
@@ -196,15 +196,19 @@ export default function CareLoopPage() {
             onSubmit={startCheckIn}
           />
 
-          {busy ? (
-            <p
-              aria-live="polite"
-              className="enter-fade mt-10 border-l-4 border-brand bg-brand-wash px-6 py-5 text-sm font-semibold text-brand-deep"
-            >
-              CareLoop is on the call. Listening, checking, and deciding what to
-              do.
-            </p>
-          ) : null}
+          <div role="status" aria-live="polite" className="empty:hidden">
+            {busy ? (
+              <p className="enter-fade mt-10 border-l-4 border-brand bg-brand-wash px-6 py-5 text-sm font-semibold text-brand-deep">
+                CareLoop is on the call. Listening, checking, and deciding what
+                to do.
+              </p>
+            ) : null}
+            {!busy && run && run.triage ? (
+              <p className="sr-only">
+                {'CareLoop has decided. ' + tierMeta(run.triage.tier).headline + '.'}
+              </p>
+            ) : null}
+          </div>
 
           {run ? (
             <div className="mt-10">
