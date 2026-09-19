@@ -27,7 +27,7 @@ export default function DoseChip({ dose, size = 'base' }) {
       <span aria-hidden="true" className={'leading-none ' + meta.tone}>
         {meta.glyph}
       </span>
-      <span className="numeric font-bold">{clockLabel(dose.time)}</span>
+      <span className="numeric font-semibold">{clockLabel(dose.time)}</span>
       <span className="text-ink-2">{meta.label}</span>
     </span>
   )

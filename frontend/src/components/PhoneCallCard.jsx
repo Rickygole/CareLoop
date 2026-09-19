@@ -117,7 +117,7 @@ export default function PhoneCallCard({ patientName, onRing }) {
 
               <div role="status" aria-live="polite" className="mt-5 empty:hidden">
                 {WORDING[status] ? (
-                  <p className="text-sm font-bold text-ink">
+                  <p className="text-sm font-semibold text-ink">
                     {WORDING[status]}
                     {sid ? (
                       <span className="numeric ml-3 font-mono text-xs font-normal text-ink-2">
@@ -127,7 +127,7 @@ export default function PhoneCallCard({ patientName, onRing }) {
                   </p>
                 ) : null}
                 {status === CALL_STATUS.UNAVAILABLE ? (
-                  <p className="text-sm font-bold text-severe">
+                  <p className="text-sm font-semibold text-severe">
                     The call was not placed.
                     {missing.length
                       ? ' Missing settings: ' + missing.join(', ') + '.'

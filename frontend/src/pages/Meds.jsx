@@ -180,7 +180,7 @@ export default function MedsPage() {
         <p
           aria-live="polite"
           aria-busy="true"
-          className="text-lg font-bold text-ink-2"
+          className="text-lg font-semibold text-ink-2"
         >
           Reading the medicine list...
         </p>
@@ -194,7 +194,7 @@ export default function MedsPage() {
           className="measure"
         >
           CareLoop could not reach the record.{' '}
-          <button type="button" onClick={load} className="font-bold underline">
+          <button type="button" onClick={load} className="font-semibold underline">
             Try again
           </button>
           .
@@ -205,7 +205,7 @@ export default function MedsPage() {
         <div>
           <NextUpCard dose={plan.next_dose} />
 
-          <div className="mt-20 grid gap-x-12 gap-y-14 lg:grid-cols-[minmax(0,1fr)_21rem]">
+          <div className="mt-12 grid gap-x-12 gap-y-14 lg:grid-cols-[minmax(0,1fr)_21rem]">
             <div className="min-w-0">
               <h2 className="display text-2xl text-ink">
                 Your medicines, and when the call comes
@@ -241,7 +241,7 @@ export default function MedsPage() {
             flash={cascading && stage >= 3}
           />
 
-          <section aria-labelledby="change-heading" className="mt-20">
+          <section aria-labelledby="change-heading" className="mt-12">
             <h2 id="change-heading" className="display text-2xl text-ink">
               If the list changes, the times change on their own
             </h2>
@@ -284,7 +284,7 @@ export default function MedsPage() {
                           <span
                             className={
                               'text-sm ' +
-                              (done ? 'font-bold text-ink' : 'text-ink-2')
+                              (done ? 'font-semibold text-ink' : 'text-ink-2')
                             }
                           >
                             {label}

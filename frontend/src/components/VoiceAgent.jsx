@@ -152,7 +152,7 @@ export default function VoiceAgent({ patientId, patientName }) {
         aria-label="Voice agent"
         className="rounded-card border border-dashed border-console-line bg-console-panel/60 p-6"
       >
-        <h2 className="font-mono text-2xs font-bold uppercase tracking-[0.18em] text-console-muted">
+        <h2 className="font-mono text-2xs font-semibold uppercase tracking-[0.18em] text-console-muted">
           Voice agent
         </h2>
         <p className="mt-2.5 max-w-[62ch] text-sm leading-relaxed text-console-ink-2">
@@ -223,7 +223,7 @@ export default function VoiceAgent({ patientId, patientName }) {
           <button
             type="button"
             onClick={handleStart}
-            className="self-start rounded-control bg-console-accent px-5 py-3 text-sm font-bold uppercase tracking-[0.04em] text-console-accent-ink transition-[background-color,transform] duration-150 ease-out hover:bg-console-accent-deep active:scale-[0.99]"
+            className="self-start rounded-control bg-console-accent px-5 py-3 text-sm font-semibold uppercase tracking-[0.04em] text-console-accent-ink transition-[background-color,transform] duration-150 ease-out hover:bg-console-accent-deep active:scale-[0.99]"
           >
             Start voice check-in
           </button>
@@ -278,7 +278,7 @@ export default function VoiceAgent({ patientId, patientName }) {
             <button
               type="button"
               onClick={focusTextFallback}
-              className="rounded-control bg-console-accent px-4 py-2 text-2xs font-bold uppercase tracking-[0.04em] text-console-accent-ink transition-colors duration-150 hover:bg-console-accent-deep"
+              className="rounded-control bg-console-accent px-4 py-2 text-2xs font-semibold uppercase tracking-[0.04em] text-console-accent-ink transition-colors duration-150 hover:bg-console-accent-deep"
             >
               Switch to text check-in
             </button>

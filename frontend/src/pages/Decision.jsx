@@ -54,7 +54,7 @@ export default function DecisionPage() {
         tier={triage.tier}
       />
 
-      <section aria-labelledby="said-heading" className="mt-20">
+      <section aria-labelledby="said-heading" className="mt-12">
         <h2 id="said-heading" className="display text-2xl text-ink">
           What you said
         </h2>
@@ -85,7 +85,7 @@ export default function DecisionPage() {
         ) : null}
       </section>
 
-      <section aria-labelledby="working-heading" className="mt-20">
+      <section aria-labelledby="working-heading" className="mt-12">
         <h2 id="working-heading" className="display text-2xl text-ink">
           How it got there
         </h2>
@@ -108,7 +108,7 @@ export default function DecisionPage() {
       </section>
 
       {history.length ? (
-        <section aria-labelledby="history-heading" className="mt-20">
+        <section aria-labelledby="history-heading" className="mt-12">
           <h2 id="history-heading" className="display text-2xl text-ink">
             Calls before this one
           </h2>
@@ -144,7 +144,7 @@ export default function DecisionPage() {
         </section>
       ) : null}
 
-      <section aria-labelledby="record-heading" className="mt-20">
+      <section aria-labelledby="record-heading" className="mt-12">
         <h2 id="record-heading" className="display text-2xl text-ink">
           The machine record
         </h2>

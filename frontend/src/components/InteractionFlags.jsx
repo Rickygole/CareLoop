@@ -45,7 +45,7 @@ export default function InteractionFlags({ regimen, flash }) {
   return (
     <section
       aria-labelledby="flags-heading"
-      className={'mt-20 ' + (flash ? 'trace-flash' : '')}
+      className={'mt-12 ' + (flash ? 'trace-flash' : '')}
     >
       <h2 id="flags-heading" className="display text-2xl text-ink">
         {surfaced.length
@@ -112,7 +112,7 @@ export default function InteractionFlags({ regimen, flash }) {
           <span className="smallcaps text-micro text-console-accent">
             For the clinical team, not shown to the patient
           </span>
-          <span className="mt-2 block text-sm font-bold text-console-ink">
+          <span className="mt-2 block text-sm font-semibold text-console-ink">
             {held.length
               ? held.length +
                 (held.length === 1
@@ -140,7 +140,7 @@ export default function InteractionFlags({ regimen, flash }) {
                     <span className="smallcaps text-micro text-console-accent">
                       {severityMeta(finding.severity).word}
                     </span>
-                    <span className="text-sm font-bold capitalize text-console-ink">
+                    <span className="text-sm font-semibold capitalize text-console-ink">
                       {pairLabel(finding.ingredients)}
                     </span>
                   </p>

@@ -267,7 +267,7 @@ export default function SimulatedCall({
 
         <div role="status" aria-live="polite" className="empty:hidden">
           {speaking || thinking ? (
-            <p className="enter-fade mt-7 flex items-center gap-4 text-sm font-bold text-clay">
+            <p className="enter-fade mt-7 flex items-center gap-4 text-sm font-semibold text-clay">
               <span
                 aria-hidden="true"
                 className="inline-block h-3.5 w-3.5 shrink-0 rounded-full bg-clay"
@@ -310,7 +310,7 @@ export default function SimulatedCall({
 
         <div role="status" aria-live="polite" className="empty:hidden">
           {RING_WORDING[ringState] ? (
-            <p className="measure mt-6 text-sm font-bold text-ink">
+            <p className="measure mt-6 text-sm font-semibold text-ink">
               {RING_WORDING[ringState]}
               {ringSid ? (
                 <span className="numeric ml-3 font-mono text-xs font-normal text-ink-2">
@@ -320,7 +320,7 @@ export default function SimulatedCall({
             </p>
           ) : null}
           {ringState === CALL_STATUS.UNAVAILABLE ? (
-            <p className="measure mt-6 text-sm font-bold text-severe">
+            <p className="measure mt-6 text-sm font-semibold text-severe">
               The call was not placed.
               {ringMissing.length
                 ? ' Missing settings: ' + ringMissing.join(', ') + '.'

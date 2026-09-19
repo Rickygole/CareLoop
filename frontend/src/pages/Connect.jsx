@@ -90,7 +90,7 @@ export default function ConnectPage() {
         <div>
           <p className="measure text-lg leading-[1.45] text-ink">
             MyHealth is connected for{' '}
-            <strong className="font-bold">
+            <strong className="font-semibold">
               {record ? record.name : patientName(patientId)}
             </strong>
             . The medicines came across and CareLoop has already worked out when

@@ -26,7 +26,7 @@ function Row({ arm, entry, grown, placeholder }) {
           style={{ width: width + '%' }}
         />
       </div>
-      <span className="numeric w-28 shrink-0 text-right text-sm font-bold text-ink">
+      <span className="numeric w-28 shrink-0 text-right text-sm font-semibold text-ink">
         {placeholder
           ? '--'
           : percent(value) +
@@ -70,14 +70,14 @@ export default function FairnessChart() {
                 CARD + ' flex flex-wrap gap-x-8 gap-y-2 px-6 py-5 sm:px-8'
               }
             >
-              <dt className="w-full font-bold text-ink sm:w-56">{arm.label}</dt>
+              <dt className="w-full font-semibold text-ink sm:w-56">{arm.label}</dt>
               <dd className="min-w-0 flex-1 text-ink-2">{arm.note}</dd>
             </div>
           ))}
         </dl>
       </section>
 
-      <section aria-labelledby="conditions-heading" className="mt-20">
+      <section aria-labelledby="conditions-heading" className="mt-12">
         <h2 id="conditions-heading" className="display text-2xl text-ink">
           The conditions
         </h2>
@@ -85,7 +85,7 @@ export default function FairnessChart() {
 
         <p className="measure mt-8 text-ink-2">{evalResults.metric_label}</p>
         {placeholder ? (
-          <p className="mt-4 text-sm font-bold text-moderate">
+          <p className="mt-4 text-sm font-semibold text-moderate">
             The test has not been run yet, so every bar is empty on purpose.
           </p>
         ) : (
@@ -120,7 +120,7 @@ export default function FairnessChart() {
       </section>
 
       {!placeholder && Object.keys(directionality).length ? (
-        <section aria-labelledby="direction-heading" className="mt-20">
+        <section aria-labelledby="direction-heading" className="mt-12">
           <h2 id="direction-heading" className="display text-2xl text-ink">
             Which way the disagreements went
           </h2>
@@ -141,7 +141,7 @@ export default function FairnessChart() {
                     CARD + ' flex flex-wrap gap-x-8 gap-y-2 px-6 py-5 sm:px-8'
                   }
                 >
-                  <dt className="w-full font-bold text-ink sm:w-56">
+                  <dt className="w-full font-semibold text-ink sm:w-56">
                     {arm.label}
                   </dt>
                   <dd className="numeric min-w-0 flex-1 text-ink-2">
@@ -155,7 +155,7 @@ export default function FairnessChart() {
         </section>
       ) : null}
 
-      <div className="ledge ledge-night mt-20 rounded-card border border-console-line bg-console-bg px-6 py-7 text-console-ink sm:px-9">
+      <div className="ledge ledge-night mt-12 rounded-card border border-console-line bg-console-bg px-6 py-7 text-console-ink sm:px-9">
         <p className="smallcaps text-micro text-console-accent">
           What this does not prove
         </p>

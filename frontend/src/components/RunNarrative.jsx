@@ -11,9 +11,9 @@ const MARK = {
 
 const TONE = {
   said: 'text-ink',
-  act: 'font-bold text-brand',
-  flag: 'font-bold text-moderate',
-  alarm: 'font-bold text-emergency',
+  act: 'font-semibold text-brand',
+  flag: 'font-semibold text-moderate',
+  alarm: 'font-semibold text-emergency',
   plain: 'text-ink-2',
 }
 

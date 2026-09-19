@@ -78,7 +78,7 @@ export default function CallPage() {
         {next ? (
           due ? (
             <span>
-              <strong className="font-bold">
+              <strong className="font-semibold">
                 {next.medication}
                 {next.dosage ? ' ' + next.dosage : ''} is due now,
               </strong>{' '}
@@ -86,7 +86,7 @@ export default function CallPage() {
             </span>
           ) : (
             <span>
-              <strong className="font-bold">
+              <strong className="font-semibold">
                 The next call is at {clockLabel(next.time)},
               </strong>{' '}
               about {next.medication}

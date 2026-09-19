@@ -13,7 +13,7 @@ export default function RegimenSnapshot({ hash, previousHash, count, flash }) {
         Which version of the list this is
       </h2>
       <p className="mt-4 flex flex-wrap items-baseline gap-x-5 gap-y-2">
-        <span className="numeric font-mono text-lg font-bold text-console-ink">
+        <span className="numeric font-mono text-lg font-semibold text-console-ink">
           {hash}
         </span>
         {previousHash && previousHash !== hash ? (

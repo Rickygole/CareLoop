@@ -30,7 +30,7 @@ export default function CallSchedule({ plan, flash }) {
                 <span aria-hidden="true" className={'leading-none ' + meta.tone}>
                   {meta.glyph}
                 </span>
-                <span className="numeric text-sm font-bold text-ink">
+                <span className="numeric text-sm font-semibold text-ink">
                   {clockLabel(dose.time)}
                 </span>
                 <span className="min-w-0 flex-1 truncate text-sm text-ink-2">

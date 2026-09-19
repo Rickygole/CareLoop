@@ -95,7 +95,7 @@ export default function TierBadge({ tier, size = 'md', tone = 'light' }) {
     return (
       <span
         className={
-          'inline-flex items-center rounded-control border font-bold ' +
+          'inline-flex items-center rounded-control border font-semibold ' +
           scale +
           ' ' +
           (dark
@@ -114,7 +114,7 @@ export default function TierBadge({ tier, size = 'md', tone = 'light' }) {
   return (
     <span
       className={
-        'inline-flex items-center rounded-control border font-bold ' +
+        'inline-flex items-center rounded-control border font-semibold ' +
         scale +
         ' ' +
         (dark

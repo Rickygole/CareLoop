@@ -9,7 +9,7 @@ export default function MedicationCard({ med, index }) {
     >
       <div className="flex flex-wrap items-baseline gap-x-5 gap-y-2">
         <h4 className="display-tight text-xl text-ink">{med.medication}</h4>
-        <p className="numeric text-lg font-bold text-clay">{med.dosage}</p>
+        <p className="numeric text-lg font-semibold text-clay">{med.dosage}</p>
       </div>
 
       <p className="measure mt-2 text-sm text-ink-2">

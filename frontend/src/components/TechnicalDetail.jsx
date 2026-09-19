@@ -28,7 +28,7 @@ export default function TechnicalDetail({ events, status, retries, maxRetries })
         <span className="smallcaps text-micro text-console-accent">
           For the engineers
         </span>
-        <span className="mt-2 block text-sm font-bold text-console-ink">
+        <span className="mt-2 block text-sm font-semibold text-console-ink">
           Show the raw machine record of every call
         </span>
         <span className="numeric mt-1.5 block text-xs text-console-muted">
@@ -58,7 +58,7 @@ export default function TechnicalDetail({ events, status, retries, maxRetries })
                   </span>
                   <span
                     className={
-                      'min-w-[15rem] ' + (style.bold ? 'font-bold' : 'font-normal')
+                      'min-w-[15rem] ' + (style.bold ? 'font-semibold' : 'font-normal')
                     }
                     style={{ color: style.color }}
                   >
