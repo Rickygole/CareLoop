@@ -1,3 +1,5 @@
+import { useState } from 'react'
+
 import { clockTime, styleFor, summarize } from '../lib/trace.js'
 import { TRACE_STATUS } from '../lib/useTrace.js'
 
@@ -19,12 +21,19 @@ function transportLabel(status, retries, maxRetries) {
 }
 
 export default function TechnicalDetail({ events, status, retries, maxRetries }) {
+  const [open, setOpen] = useState(false)
   const visible = events.slice(-SHOW)
   const hidden = events.length - visible.length
 
   return (
-    <details className="console-scope ledge ledge-night mt-10 overflow-hidden rounded-panel border border-console-line bg-console-bg text-console-ink">
-      <summary className="cursor-pointer list-none px-6 py-6 marker:content-none sm:px-9">
+    <div className="console-scope ledge ledge-night mt-10 overflow-hidden rounded-panel border border-console-line bg-console-bg text-console-ink">
+      <button
+        type="button"
+        onClick={() => setOpen((shown) => !shown)}
+        aria-expanded={open}
+        aria-controls="machine-record-panel"
+        className="block w-full cursor-pointer px-6 py-6 text-left sm:px-9"
+      >
         <span className="smallcaps text-micro text-console-accent">
           For the engineers
         </span>
@@ -34,9 +43,13 @@ export default function TechnicalDetail({ events, status, retries, maxRetries })
         <span className="numeric mt-1.5 block text-xs text-console-muted">
           {events.length} entries, {transportLabel(status, retries, maxRetries)}
         </span>
-      </summary>
+      </button>
 
-      <div className="border-t border-console-line px-3 py-5 sm:px-6">
+      <div
+        id="machine-record-panel"
+        hidden={!open}
+        className="border-t border-console-line px-3 py-5 sm:px-6"
+      >
         {hidden > 0 ? (
           <p className="numeric px-4 pb-4 font-mono text-trace text-console-muted">
             {hidden} earlier entries not shown
@@ -78,6 +91,6 @@ export default function TechnicalDetail({ events, status, retries, maxRetries })
           </p>
         )}
       </div>
-    </details>
+    </div>
   )
 }

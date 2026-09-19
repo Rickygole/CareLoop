@@ -1,3 +1,5 @@
+import { useState } from 'react'
+
 import { Rule } from './Block.jsx'
 
 const SEVERITY = {
@@ -37,6 +39,8 @@ function pairLabel(ingredients) {
 }
 
 export default function InteractionFlags({ regimen, flash }) {
+  const [heldOpen, setHeldOpen] = useState(false)
+
   if (!regimen) return null
 
   const surfaced = regimen.surfaced || []
@@ -107,8 +111,14 @@ export default function InteractionFlags({ regimen, flash }) {
         <p className="measure mt-3 text-sm text-ink-2">{regimen.limitations}</p>
       </div>
 
-      <details className="ledge mt-10 overflow-hidden rounded-card border border-line bg-sunken text-ink">
-        <summary className="cursor-pointer list-none px-6 py-6 marker:content-none sm:px-8">
+      <div className="ledge mt-10 overflow-hidden rounded-card border border-line bg-sunken text-ink">
+        <button
+          type="button"
+          onClick={() => setHeldOpen((open) => !open)}
+          aria-expanded={heldOpen}
+          aria-controls="held-back-panel"
+          className="block w-full cursor-pointer px-6 py-6 text-left sm:px-8"
+        >
           <span className="smallcaps text-micro text-clay">
             For the clinical team, not shown to the patient
           </span>
@@ -120,9 +130,13 @@ export default function InteractionFlags({ regimen, flash }) {
                   : ' findings were detected and held back')
               : 'Nothing was detected and held back'}
           </span>
-        </summary>
+        </button>
 
-        <div className="border-t border-line px-6 py-6 sm:px-8">
+        <div
+          id="held-back-panel"
+          hidden={!heldOpen}
+          className="border-t border-line px-6 py-6 sm:px-8"
+        >
           <p className="measure text-sm text-ink-2">
             CareLoop only tells a patient about a finding at major severity or
             above. Anything below that is recorded here for the prescriber or
@@ -155,7 +169,7 @@ export default function InteractionFlags({ regimen, flash }) {
             </ul>
           ) : null}
         </div>
-      </details>
+      </div>
     </section>
   )
 }

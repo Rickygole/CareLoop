@@ -89,7 +89,11 @@ export default function TodayPage() {
       {loadFailed ? (
         <Notice role="alert" tone="alarm" word="Not loaded" className="measure">
           MyHealth did not answer.{' '}
-          <button type="button" onClick={reload} className="font-semibold underline">
+          <button
+            type="button"
+            onClick={reload}
+            className="inline-flex min-h-[44px] items-center align-middle font-semibold underline"
+          >
             Try again
           </button>
           .

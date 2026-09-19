@@ -137,7 +137,11 @@ export default function AppointmentsPage() {
       {failed ? (
         <Notice role="alert" tone="alarm" word="Not loaded" className="measure">
           The appointment list did not load.{' '}
-          <button type="button" onClick={reload} className="font-semibold underline">
+          <button
+            type="button"
+            onClick={reload}
+            className="inline-flex min-h-[44px] items-center align-middle font-semibold underline"
+          >
             Try again
           </button>
           .

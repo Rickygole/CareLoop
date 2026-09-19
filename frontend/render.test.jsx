@@ -529,6 +529,82 @@ test('the written stand-in says what the phone call says', async () => {
   expect(screen.getByText('Call my phone now').closest('button').disabled).toBe(true)
 }, 10000)
 
+function accessibleName(element) {
+  const label = element.getAttribute('aria-label')
+  return String(label || element.textContent || '').trim()
+}
+
+async function openSection(label, heading) {
+  startAtFirstScreen()
+  render(<HashRouter><App /></HashRouter>)
+  signIn()
+  fireEvent.click(screen.getAllByText(/^Connect MyHealth$/)[0])
+  fireEvent.click(screen.getByText(/^Connect MyHealth for/))
+  fireEvent.click(screen.getByText('Allow'))
+  await screen.findByRole('heading', { level: 1, name: /Today/ }, { timeout: 4000 })
+  if (!label) return
+  const tabs = screen.getByRole('navigation', { name: 'Sections' })
+  fireEvent.click(within(tabs).getByText(label))
+  await screen.findByRole('heading', { level: 1, name: heading }, { timeout: 4000 })
+}
+
+test('every control on the medicines section is a button the accessibility tree can see', async () => {
+  await connectAndOpenMedications()
+  await screen.findByText(/Your prescriber has sent a new prescription/, {}, { timeout: 4000 })
+
+  const buttons = screen.getAllByRole('button')
+  expect(buttons.length).toBeGreaterThan(0)
+  for (const button of buttons) {
+    expect(accessibleName(button).length).toBeGreaterThan(0)
+    expect(button.tagName).toBe('BUTTON')
+  }
+
+  expect(screen.getByRole('button', { name: /Check MyHealth for updates/ })).toBeTruthy()
+  expect(screen.getByRole('button', { name: /Pull the new prescription from MyHealth/ })).toBeTruthy()
+  expect(screen.getByRole('button', { name: /Move the clock to the next dose/ })).toBeTruthy()
+  expect(screen.getByRole('button', { name: /detected and held back/ })).toBeTruthy()
+}, 15000)
+
+test('the held back findings open from the keyboard and say so to a screen reader', async () => {
+  await connectAndOpenMedications()
+
+  const disclosure = await screen.findByRole('button', { name: /detected and held back/ }, { timeout: 4000 })
+  expect(disclosure.tagName).toBe('BUTTON')
+  expect(disclosure.getAttribute('type')).toBe('button')
+  expect(disclosure.getAttribute('aria-expanded')).toBe('false')
+
+  const panel = document.getElementById(disclosure.getAttribute('aria-controls'))
+  expect(panel).toBeTruthy()
+  expect(panel.hidden).toBe(true)
+
+  disclosure.focus()
+  expect(document.activeElement).toBe(disclosure)
+
+  fireEvent.keyDown(disclosure, { key: 'Enter', code: 'Enter' })
+  fireEvent.click(disclosure)
+
+  expect(disclosure.getAttribute('aria-expanded')).toBe('true')
+  expect(panel.hidden).toBe(false)
+  expect(panel.textContent).toMatch(/only tells a patient about a finding at major severity/)
+}, 15000)
+
+test('the appointments and today sections expose named controls too', async () => {
+  await openSection('Appointments', /Appointments/)
+  await screen.findByText('Dr. Elena Vance', {}, { timeout: 4000 })
+  for (const control of [...screen.getAllByRole('button'), ...screen.getAllByRole('link')]) {
+    expect(accessibleName(control).length).toBeGreaterThan(0)
+    expect(['BUTTON', 'A']).toContain(control.tagName)
+  }
+  cleanup()
+
+  await openSection(null)
+  for (const control of [...screen.getAllByRole('button'), ...screen.getAllByRole('link')]) {
+    expect(accessibleName(control).length).toBeGreaterThan(0)
+    expect(['BUTTON', 'A']).toContain(control.tagName)
+  }
+  expect(screen.getByRole('button', { name: /Move the clock to the next dose/ })).toBeTruthy()
+}, 20000)
+
 test('the demo account arrives in the fields so no one types a password', () => {
   startAtFirstScreen()
   render(<HashRouter><App /></HashRouter>)
