@@ -171,6 +171,7 @@ class SessionState:
         self.escalations: Dict[str, List[dict]] = {}
         self.regimen_snapshots: Dict[str, List[dict]] = {}
         self.answered_calls: set = set()
+        self.call_state: Dict[str, dict] = {}
         self.bus = TraceBus()
         self.call_limiter = telephony.CallLimiter()
         self.last_touched = time.monotonic()
@@ -822,9 +823,17 @@ CHECKIN_GREETING = (
 )
 
 CHECKIN_DOSE_PROMPT = (
-    "{patient_first_name}, it is time for your {medication}{indication}. "
-    "Please take it now if you have not already. When you have, tell me you "
-    "took it, and tell me how you have been feeling since."
+    "{patient_first_name}, your prescriber's schedule has your {medication} "
+    "{indication}at about this time. Have you been able to take it? Tell me "
+    "yes or no, and tell me how you have been feeling since."
+)
+
+CHECKIN_DOSE_PROMPT_FLAGGED = (
+    "{patient_first_name}, your prescriber's schedule has your {medication} "
+    "at about this time. I am not going to ask you to take it, because "
+    "something on your medication list is worth asking your prescriber or "
+    "pharmacist about first. Please do not start, stop or change anything "
+    "because of this call. Tell me how you have been feeling since."
 )
 
 CHECKIN_NO_ANSWER = (
@@ -916,6 +925,25 @@ def _spoken_indication(patient: Optional[dict]) -> str:
     return ""
 
 
+def _next_dose_is_flagged(patient: Optional[dict]) -> Optional[List[str]]:
+    if not patient:
+        return None
+    surfaced = [
+        f for f in check_regimen(patient["medication_requests"])
+        if f["surfaced"] and f["severity"] in {"major", "contraindicated"}
+    ]
+    if not surfaced:
+        return None
+    plan = build_day_plan(patient)
+    dose = plan["next_dose"]
+    name = (dose or {}).get("medication") or _demo_medication_name(patient)
+    name = (name or "").strip().lower()
+    for finding in surfaced:
+        if any(ingredient in name for ingredient in finding["ingredients"]):
+            return finding["ingredients"]
+    return None
+
+
 def _telephony_not_configured(missing: List[str]) -> dict:
     return {
         "configured": False,
@@ -925,8 +953,41 @@ def _telephony_not_configured(missing: List[str]) -> dict:
     }
 
 
+CALL_PHASE_DIALLING = "dialling"
+CALL_PHASE_RINGING = "ringing"
+CALL_PHASE_ANSWERED = "answered"
+CALL_PHASE_DISCONNECTED = "disconnected"
+CALL_PHASE_REDIALLING = "redialling"
+CALL_PHASE_ENDED = "ended"
+CALL_PHASE_GAVE_UP = "gave_up"
+
+CALL_PHASE_WORDING = {
+    CALL_PHASE_RINGING: "Your phone is ringing now.",
+    CALL_PHASE_ANSWERED: "You are on the call with CareLoop.",
+    CALL_PHASE_DISCONNECTED: "The call was disconnected before the check-in finished.",
+    CALL_PHASE_REDIALLING: "That call did not go through. CareLoop is ringing you again now.",
+    CALL_PHASE_ENDED: "The check-in is finished.",
+    CALL_PHASE_GAVE_UP: "CareLoop stopped calling after three attempts.",
+}
+
+
+def _set_call_state(session: SessionState, leg: str, **fields) -> dict:
+    state = session.call_state.get(leg, {"leg": leg, "attempt": 1, "max_attempts": MAX_CALL_ATTEMPTS})
+    state.update(fields)
+    state["wording"] = CALL_PHASE_WORDING.get(state.get("phase"), "")
+    state["updated_at"] = datetime.now(timezone.utc).isoformat()
+    session.call_state[leg] = state
+    return state
+
+
 async def _emit_call_result(session: SessionState, leg: str, to: str, result: dict) -> None:
     event = "PHONE_CALL_DIALED" if result["ok"] else "PHONE_CALL_FAILED"
+    if result["ok"]:
+        current = (session.call_state.get(leg) or {}).get("phase")
+        phase = CALL_PHASE_REDIALLING if current == CALL_PHASE_REDIALLING else CALL_PHASE_RINGING
+        _set_call_state(session, leg, phase=phase, call_sid=result.get("call_sid"))
+    else:
+        _set_call_state(session, leg, phase=CALL_PHASE_ENDED, error=result.get("error"))
     await session.bus.emit(event, {
         "leg": leg,
         "to": telephony.mask_phone(to),
@@ -939,12 +1000,19 @@ async def _emit_call_result(session: SessionState, leg: str, to: str, result: di
 async def voice_checkin(
     patient_id: str = DEFAULT_DEMO_PATIENT_ID, session: SessionState = Depends(get_session),
 ):
-    patient = session.patients.get(patient_id) or session.patients.get(DEFAULT_DEMO_PATIENT_ID)
+    patient = session.patients.get(patient_id)
+    if patient is None:
+        raise HTTPException(404, "unknown_patient")
     await session.bus.emit("CALL_CONNECTED", {"patient_id": patient_id, "leg": "checkin"})
 
     first_name = _first_name(patient)
     medication = _spoken_medication(patient)
     indication = _spoken_indication(patient)
+    flagged = _next_dose_is_flagged(patient)
+    if flagged:
+        await session.bus.emit("DOSE_PROMPT_WITHHELD", {
+            "patient_id": patient_id, "ingredients": flagged,
+        })
 
     action = "/voice/checkin/respond?" + urlencode({
         "patient_id": patient_id, SESSION_QUERY_PARAM: session.session_id,
@@ -954,11 +1022,17 @@ async def voice_checkin(
         + '<Pause length="1"/>'
         + f'<Gather input="speech" action="{xml_escape(action)}" method="POST" '
         'speechTimeout="auto" timeout="8" language="en-US">'
-        + _say(CHECKIN_DOSE_PROMPT.format(
-            patient_first_name=first_name,
-            medication=medication,
-            indication=f", the one {indication}" if indication else "",
-        ))
+        + _say(
+            CHECKIN_DOSE_PROMPT_FLAGGED.format(
+                patient_first_name=first_name, medication=medication,
+            )
+            if flagged
+            else CHECKIN_DOSE_PROMPT.format(
+                patient_first_name=first_name,
+                medication=medication,
+                indication=f"{indication} " if indication else "",
+            )
+        )
         + "</Gather>"
         + _say(CHECKIN_NO_ANSWER.format(medication=medication))
         + "<Hangup/>"
@@ -989,7 +1063,9 @@ async def voice_checkin_respond(
     patient_id: str = DEFAULT_DEMO_PATIENT_ID,
     session: SessionState = Depends(get_session),
 ):
-    patient = session.patients.get(patient_id) or session.patients.get(DEFAULT_DEMO_PATIENT_ID)
+    patient = session.patients.get(patient_id)
+    if patient is None:
+        raise HTTPException(404, "unknown_patient")
     first_name = _first_name(patient)
 
     raw_body = (await request.body()).decode("utf-8")
@@ -1004,6 +1080,7 @@ async def voice_checkin_respond(
     call_sid = (fields.get("CallSid") or "").strip()
     if call_sid:
         session.answered_calls.add(call_sid)
+    _set_call_state(session, "checkin", phase=CALL_PHASE_ANSWERED, call_sid=call_sid or None)
 
     result = await run_triage(session, transcript, patient_id)
 
@@ -1060,15 +1137,25 @@ async def voice_checkin_status(
     picked_up = engaged and not answered_by.startswith("machine")
 
     if picked_up or attempt >= MAX_CALL_ATTEMPTS or not session.call_limiter.allow():
+        _set_call_state(
+            session, "checkin",
+            phase=CALL_PHASE_ENDED if picked_up else CALL_PHASE_GAVE_UP,
+            attempt=attempt, last_status=status,
+        )
         await session.bus.emit("PHONE_CALL_ENDED", {
             "leg": "checkin", "status": status, "duration": duration,
             "attempt": attempt, "engaged": engaged,
         })
         return Response(status_code=204)
 
+    _set_call_state(
+        session, "checkin", phase=CALL_PHASE_DISCONNECTED,
+        attempt=attempt, last_status=status,
+    )
     await session.bus.emit("PHONE_CALL_RETRY", {
         "leg": "checkin", "status": status, "duration": duration, "attempt": attempt + 1,
     })
+    _set_call_state(session, "checkin", phase=CALL_PHASE_REDIALLING, attempt=attempt + 1)
     to = telephony.demo_phone_number()
     result = _dial_checkin(
         str(request.base_url).rstrip("/"), session, patient_id, to, attempt + 1,
@@ -1205,7 +1292,9 @@ def _find_reminder(patient: dict, note_id: str, kind: str) -> Optional[dict]:
         for reminder in visit["reminders"]:
             if reminder["kind"] == kind:
                 return reminder
-        for reminder in followup.reminder_plan(visit, now=visit["starts_at"]) if visit.get("starts_at") else []:
+        if not visit.get("starts_at"):
+            continue
+        for reminder in followup.reminder_plan(visit, now=None):
             if reminder["kind"] == kind:
                 return reminder
     return None
@@ -1276,6 +1365,9 @@ async def call_reminder(
             raise HTTPException(409, "no_booked_followup")
         note_id = booked[0]["note_id"]
 
+    if _find_reminder(patient, note_id, body.kind) is None:
+        raise HTTPException(409, "no_reminder_for_that_visit")
+
     params = {
         "patient_id": patient_id,
         "note_id": note_id,
@@ -1290,6 +1382,20 @@ async def call_reminder(
     await _emit_call_result(session, "reminder", to, result)
 
     return {"configured": True, "note_id": note_id, "kind": body.kind, **result}
+
+
+@app.get("/call/state")
+def call_state(leg: str = "checkin", session: SessionState = Depends(get_session)):
+    state = session.call_state.get(leg)
+    if state is None:
+        return {
+            "leg": leg, "phase": "idle", "wording": "", "attempt": 0,
+            "max_attempts": MAX_CALL_ATTEMPTS, "retrying": False,
+        }
+    return {
+        **state,
+        "retrying": state.get("phase") in {CALL_PHASE_DISCONNECTED, CALL_PHASE_REDIALLING},
+    }
 
 
 class ClinicCallStartRequest(BaseModel):
