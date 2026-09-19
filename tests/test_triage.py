@@ -218,3 +218,40 @@ def test_result_serializes_for_the_api():
     assert payload["tier"] == "tier_0"
     assert payload["is_emergency"] is True
     assert "airway_swelling" in payload["matched_rules"]
+
+
+# ---------------------------------------------------------------------------
+# Crisis handling
+# ---------------------------------------------------------------------------
+
+CRISIS_TRANSCRIPTS = [
+    "I don't want to be here anymore",
+    "I've been thinking about killing myself",
+    "honestly I'd be better off dead",
+    "I took the whole bottle of pills",
+]
+
+
+@pytest.mark.parametrize("transcript", CRISIS_TRANSCRIPTS)
+def test_crisis_is_emergency_but_flagged_separately(transcript):
+    """A crisis keeps the EMERGENCY floor but must be routed differently.
+
+    Telling someone who has just disclosed suicidal ideation to call 911 and
+    then hanging up is the wrong response. Severity is unchanged; the flag is
+    what lets the caller offer 988 and stay on the line instead.
+    """
+    result = triage(transcript, llm_classifier=exploding_llm)
+    assert result.severity is Severity.EMERGENCY
+    assert result.is_crisis is True
+
+
+def test_medical_emergency_is_not_flagged_as_crisis():
+    """Chest pain is an emergency but not a mental health crisis."""
+    result = triage("my chest is killing me", llm_classifier=exploding_llm)
+    assert result.severity is Severity.EMERGENCY
+    assert result.is_crisis is False
+
+
+def test_crisis_flag_serializes():
+    result = triage("I want to kill myself", llm_classifier=exploding_llm)
+    assert result.to_dict()["is_crisis"] is True

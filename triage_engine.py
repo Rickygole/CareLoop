@@ -117,8 +117,12 @@ EMERGENCY_RULES: List[tuple] = [
     ),
     (
         "suicidal_ideation",
-        r"\b(kill myself|end (it|my life)|take my own life|don'?t want to (be here|live|wake up)|"
-        r"better off dead|suicid\w*|hurt myself)\b",
+        r"\b(kill\w*\s+(myself|himself|herself|themsel\w+)|"
+        r"end\w*\s+(it all|it|my life|his life|her life)|"
+        r"tak\w*\s+(my|his|her) own life|"
+        r"do(n'?t| not)\s+want\s+to\s+(be here|live|wake up|go on|exist)|"
+        r"better off dead|suicid\w*|"
+        r"(hurt\w*|harm\w*)\s+(myself|himself|herself))\b",
     ),
     (
         "overdose",
@@ -126,6 +130,12 @@ EMERGENCY_RULES: List[tuple] = [
         r"took (all|the rest of) (my|the) (pills?|meds?|medication))\b",
     ),
 ]
+
+# Rules that are emergencies but must NOT be answered with "call 911 and hang up".
+# A suicide disclosure routed to police and then abandoned is the single most
+# criticized failure mode in AI mental health. These still carry the full
+# EMERGENCY severity floor; only the recommended RESPONSE differs.
+CRISIS_RULES = {"suicidal_ideation", "overdose"}
 
 _COMPILED_EMERGENCY_RULES = [
     (name, re.compile(pattern, re.IGNORECASE)) for name, pattern in EMERGENCY_RULES
@@ -148,6 +158,15 @@ class TriageResult:
     def is_emergency(self) -> bool:
         return self.severity is Severity.EMERGENCY
 
+    @property
+    def is_crisis(self) -> bool:
+        """True when this is a mental health crisis rather than a medical one.
+
+        Both are EMERGENCY severity. They need different responses: a crisis
+        needs a warm handoff to 988 and the caller stays on the line.
+        """
+        return bool(CRISIS_RULES.intersection(self.matched_rules))
+
     def to_dict(self) -> dict:
         return {
             "severity": self.severity.label,
@@ -157,6 +176,7 @@ class TriageResult:
             "llm_severity": self.llm_severity.label if self.llm_severity else None,
             "escalated": self.escalated,
             "is_emergency": self.is_emergency,
+            "is_crisis": self.is_crisis,
         }
 
 

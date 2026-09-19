@@ -138,9 +138,20 @@ def triage_transcript(body: TriageRequest):
     payload = result.to_dict()
     payload["patient_id"] = body.patient_id
     payload["transcript"] = body.transcript
-    payload["recommended_action"] = RECOMMENDED_ACTION[result.severity]
+    payload["recommended_action"] = (
+        CRISIS_ACTION if result.is_crisis else RECOMMENDED_ACTION[result.severity]
+    )
     return payload
 
+
+# A mental health crisis is an EMERGENCY by severity, but answering it with
+# "call 911 and hang up" is the wrong response and is contraindicated by most
+# crisis guidance. It gets its own action: warm handoff, stay on the line.
+CRISIS_ACTION = (
+    "Route to the 988 Suicide and Crisis Lifeline (call or text 988). "
+    "Stay on the line with the patient until a human is connected. "
+    "Do NOT end the call."
+)
 
 RECOMMENDED_ACTION = {
     Severity.EMERGENCY: "Stop the check-in. Direct the patient to call 911 and "
