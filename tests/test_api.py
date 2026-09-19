@@ -35,6 +35,16 @@ def gated(payload=None):
     return body
 
 
+CALL_SECRET = os.environ.get("CARELOOP_CALL_TOKEN", "") or WEBHOOK_SECRET
+
+
+def gated_call(payload=None):
+    body = dict(payload or {})
+    if CALL_SECRET:
+        body["secret"] = CALL_SECRET
+    return body
+
+
 def test_connect_returns_patient_and_derived_schedule():
     body = client.post("/portal/connect", json={"patient_id": "p1"}).json()
     assert body["patient"]["name"] == "Maria Santos"
@@ -700,7 +710,7 @@ def set_telephony_env(monkeypatch):
 def test_call_start_reports_missing_variables_when_not_configured(monkeypatch):
     clear_telephony_env(monkeypatch)
     r = client.post(
-        "/call/start", json=gated({"patient_id": "p1"}), headers=session_headers("tel-not-configured-1"),
+        "/call/start", json=gated_call({"patient_id": "p1"}), headers=session_headers("tel-not-configured-1"),
     )
     body = r.json()
     assert body["configured"] is False
@@ -713,7 +723,7 @@ def test_call_start_reports_missing_variables_when_not_configured(monkeypatch):
 def test_call_clinic_reports_missing_variables_when_not_configured(monkeypatch):
     clear_telephony_env(monkeypatch)
     r = client.post(
-        "/call/clinic", json=gated({"patient_id": "p1"}), headers=session_headers("tel-not-configured-2"),
+        "/call/clinic", json=gated_call({"patient_id": "p1"}), headers=session_headers("tel-not-configured-2"),
     )
     body = r.json()
     assert body["configured"] is False
@@ -724,7 +734,7 @@ def test_call_start_reports_only_the_variables_still_missing(monkeypatch):
     clear_telephony_env(monkeypatch)
     monkeypatch.setenv("DEMO_PHONE_NUMBER", "+15550002222")
     r = client.post(
-        "/call/start", json=gated({"patient_id": "p1"}), headers=session_headers("tel-partial-1"),
+        "/call/start", json=gated_call({"patient_id": "p1"}), headers=session_headers("tel-partial-1"),
     )
     body = r.json()
     assert body["configured"] is False
@@ -753,8 +763,8 @@ def test_nothing_dials_when_telephony_is_not_configured(monkeypatch):
     calls = []
     monkeypatch.setattr(telephony, "place_call", lambda *a, **kw: calls.append((a, kw)))
 
-    client.post("/call/start", json=gated({"patient_id": "p1"}), headers=session_headers("tel-no-dial-1"))
-    client.post("/call/clinic", json=gated({"patient_id": "p1"}), headers=session_headers("tel-no-dial-2"))
+    client.post("/call/start", json=gated_call({"patient_id": "p1"}), headers=session_headers("tel-no-dial-1"))
+    client.post("/call/clinic", json=gated_call({"patient_id": "p1"}), headers=session_headers("tel-no-dial-2"))
 
     assert calls == []
 
@@ -787,7 +797,7 @@ def test_call_start_places_a_call_when_configured(monkeypatch):
 
     monkeypatch.setattr(telephony, "place_call", fake_place_call)
     headers = session_headers("tel-dial-1")
-    r = client.post("/call/start", json=gated({"patient_id": "p1"}), headers=headers)
+    r = client.post("/call/start", json=gated_call({"patient_id": "p1"}), headers=headers)
     body = r.json()
 
     assert body["configured"] is True
@@ -809,7 +819,7 @@ def test_call_start_never_dials_an_arbitrary_number(monkeypatch):
     )
     r = client.post(
         "/call/start",
-        json=gated({"patient_id": "p1", "to": "+19995550000"}),
+        json=gated_call({"patient_id": "p1", "to": "+19995550000"}),
         headers=session_headers("tel-no-arbitrary-1"),
     )
     assert r.status_code == 200
@@ -825,7 +835,7 @@ def test_call_start_is_rate_limited_per_session(monkeypatch):
     headers = session_headers("tel-rate-limit-1")
     statuses = []
     for _ in range(telephony.PER_MINUTE_LIMIT + 2):
-        r = client.post("/call/start", json=gated({"patient_id": "p1"}), headers=headers)
+        r = client.post("/call/start", json=gated_call({"patient_id": "p1"}), headers=headers)
         statuses.append(r.status_code)
     assert 429 in statuses
 
