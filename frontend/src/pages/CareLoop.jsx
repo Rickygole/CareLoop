@@ -9,7 +9,7 @@ import Masthead from '../components/Masthead.jsx'
 import MedicationCard from '../components/MedicationCard.jsx'
 import NextUpCard from '../components/NextUpCard.jsx'
 import RunNarrative from '../components/RunNarrative.jsx'
-import Section, { MARGIN_GRID } from '../components/Section.jsx'
+import Section, { MARK, ROW_GRID } from '../components/Section.jsx'
 import TechnicalDetail from '../components/TechnicalDetail.jsx'
 import TierBadge from '../components/TierBadge.jsx'
 import TriageResult from '../components/TriageResult.jsx'
@@ -122,8 +122,8 @@ export default function CareLoopPage() {
             <p className="smallcaps text-micro text-brand-deep">
               A check-in call that does the next part for you
             </p>
-            <h1 className="font-display mt-5 max-w-[15ch] text-3xl font-semibold text-ink sm:text-4xl">
-              We call. You talk. We handle it.
+            <h1 className="font-display mt-5 max-w-[13ch] text-3xl font-semibold text-ink sm:text-4xl">
+              We call you. You just talk.
             </h1>
             <p className="measure mt-8 text-ink-2">
               CareLoop telephones you when a dose of your medicine is due. It
@@ -311,16 +311,19 @@ export default function CareLoopPage() {
                     <li
                       key={item.call_id || index}
                       className={
-                        'enter-script border-t border-line py-6 ' + MARGIN_GRID
+                        'enter-fade border-t border-line py-6 ' + ROW_GRID
                       }
                       style={{ '--i': index }}
                     >
-                      <time className="numeric pt-1 text-right text-micro text-muted">
-                        {dateTimeLabel(item.timestamp)}
-                      </time>
+                      <p aria-hidden="true" className={MARK + ' sm:pt-1.5'}>
+                        {String(index + 1).padStart(2, '0')}
+                      </p>
                       <div className="flex flex-wrap items-start justify-between gap-x-8 gap-y-3">
                         <div className="min-w-0">
-                          <p className="measure text-ink">
+                          <p className="numeric text-micro text-muted">
+                            {dateTimeLabel(item.timestamp)}
+                          </p>
+                          <p className="measure mt-1.5 text-ink">
                             {item.symptom_reported
                               ? 'You said you had ' + item.symptom_reported + '.'
                               : item.outcome === 'no_answer'

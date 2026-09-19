@@ -43,7 +43,7 @@ export default function VoicePanel({ patientId, patientName }) {
         <SafetyNotice />
       </div>
 
-      <div className="px-6 py-6 sm:px-8">
+      <div className="voice-mount px-6 py-6 sm:px-8">
         {configured ? (
           <VoiceAgent patientId={patientId} patientName={firstName} />
         ) : (

@@ -1,5 +1,5 @@
 import { LOOP_STEPS } from '../lib/loop.js'
-import { MARGIN_GRID } from './Section.jsx'
+import { ROW_GRID } from './Section.jsx'
 
 export default function LoopSteps() {
   return (
@@ -7,12 +7,12 @@ export default function LoopSteps() {
       {LOOP_STEPS.map((step, index) => (
         <li
           key={step.id}
-          className={'enter-step border-t border-line py-7 ' + MARGIN_GRID}
+          className={'enter-step border-t border-line py-7 ' + ROW_GRID}
           style={{ '--i': index }}
         >
           <span
             aria-hidden="true"
-            className="font-display numeric text-right text-2xl font-semibold leading-none text-brand sm:text-3xl"
+            className="font-display numeric mb-2 block text-left text-2xl font-semibold leading-none text-brand sm:mb-0 sm:text-right sm:text-3xl"
           >
             {step.number}
           </span>
@@ -27,10 +27,10 @@ export default function LoopSteps() {
         </li>
       ))}
 
-      <li className={'border-t-2 border-line-ink pt-7 ' + MARGIN_GRID}>
+      <li className={'border-t-2 border-line-ink pt-7 ' + ROW_GRID}>
         <span
           aria-hidden="true"
-          className="text-right text-2xl leading-none text-brand"
+          className="mb-2 block text-left text-2xl leading-none text-brand sm:mb-0 sm:text-right"
         >
           {String.fromCharCode(8629)}
         </span>

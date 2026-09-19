@@ -1,6 +1,6 @@
 import { narrateByStep } from '../lib/narrate.js'
-import { clockTime } from '../lib/trace.js'
-import { MARGIN_GRID } from './Section.jsx'
+import { clockShort } from '../lib/trace.js'
+import { ROW_GRID } from './Section.jsx'
 
 const MARK = {
   said: String.fromCharCode(8213),
@@ -30,10 +30,10 @@ export default function RunNarrative({ events, startIndex = 0 }) {
         const headIndex = order
         return (
           <div key={step.id} className="mt-9 first:mt-0">
-            <div className={MARGIN_GRID}>
+            <div className={ROW_GRID}>
               <div
                 aria-hidden="true"
-                className="numeric enter-step font-display pt-1 text-right text-lg font-semibold text-brand"
+                className="numeric enter-step font-display mb-1 block text-left text-lg font-semibold text-brand sm:mb-0 sm:pt-1 sm:text-right"
                 style={{ '--i': headIndex }}
               >
                 {step.number}
@@ -53,11 +53,11 @@ export default function RunNarrative({ events, startIndex = 0 }) {
                 return (
                   <li
                     key={line.seq}
-                    className={'enter-step pt-4 ' + MARGIN_GRID}
+                    className={'enter-step pt-4 ' + ROW_GRID}
                     style={{ '--i': index }}
                   >
-                    <time className="numeric pt-1 text-right text-micro text-muted">
-                      {clockTime(line.at)}
+                    <time className="numeric mb-1 block text-left text-micro text-muted sm:mb-0 sm:pt-1 sm:text-right">
+                      {clockShort(line.at)}
                     </time>
                     <p className="measure flex items-start gap-3.5 text-sm">
                       <span

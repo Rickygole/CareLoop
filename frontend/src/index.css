@@ -157,6 +157,13 @@
     background: rgba(95, 212, 184, 0.32);
   }
 
+  .voice-mount button,
+  .voice-mount a {
+    min-height: 48px;
+    display: inline-flex;
+    align-items: center;
+  }
+
   .field-select {
     appearance: none;
     background-image: linear-gradient(
@@ -178,8 +185,8 @@
   }
 
   .smallcaps {
-    font-variant-caps: all-small-caps;
-    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    letter-spacing: 0.13em;
     font-weight: 600;
   }
 

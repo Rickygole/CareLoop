@@ -1,5 +1,5 @@
 import { clockLabel } from '../lib/format.js'
-import { MARGIN_GRID } from './Section.jsx'
+import { MARK, ROW_GRID } from './Section.jsx'
 
 const STATUS = {
   taken: {
@@ -32,12 +32,12 @@ const STATUS = {
 export default function MedicationCard({ med, index }) {
   return (
     <li
-      className={'enter-script border-t border-line py-7 ' + MARGIN_GRID}
+      className={'enter-script border-t border-line py-7 ' + ROW_GRID}
       style={{ '--i': index }}
     >
-      <div className="numeric pt-1.5 text-right text-micro font-semibold uppercase text-muted">
+      <p aria-hidden="true" className={MARK + ' sm:pt-2'}>
         {String(index + 1).padStart(2, '0')}
-      </div>
+      </p>
 
       <div className="min-w-0">
         <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">

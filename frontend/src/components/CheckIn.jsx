@@ -51,7 +51,7 @@ export default function CheckIn({
           }}
           placeholder="I have been dizzy for two days and my ankles are swollen"
           autoComplete="off"
-          className="mt-5 block w-full resize-y rounded-card border-2 border-line-strong bg-surface-2 px-5 py-4 text-ink placeholder:text-muted/70 focus:border-brand"
+          className="mt-5 block w-full resize-y rounded-card border-2 border-line-strong bg-surface-2 px-5 py-4 text-ink placeholder:text-muted focus:border-brand"
         />
 
         <div className="mt-5 flex flex-wrap items-center gap-x-6 gap-y-4">

@@ -92,7 +92,7 @@ export default function TierBadge({ tier, size = 'md', tone = 'light' }) {
           : meta.bg + ' ' + meta.text + ' ' + meta.border)
       }
     >
-      <span aria-hidden="true" className="text-[0.78em] leading-none">
+      <span aria-hidden="true" className="text-[0.95em] leading-none">
         {meta.glyph}
       </span>
       {meta.label}

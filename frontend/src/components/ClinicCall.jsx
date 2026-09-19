@@ -1,5 +1,4 @@
 import { humanizeTimes } from '../lib/narrate.js'
-import { MARGIN_GRID } from './Section.jsx'
 
 function speakerLabel(eventType) {
   return eventType === 'CLINIC_DESK_SPEECH' ? 'Front desk' : 'CareLoop'
@@ -42,12 +41,12 @@ export default function ClinicCall({ events, booking, tier }) {
           return (
             <li
               key={event.seq}
-              className={'enter-rise border-b border-line py-5 ' + MARGIN_GRID}
+              className="enter-rise grid grid-cols-1 gap-x-8 gap-y-1.5 border-b border-line py-5 sm:grid-cols-[7rem_minmax(0,1fr)]"
               style={{ '--i': index }}
             >
               <p
                 className={
-                  'smallcaps pt-1 text-right text-micro ' +
+                  'pt-0.5 text-xs font-semibold sm:text-right ' +
                   (desk ? 'text-muted' : 'text-brand')
                 }
               >
