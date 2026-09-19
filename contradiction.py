@@ -57,13 +57,23 @@ def normalize_ingredient(name: str) -> str:
     return (name or "").strip().lower()
 
 
+KNOWN_INGREDIENTS = sorted(
+    {pair["a"] for pair in INTERACTION_PAIRS} | {pair["b"] for pair in INTERACTION_PAIRS},
+    key=len,
+    reverse=True,
+)
+
+
 def active_ingredients(medication_requests: List[dict]) -> List[str]:
     out = []
     for request in medication_requests:
         if request.get("status") != "active":
             continue
-        out.append(normalize_ingredient(request.get("medication", "").split()[0]
-                                        if request.get("medication") else ""))
+        text = normalize_ingredient(request.get("medication", ""))
+        if not text:
+            continue
+        match = next((known for known in KNOWN_INGREDIENTS if known in text), None)
+        out.append(match or text.split()[0])
     return [i for i in out if i]
 
 
@@ -137,10 +147,11 @@ def check_cross_call(transcript: str, prior_episode: Optional[dict]) -> List[dic
 
 LIMITATIONS = (
     "Hand curated demonstration table of a small number of ingredient pairs. "
-    "Not a formulary check and not a drug interaction database. There is no "
-    "ingredient normalization, so brand names and combination products are not "
-    "resolved and a duplicate ingredient inside a combination product will be "
-    "missed. There is no indication, renal function, dose or timing context. No "
+    "Not a formulary check and not a drug interaction database. Only the exact "
+    "ingredient names in this table are recognised, so brand names and "
+    "combination products are not resolved and a duplicate ingredient inside a "
+    "combination product will be missed. There is no indication, renal "
+    "function, dose or timing context. No "
     "clinician reviewed this table, and the labels named in each row were not "
     "consulted when the row was written. A pair missing from this list is not "
     "evidence that the pair is safe."

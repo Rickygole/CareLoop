@@ -550,3 +550,37 @@ def test_escalations_endpoint_returns_records_for_a_patient():
 
 def test_escalations_endpoint_unknown_patient_is_404():
     assert client.get("/escalations/ghost").status_code == 404
+
+
+MULTI_WORD_PAIRS = [
+    ("Levothyroxine 75 mcg tablet", "Calcium carbonate 500 mg tablet"),
+    ("Lisinopril 10 mg tablet", "Potassium chloride 20 mEq tablet"),
+    ("Metformin 500 mg tablet", "Contrast media"),
+]
+
+
+@pytest.mark.parametrize("first,second", MULTI_WORD_PAIRS)
+def test_multi_word_ingredients_are_matched(first, second):
+    """Matching on the first word alone made three rows unreachable.
+
+    "Calcium carbonate" became "calcium" and never matched, so a pair the
+    interface itself offers returned a clean bill of health. A false negative
+    presented as reassurance is worse than no check.
+    """
+    from contradiction import check_regimen
+
+    meds = [
+        {"medication": first, "status": "active"},
+        {"medication": second, "status": "active"},
+    ]
+    assert check_regimen(meds), f"{first} plus {second} must be detected"
+
+
+def test_an_unrelated_pair_still_returns_nothing():
+    from contradiction import check_regimen
+
+    meds = [
+        {"medication": "Metformin 500 mg tablet", "status": "active"},
+        {"medication": "Atorvastatin 20 mg tablet", "status": "active"},
+    ]
+    assert check_regimen(meds) == []
