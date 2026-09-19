@@ -1,6 +1,6 @@
 from typing import List, Optional
 
-from providers import find_provider
+from providers import find_provider, next_available
 
 SIMULATED_FRONT_DESK = True
 
@@ -45,10 +45,15 @@ def plan_clinic_call(
     specialty: str, payer_id: Optional[str], payer_display: str,
     patient_name: str, tier: str, transcript: str,
 ) -> Optional[dict]:
-    provider = find_provider(specialty, payer_id)
-    if provider is None or not provider["available_slots"]:
-        return None
-    slot = provider["available_slots"][0]
+    choice = next_available(specialty, payer_id)
+    if choice is None:
+        provider = find_provider(specialty, payer_id)
+        if provider is None or not provider["available_slots"]:
+            return None
+        slot = sorted(provider["available_slots"])[0]
+    else:
+        provider = choice["provider"]
+        slot = choice["slot"]
     return {
         "provider": provider,
         "slot": slot,
