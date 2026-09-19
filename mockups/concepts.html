@@ -1,0 +1,1170 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CareLoop concepts</title>
+<style>
+:root{
+  --ink:#14171c;
+  --ink2:#3c424c;
+  --paper:#ffffff;
+  --canvas:#f1f2f4;
+  --line:#c9ced5;
+  --line-mid:#878d96;
+  --line-strong:#6f7680;
+  --blue:#0f3557;
+  --blue-tint:#e8eef4;
+  --flag:#7c1710;
+  --flag-tint:#f8ece9;
+  --good:#1c4a2c;
+  --good-tint:#e7efe9;
+  --sp1:4px; --sp2:8px; --sp3:12px; --sp4:16px; --sp5:24px;
+  --sp6:32px; --sp7:48px; --sp8:64px; --sp9:96px;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0;
+  background:#dcdfe3;
+  color:var(--ink);
+  font:400 18px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  font-variant-numeric:tabular-nums;
+}
+h1,h2,h3,h4{margin:0;font-weight:600;letter-spacing:-0.01em}
+p{margin:0}
+ul,ol{margin:0;padding:0;list-style:none}
+a{color:var(--blue)}
+button{font:inherit;color:inherit}
+
+.sheet{max-width:1400px;margin:0 auto;padding:var(--sp7) var(--sp5) var(--sp9)}
+.sheet-head{max-width:70ch;margin-bottom:var(--sp7)}
+.sheet-head h1{font-size:34px;line-height:1.2}
+.sheet-head p{margin-top:var(--sp4);font-size:19px;color:var(--ink2)}
+.jump{margin-top:var(--sp5);display:flex;flex-wrap:wrap;gap:var(--sp3)}
+.jump a{
+  display:flex;align-items:center;min-height:44px;padding:0 var(--sp4);
+  background:var(--paper);border:1px solid var(--line-strong);border-radius:2px;
+  text-decoration:none;font-size:17px;font-weight:600;
+}
+.jump a:focus-visible,.sheet a:focus-visible,button:focus-visible,summary:focus-visible{
+  outline:3px solid #0f3557;outline-offset:2px;
+}
+
+.concept{margin-top:var(--sp9);border-top:4px solid var(--ink);padding-top:var(--sp5)}
+.concept-head{max-width:74ch}
+.concept-kicker{font-size:16px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--ink2)}
+.concept-head h2{font-size:30px;margin-top:var(--sp2)}
+.concept-head dl{margin:var(--sp4) 0 0;display:grid;grid-template-columns:auto 1fr;gap:var(--sp2) var(--sp4);font-size:17px}
+.concept-head dt{font-weight:700;color:var(--ink2)}
+.concept-head dd{margin:0;color:var(--ink2)}
+
+.boards{margin-top:var(--sp6);display:flex;flex-direction:column;gap:var(--sp6)}
+.board-label{
+  font-size:16px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--ink2);margin-bottom:var(--sp3);
+}
+.scroller{overflow-x:auto;padding-bottom:var(--sp3)}
+.wide{width:1280px}
+.narrow{width:400px;max-width:100%}
+.frame{background:var(--canvas);border:1px solid var(--line-strong)}
+
+.sysbar{
+  display:flex;flex-wrap:wrap;align-items:center;gap:var(--sp3) var(--sp5);
+  background:#2b2f36;color:#fff;padding:var(--sp3) var(--sp5);font-size:16px;
+}
+.sysbar b{font-weight:700}
+.sysbar button{
+  min-height:44px;padding:0 var(--sp4);background:transparent;color:#fff;
+  border:1px solid #9aa2ad;border-radius:2px;cursor:pointer;font-size:16px;
+}
+.sysbar .sysgap{margin-left:auto}
+
+.appbar{
+  display:flex;flex-wrap:wrap;align-items:baseline;gap:var(--sp3) var(--sp5);
+  background:var(--paper);border-bottom:1px solid var(--line);
+  padding:var(--sp4) var(--sp5);
+}
+.mark{font-size:20px;font-weight:700;letter-spacing:-0.02em}
+.who{font-size:18px;color:var(--ink2)}
+.who b{color:var(--ink);font-weight:600}
+
+.finetext{font-size:16px;line-height:1.5;color:var(--ink2)}
+.measure{max-width:66ch}
+
+.foot{border-top:1px solid var(--line);background:var(--canvas);padding:var(--sp6) var(--sp5) var(--sp7)}
+.foot h3{font-size:17px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink2);font-weight:700}
+.foot-grid{margin-top:var(--sp4);display:grid;gap:var(--sp5);grid-template-columns:repeat(3,minmax(0,1fr))}
+.narrow .foot-grid{grid-template-columns:1fr}
+.foot-grid h4{font-size:17px}
+.foot-grid p{margin-top:var(--sp2)}
+.foot details{margin-top:var(--sp5);border-top:1px solid var(--line);padding-top:var(--sp4)}
+.foot summary{
+  display:flex;align-items:center;min-height:44px;cursor:pointer;
+  font-size:17px;font-weight:600;
+}
+.foot details p{margin-top:var(--sp3)}
+
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;
+  min-height:56px;padding:0 var(--sp6);
+  background:var(--blue);color:#fff;border:1px solid var(--blue);border-radius:2px;
+  font-size:20px;font-weight:600;cursor:pointer;text-decoration:none;
+}
+.btn-lg{min-height:68px;font-size:24px;padding:0 var(--sp7)}
+.btn-2{
+  display:inline-flex;align-items:center;justify-content:center;
+  min-height:48px;padding:0 var(--sp5);background:var(--paper);color:var(--blue);
+  border:1px solid var(--line-strong);border-radius:2px;font-size:18px;font-weight:600;
+  cursor:pointer;text-decoration:none;
+}
+.state{display:inline-flex;align-items:center;gap:var(--sp2);font-weight:600;font-size:17px}
+.state .g{font-size:19px;line-height:1}
+.taken{color:var(--good)}
+.later{color:var(--ink2)}
+
+.a-body{padding:var(--sp5);background:var(--paper)}
+.a-id{display:flex;flex-wrap:wrap;align-items:flex-end;gap:var(--sp4) var(--sp6);border-bottom:2px solid var(--ink);padding-bottom:var(--sp4)}
+.a-id h2{font-size:30px}
+.a-facts{display:flex;flex-wrap:wrap;gap:var(--sp2) var(--sp6);font-size:17px;color:var(--ink2)}
+.a-facts b{display:block;font-size:16px;letter-spacing:.08em;text-transform:uppercase;font-weight:700}
+.a-facts span{color:var(--ink);font-size:18px}
+
+.a-sec{margin-top:var(--sp6)}
+.a-sec > header{display:flex;flex-wrap:wrap;align-items:baseline;gap:var(--sp3) var(--sp5);border-bottom:1px solid var(--line-strong);padding-bottom:var(--sp2)}
+.a-sec h3{font-size:22px}
+.a-count{font-size:17px;color:var(--ink2);font-weight:600}
+.a-table{width:100%;border-collapse:collapse;margin-top:0}
+.a-table th{
+  text-align:left;font-size:16px;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--ink2);font-weight:700;padding:var(--sp3) var(--sp3);border-bottom:1px solid var(--line);
+}
+.a-table td{padding:var(--sp4) var(--sp3);border-bottom:1px solid var(--line);vertical-align:top;font-size:18px}
+.a-table tr:nth-child(even) td{background:#f7f8f9}
+.a-time{font-size:22px;font-weight:700;white-space:nowrap}
+.a-sub{display:block;font-size:16px;color:var(--ink2);font-weight:400;margin-top:2px}
+.a-dose{display:flex;flex-wrap:wrap;gap:var(--sp2) var(--sp4);padding:var(--sp2) 0;border-top:1px dotted var(--line)}
+.a-dose:first-child{border-top:0;padding-top:0}
+.a-dose b{font-weight:600}
+.a-cols{display:grid;grid-template-columns:1fr 360px;gap:var(--sp6);align-items:start}
+.narrow .a-cols{grid-template-columns:1fr}
+
+.a-flag{border:1px solid var(--line-strong);border-left:10px solid var(--flag);background:var(--flag-tint);padding:var(--sp5)}
+.a-flag .lab{display:flex;align-items:center;gap:var(--sp2);color:var(--flag);font-weight:700;font-size:17px;letter-spacing:.06em;text-transform:uppercase}
+.a-flag h4{font-size:22px;margin-top:var(--sp3)}
+.a-flag p{margin-top:var(--sp3)}
+.a-flag .src{margin-top:var(--sp3);font-size:16px;color:var(--ink2)}
+.a-flag .rule{border:0;border-top:1px solid #c6a9a3;margin:var(--sp4) 0}
+.a-side dl{display:grid;grid-template-columns:auto 1fr;gap:var(--sp2) var(--sp4);margin:var(--sp3) 0 0;font-size:18px}
+.a-side dt{font-size:16px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink2);font-weight:700;padding-top:3px}
+.a-side dd{margin:0}
+.narrow .a-side dl,.narrow .a-panel dl,.narrow .c-appt dl{grid-template-columns:1fr;gap:var(--sp1)}
+.narrow .a-side dd,.narrow .a-panel dd,.narrow .c-appt dd{margin-bottom:var(--sp3)}
+.a-panel{border:1px solid var(--line-mid);background:var(--paper);padding:var(--sp5)}
+.a-panel dl{display:grid;grid-template-columns:auto 1fr;gap:var(--sp2) var(--sp4);margin:var(--sp3) 0 0;font-size:18px}
+.a-panel dt{font-size:16px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink2);font-weight:700;padding-top:3px}
+.a-panel dd{margin:0}
+
+.a-call{display:grid;grid-template-columns:1fr 400px;gap:var(--sp7);align-items:start;margin-top:var(--sp5)}
+.narrow .a-call{grid-template-columns:1fr;gap:var(--sp5)}
+.a-call h2{font-size:30px}
+.a-ask li{padding:var(--sp3) 0;border-top:1px solid var(--line);font-size:18px}
+.a-ask li:first-child{border-top:0}
+
+.b-body{background:var(--paper);padding:var(--sp5) var(--sp5) 0}
+.b-head{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:var(--sp3) var(--sp5);border-bottom:1px solid var(--line);padding-bottom:var(--sp4)}
+.b-head h2{font-size:30px}
+.b-head .b-count{font-size:19px;font-weight:600;color:var(--ink2)}
+.b-spine{position:relative;margin:var(--sp6) 0 0;padding-left:132px}
+.narrow .b-spine{padding-left:80px}
+.b-spine:before{content:"";position:absolute;left:104px;top:8px;bottom:56px;width:3px;background:var(--line)}
+.narrow .b-spine:before{left:58px}
+.b-ev{position:relative;padding-bottom:var(--sp6)}
+.b-when{position:absolute;left:-132px;top:0;width:100px;text-align:right}
+.narrow .b-when{left:-80px;width:56px}
+.narrow .b-card{padding:var(--sp3) var(--sp4)}
+.narrow .b-card.now{padding:var(--sp4)}
+.narrow .b-doses .nm{min-width:0;flex:1 0 100%}
+.narrow .b-flagline{padding:var(--sp3)}
+.b-when .t{font-size:22px;font-weight:700;display:block;line-height:1.25}
+.narrow .b-when .t{font-size:19px}
+.b-when .d{font-size:16px;color:var(--ink2);display:block}
+.b-node{position:absolute;left:-36px;top:6px;width:23px;height:23px;border-radius:50%;background:var(--paper);border:3px solid var(--line-strong)}
+.narrow .b-node{left:-25px}
+.b-node.done{background:var(--good);border-color:var(--good)}
+.b-node.now{background:var(--blue);border-color:var(--blue);box-shadow:0 0 0 5px var(--blue-tint)}
+.b-card{border:1px solid var(--line-mid);background:var(--paper);padding:var(--sp4) var(--sp5)}
+.b-card.done{background:#f7f8f9}
+.b-card.now{border:2px solid var(--blue);padding:var(--sp5)}
+.b-call-h{display:flex;flex-wrap:wrap;align-items:baseline;gap:var(--sp2) var(--sp4)}
+.b-call-h h3{font-size:21px}
+.b-covers{font-size:17px;color:var(--ink2);font-weight:600}
+.b-doses{margin-top:var(--sp4);border-top:1px solid var(--line)}
+.b-doses li{display:flex;flex-wrap:wrap;align-items:baseline;gap:var(--sp2) var(--sp4);padding:var(--sp3) 0;border-bottom:1px solid var(--line)}
+.b-doses .nm{font-size:18px;font-weight:600;min-width:190px}
+.b-doses .at{font-size:17px;color:var(--ink2);min-width:88px}
+.b-flagline{
+  display:flex;gap:var(--sp3);align-items:baseline;margin-top:var(--sp3);
+  border-left:6px solid var(--flag);background:var(--flag-tint);padding:var(--sp3) var(--sp4);
+  font-size:17px;
+}
+.b-flagline b{color:var(--flag)}
+.b-flagline a{font-weight:600}
+.b-cta{margin-top:var(--sp5);display:flex;flex-wrap:wrap;align-items:center;gap:var(--sp4)}
+.b-endofday{position:relative;padding-top:var(--sp2)}
+.b-endofday .b-node{background:var(--paper);border-style:dashed}
+.b-off{font-size:17px;color:var(--ink2)}
+
+.b-open{border:2px solid var(--blue);padding:var(--sp5)}
+.b-open h3{font-size:26px}
+.b-open .b-ask{margin-top:var(--sp4)}
+.b-open .b-ask li{padding:var(--sp3) 0;border-top:1px solid var(--line);font-size:18px}
+
+.c-body{background:var(--paper);padding:var(--sp7) var(--sp7) 0}
+.narrow .c-body{padding:var(--sp5) var(--sp5) 0}
+.c-body .inner{max-width:760px;margin:0 auto}
+.c-hello{font-size:20px;color:var(--ink2)}
+.c-hello b{color:var(--ink)}
+.c-next{margin-top:var(--sp6);border-top:3px solid var(--ink);padding-top:var(--sp5)}
+.c-kick{font-size:17px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--ink2)}
+.c-big{font-size:46px;line-height:1.1;letter-spacing:-0.02em;margin-top:var(--sp3);font-weight:600}
+.narrow .c-big{font-size:34px}
+.c-lede{font-size:21px;margin-top:var(--sp4);color:var(--ink);max-width:56ch}
+.c-act{margin-top:var(--sp5);display:flex;flex-wrap:wrap;align-items:center;gap:var(--sp4)}
+.c-actnote{font-size:17px;color:var(--ink2)}
+.c-day{margin-top:var(--sp8)}
+.c-day h3{font-size:24px}
+.c-day .c-sub{font-size:18px;color:var(--ink2);margin-top:var(--sp2)}
+.c-calls{margin-top:var(--sp5)}
+.c-call{display:grid;grid-template-columns:120px 1fr auto;gap:var(--sp4);padding:var(--sp5) 0;border-top:1px solid var(--line)}
+.narrow .c-call{grid-template-columns:1fr;gap:var(--sp2)}
+.c-call .t{font-size:21px;font-weight:700}
+.c-call .m{font-size:18px}
+.c-call .m span{display:block;color:var(--ink2);font-size:17px;margin-top:2px}
+.c-band{margin-top:var(--sp8);border:1px solid var(--line-strong);border-top:8px solid var(--flag);background:var(--flag-tint);padding:var(--sp6)}
+.narrow .c-band{padding:var(--sp5)}
+.c-band .lab{display:flex;align-items:center;gap:var(--sp2);color:var(--flag);font-weight:700;letter-spacing:.06em;text-transform:uppercase;font-size:17px}
+.c-band h3{font-size:26px;margin-top:var(--sp3)}
+.c-band p{margin-top:var(--sp4);font-size:19px;max-width:58ch}
+.c-band .src{font-size:17px;color:var(--ink2)}
+.c-appt{margin-top:var(--sp8);border:1px solid var(--line-mid);padding:var(--sp6)}
+.narrow .c-appt{padding:var(--sp5)}
+.c-appt h3{font-size:24px}
+.c-appt dl{margin-top:var(--sp4);display:grid;grid-template-columns:auto 1fr;gap:var(--sp3) var(--sp5);font-size:19px}
+.c-appt dt{font-size:16px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;color:var(--ink2);padding-top:4px}
+.c-appt dd{margin:0}
+
+.c-ci{text-align:left;padding-top:var(--sp7)}
+.c-ci .c-big{font-size:52px}
+.narrow .c-ci .c-big{font-size:36px}
+.c-ci .c-ask{margin-top:var(--sp7);border-top:1px solid var(--line)}
+.c-ci .c-ask li{padding:var(--sp4) 0;border-bottom:1px solid var(--line);font-size:19px}
+.c-alt{margin-top:var(--sp6);font-size:18px}
+
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+@media (max-width:820px){
+  .sheet{padding:var(--sp5) var(--sp4) var(--sp8)}
+  .foot-grid{grid-template-columns:1fr}
+  .a-cols,.a-call{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<div class="sheet">
+
+<header class="sheet-head">
+  <h1>CareLoop: three directions</h1>
+  <p>The same content three ways: the dashboard a patient lands on, and the check-in screen where the phone call happens. Each direction is shown at 1280 wide and at 400 wide. Scroll the wide boards sideways on a narrow screen.</p>
+  <nav class="jump" aria-label="Concepts">
+    <a href="#a">A. The Clinical Record</a>
+    <a href="#b">B. The Day</a>
+    <a href="#c">C. The Consumer Health App</a>
+  </nav>
+</header>
+
+<section class="concept" id="a">
+  <div class="concept-head">
+    <p class="concept-kicker">Concept A</p>
+    <h2>The Clinical Record</h2>
+    <dl>
+      <dt>Optimises for</dt><dd>Trust and completeness. Everything about today is on one screen, in a table, in one glance, and a daughter or a pharmacist can read it over the patient's shoulder without scrolling.</dd>
+      <dt>Gives up</dt><dd>Warmth, and a little of the calm that space buys. Density means the primary action has to fight for its place rather than owning the screen.</dd>
+      <dt>Disclosures live</dt><dd>In the record itself as data (source, time read, what could not be read), and in a three column small print foot. The interaction is a record entry with a heavy rule, not a banner.</dd>
+    </dl>
+  </div>
+
+  <div class="boards">
+    <div>
+      <p class="board-label">A1. Dashboard, 1280</p>
+      <div class="scroller"><div class="wide frame">
+
+        <div class="sysbar">
+          <span><b>Demonstration.</b> Every patient, medicine and clinic below is invented.</span>
+          <span class="sysgap">Clock 3:41 PM</span>
+          <button type="button">Move clock to next dose</button>
+        </div>
+
+        <div class="a-body">
+          <div class="a-id">
+            <h2>Maria Santos</h2>
+            <div class="a-facts">
+              <div><b>Insurer</b><span>Aetna, Choice POS II</span></div>
+              <div><b>Records from</b><span>MyHealth</span></div>
+              <div><b>Read today</b><span>3:41 PM</span></div>
+              <div><b>Active medicines</b><span>4</span></div>
+            </div>
+          </div>
+
+          <div class="a-cols">
+            <div>
+              <section class="a-sec">
+                <header>
+                  <h3>Today, Saturday 19 September</h3>
+                  <p class="a-count">5 doses, grouped into 3 calls</p>
+                </header>
+                <table class="a-table">
+                  <thead>
+                    <tr>
+                      <th scope="col" style="width:170px">CareLoop calls</th>
+                      <th scope="col">Doses that call covers</th>
+                      <th scope="col" style="width:190px">State</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td><span class="a-time">7:45 AM</span><span class="a-sub">Call 1 of 3</span></td>
+                      <td>
+                        <div class="a-dose"><b>Levothyroxine 50mcg</b><span class="finetext">due 7:00 AM</span></div>
+                        <div class="a-dose"><b>Metformin 500mg</b><span class="finetext">due 8:00 AM</span></div>
+                        <div class="a-dose"><b>Aspirin 81mg</b><span class="finetext">due 8:00 AM</span></div>
+                        <p class="finetext" style="margin-top:8px">Three doses within 60 minutes, so CareLoop rang once.</p>
+                      </td>
+                      <td><span class="state taken"><span class="g" aria-hidden="true">&#10003;</span>All three taken</span><span class="a-sub">Answered 7:46 AM</span></td>
+                    </tr>
+                    <tr>
+                      <td><span class="a-time">6:00 PM</span><span class="a-sub">Call 2 of 3, next</span></td>
+                      <td>
+                        <div class="a-dose"><b>Coumadin 5mg</b><span class="finetext">due 6:00 PM</span></div>
+                      </td>
+                      <td><span class="state later"><span class="g" aria-hidden="true">&#9675;</span>Still to come</span></td>
+                    </tr>
+                    <tr>
+                      <td><span class="a-time">8:00 PM</span><span class="a-sub">Call 3 of 3</span></td>
+                      <td>
+                        <div class="a-dose"><b>Metformin 500mg</b><span class="finetext">due 8:00 PM</span></div>
+                      </td>
+                      <td><span class="state later"><span class="g" aria-hidden="true">&#9675;</span>Still to come</span></td>
+                    </tr>
+                  </tbody>
+                </table>
+                <p class="finetext" style="margin-top:12px">Dose times come from the Aetna record. CareLoop worked out the call times from them.</p>
+              </section>
+
+              <section class="a-sec">
+                <header><h3>Findings on this list</h3><p class="a-count">1 raised with you, 0 held back</p></header>
+                <div class="a-flag" style="margin-top:16px">
+                  <p class="lab"><span class="g" aria-hidden="true">&#9670;</span>Major interaction</p>
+                  <h4>Coumadin (warfarin) and Aspirin 81mg</h4>
+                  <p class="measure">Taken together these two carry additive bleeding risk. Both are on your list and both were prescribed for you.</p>
+                  <p class="src">Source: FDA label, Coumadin, Drug Interactions.</p>
+                  <hr class="rule">
+                  <p class="measure"><strong>CareLoop cannot tell you what to do about this.</strong> It is not a review of your medicines. Do not start, stop or change any medicine because of this. Please speak to your prescriber or pharmacist. CareLoop has told no one.</p>
+                  <p style="margin-top:16px"><a class="btn-2" href="#a">Ask about this on the 6:00 PM call</a></p>
+                </div>
+              </section>
+            </div>
+
+            <div class="a-side">
+              <section class="a-panel">
+                <h3 style="font-size:20px">Next call</h3>
+                <p style="font-size:26px;font-weight:700;margin-top:8px">6:00 PM, Coumadin 5mg</p>
+                <p class="finetext" style="margin-top:8px">CareLoop rings your telephone. You never call it.</p>
+                <p style="margin-top:16px"><a class="btn" href="#a-checkin">Call my phone now</a></p>
+                <p class="finetext" style="margin-top:12px">You do not have to wait for 6:00 PM.</p>
+              </section>
+
+              <section class="a-panel" style="margin-top:24px">
+                <h3 style="font-size:20px">Booked follow up</h3>
+                <dl>
+                  <dt>Who</dt><dd>Dr Raj Patel, Endocrinology</dd>
+                  <dt>When</dt><dd>Monday 21 September, 9:30 AM</dd>
+                  <dt>Cover</dt><dd>Covered by Aetna, in the Choice network</dd>
+                </dl>
+                <p class="finetext" style="margin-top:12px">CareLoop rang the clinic and booked this. You agreed to it on a call.</p>
+              </section>
+
+              <section class="a-panel" style="margin-top:24px">
+                <h3 style="font-size:20px">Record quality</h3>
+                <dl>
+                  <dt>Read</dt><dd>4 of 4 medicines</dd>
+                  <dt>Missing</dt><dd>Prescriber name on Metformin 500mg was blank in the Aetna record</dd>
+                  <dt>Calls to you</dt><dd>Never outside 8:00 AM to 8:00 PM, New York time</dd>
+                </dl>
+              </section>
+            </div>
+          </div>
+        </div>
+
+        <footer class="foot">
+          <h3>What CareLoop does not do</h3>
+          <div class="foot-grid">
+            <div>
+              <h4>It notifies no human being</h4>
+              <p class="finetext">No nurse, doctor or family member is watching this record. Nothing you say reaches a person unless CareLoop asks you on a call and you agree to a booking.</p>
+            </div>
+            <div>
+              <h4>It is not a medical device</h4>
+              <p class="finetext">CareLoop is a research prototype. It gives no medical advice, diagnosis or treatment. In an emergency call 911. In crisis call or text 988.</p>
+            </div>
+            <div>
+              <h4>It reads, it does not check</h4>
+              <p class="finetext">CareLoop compares pairs of medicines against a short list. Finding nothing is not the same as nothing being wrong.</p>
+            </div>
+          </div>
+          <details>
+            <summary>What CareLoop held back today</summary>
+            <p class="finetext measure">Nothing was detected and held back. CareLoop only raises a finding with you at major severity or above. Anything below that is recorded for your prescriber or pharmacist and is never raised on a call. Today the only finding on your list was major, and it is shown above.</p>
+          </details>
+        </footer>
+
+      </div></div>
+    </div>
+
+    <div>
+      <p class="board-label">A2. Check-in, 1280</p>
+      <div class="scroller"><div class="wide frame" id="a-checkin">
+        <div class="sysbar">
+          <span><b>Demonstration.</b> Do not describe your own real health. Every record here is invented.</span>
+          <span class="sysgap">Clock 3:41 PM</span>
+        </div>
+        <div class="a-body">
+          <div class="a-id">
+            <h2>Check-in</h2>
+            <div class="a-facts">
+              <div><b>Patient</b><span>Maria Santos, Aetna</span></div>
+              <div><b>Call</b><span>2 of 3 today</span></div>
+              <div><b>Due</b><span>6:00 PM, Coumadin 5mg</span></div>
+            </div>
+          </div>
+
+          <div class="a-call">
+            <div>
+              <h2>CareLoop rings your telephone</h2>
+              <p class="measure" style="margin-top:16px;font-size:20px">Press the button and your phone rings, like any other call. CareLoop speaks to you and listens. There is no app to hold and no screen to read.</p>
+              <p style="margin-top:24px"><a class="btn btn-lg" href="#a-checkin">Call my phone now</a></p>
+              <p class="finetext" style="margin-top:12px">CareLoop dials the number on this record. You can hang up at any point.</p>
+              <p style="margin-top:32px"><a class="btn-2" href="#a-checkin">Read the same check-in in writing</a></p>
+              <p class="finetext measure" style="margin-top:12px">The written version asks the same questions and your answers go to the same place. It is a written stand in, not a recording of a call.</p>
+            </div>
+
+            <div>
+              <section class="a-panel">
+                <h3 style="font-size:20px">What this call asks</h3>
+                <ul class="a-ask" style="margin-top:12px">
+                  <li>Did you take your Coumadin 5mg</li>
+                  <li>How are you feeling since this morning</li>
+                  <li>Any bleeding, bruising or anything new</li>
+                </ul>
+                <p class="finetext" style="margin-top:16px">If your answer sounds like you should be seen, CareLoop offers to ring the clinic and book a time your insurance covers. It asks you first.</p>
+              </section>
+
+              <section class="a-flag" style="margin-top:24px">
+                <p class="lab"><span class="g" aria-hidden="true">&#9670;</span>Major interaction, on this call</p>
+                <h4 style="font-size:20px">Coumadin and Aspirin</h4>
+                <p class="finetext" style="margin-top:8px">Additive bleeding risk. Source: FDA label, Coumadin, Drug Interactions. CareLoop cannot tell you what to do about it and nothing should be stopped. Speak to your prescriber or pharmacist.</p>
+              </section>
+            </div>
+          </div>
+        </div>
+
+        <footer class="foot">
+          <h3>Before you press it</h3>
+          <div class="foot-grid">
+            <div><h4>Nobody is listening but CareLoop</h4><p class="finetext">The call is answered by CareLoop. It notifies no human being. It books a clinic appointment only if it asks you and you say yes.</p></div>
+            <div><h4>It is not a medical device</h4><p class="finetext">A research prototype. No medical advice, diagnosis or treatment. In an emergency call 911. In crisis call or text 988.</p></div>
+            <div><h4>How it decides</h4><p class="finetext">A fixed rule layer runs alongside the model and can only ever raise how serious your answer is judged to be. It can never lower it.</p></div>
+          </div>
+        </footer>
+      </div></div>
+    </div>
+
+    <div>
+      <p class="board-label">A3. Dashboard and check-in, 400</p>
+      <div style="display:flex;gap:24px;flex-wrap:wrap">
+        <div class="narrow frame">
+          <div class="sysbar"><span><b>Demonstration.</b> Records here are invented.</span></div>
+          <div class="a-body" style="padding:16px">
+            <div class="a-id" style="display:block">
+              <h2 style="font-size:26px">Maria Santos</h2>
+              <p class="finetext" style="margin-top:4px">Aetna, Choice POS II. Records read from MyHealth at 3:41 PM.</p>
+            </div>
+
+            <section class="a-sec">
+              <header><h3 style="font-size:20px">Today</h3><p class="a-count">5 doses, 3 calls</p></header>
+              <table class="a-table">
+                <tbody>
+                  <tr><td>
+                    <span class="a-time">7:45 AM</span><span class="a-sub">Call 1 of 3, three doses in one call</span>
+                    <div style="margin-top:8px">
+                      <div class="a-dose"><b>Levothyroxine 50mcg</b><span class="finetext">7:00 AM</span></div>
+                      <div class="a-dose"><b>Metformin 500mg</b><span class="finetext">8:00 AM</span></div>
+                      <div class="a-dose"><b>Aspirin 81mg</b><span class="finetext">8:00 AM</span></div>
+                    </div>
+                    <p style="margin-top:8px"><span class="state taken"><span class="g" aria-hidden="true">&#10003;</span>All three taken</span></p>
+                  </td></tr>
+                  <tr><td>
+                    <span class="a-time">6:00 PM</span><span class="a-sub">Call 2 of 3, next</span>
+                    <div class="a-dose" style="margin-top:8px"><b>Coumadin 5mg</b><span class="finetext">6:00 PM</span></div>
+                    <p style="margin-top:8px"><span class="state later"><span class="g" aria-hidden="true">&#9675;</span>Still to come</span></p>
+                  </td></tr>
+                  <tr><td>
+                    <span class="a-time">8:00 PM</span><span class="a-sub">Call 3 of 3</span>
+                    <div class="a-dose" style="margin-top:8px"><b>Metformin 500mg</b><span class="finetext">8:00 PM</span></div>
+                    <p style="margin-top:8px"><span class="state later"><span class="g" aria-hidden="true">&#9675;</span>Still to come</span></p>
+                  </td></tr>
+                </tbody>
+              </table>
+            </section>
+
+            <section class="a-panel" style="margin-top:24px">
+              <h3 style="font-size:19px">Next call</h3>
+              <p style="font-size:24px;font-weight:700;margin-top:4px">6:00 PM, Coumadin</p>
+              <p style="margin-top:16px"><a class="btn" href="#a" style="width:100%">Call my phone now</a></p>
+              <p class="finetext" style="margin-top:8px">CareLoop rings you. You never call it.</p>
+            </section>
+
+            <div class="a-flag" style="margin-top:24px">
+              <p class="lab"><span class="g" aria-hidden="true">&#9670;</span>Major interaction</p>
+              <h4 style="font-size:19px">Coumadin and Aspirin</h4>
+              <p class="finetext" style="margin-top:8px">Additive bleeding risk. Source: FDA label, Coumadin, Drug Interactions.</p>
+              <p class="finetext" style="margin-top:8px"><strong>CareLoop cannot tell you what to do about this.</strong> Do not start, stop or change any medicine because of it. Speak to your prescriber or pharmacist.</p>
+            </div>
+
+            <section class="a-panel" style="margin-top:24px">
+              <h3 style="font-size:19px">Booked follow up</h3>
+              <dl>
+                <dt>Who</dt><dd>Dr Raj Patel, Endocrinology</dd>
+                <dt>When</dt><dd>Monday 21 September, 9:30 AM</dd>
+                <dt>Cover</dt><dd>Covered by Aetna</dd>
+              </dl>
+            </section>
+          </div>
+          <footer class="foot" style="padding:24px 16px 32px">
+            <h3>What CareLoop does not do</h3>
+            <div class="foot-grid">
+              <div><h4>It notifies no human being</h4><p class="finetext">No nurse or family member is watching this.</p></div>
+              <div><h4>It is not a medical device</h4><p class="finetext">A research prototype. No medical advice. Emergency: 911. Crisis: 988.</p></div>
+              <div><h4>Record quality</h4><p class="finetext">4 of 4 medicines read. Prescriber name on Metformin was blank in the Aetna record.</p></div>
+            </div>
+            <details><summary>What CareLoop held back today</summary><p class="finetext">Nothing was detected and held back. Only findings at major severity or above are raised with you.</p></details>
+          </footer>
+        </div>
+
+        <div class="narrow frame">
+          <div class="sysbar"><span><b>Demonstration.</b> Do not describe your own real health.</span></div>
+          <div class="a-body" style="padding:16px">
+            <h2 style="font-size:26px">Check-in</h2>
+            <p class="finetext" style="margin-top:4px">Call 2 of 3. Coumadin 5mg, due 6:00 PM.</p>
+            <p style="margin-top:24px;font-size:20px">CareLoop rings your telephone. Press this and your phone rings.</p>
+            <p style="margin-top:20px"><a class="btn btn-lg" href="#a" style="width:100%">Call my phone now</a></p>
+            <p class="finetext" style="margin-top:8px">You can hang up at any point.</p>
+
+            <section class="a-panel" style="margin-top:28px">
+              <h3 style="font-size:19px">What this call asks</h3>
+              <ul class="a-ask" style="margin-top:8px">
+                <li>Did you take your Coumadin 5mg</li>
+                <li>How are you feeling since this morning</li>
+                <li>Any bleeding, bruising or anything new</li>
+              </ul>
+            </section>
+
+            <div class="a-flag" style="margin-top:24px">
+              <p class="lab"><span class="g" aria-hidden="true">&#9670;</span>On this call</p>
+              <p class="finetext" style="margin-top:8px">Coumadin and Aspirin carry additive bleeding risk together. FDA label, Coumadin, Drug Interactions. CareLoop cannot advise you and nothing should be stopped.</p>
+            </div>
+
+            <p style="margin-top:28px"><a class="btn-2" href="#a" style="width:100%">Read the check-in in writing</a></p>
+          </div>
+          <footer class="foot" style="padding:24px 16px 32px">
+            <h3>Before you press it</h3>
+            <div class="foot-grid">
+              <div><h4>Nobody is listening but CareLoop</h4><p class="finetext">It notifies no human being. It books a clinic time only if it asks you and you say yes.</p></div>
+              <div><h4>How it decides</h4><p class="finetext">A fixed rule layer runs alongside the model and can only raise how serious your answer is judged to be, never lower it.</p></div>
+            </div>
+          </footer>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="concept" id="b">
+  <div class="concept-head">
+    <p class="concept-kicker">Concept B</p>
+    <h2>The Day</h2>
+    <dl>
+      <dt>Optimises for</dt><dd>Making the grouping obvious and the phone call the spine of the product. The day runs down the page, each call is an event on it, and the doses hang off the call that covers them, so three calls for five doses is the shape of the screen rather than a sentence about it.</dd>
+      <dt>Gives up</dt><dd>The at a glance medicine list. If you want to answer "what am I on", you read the day rather than a list, and a medicines page has to carry that instead.</dd>
+      <dt>Disclosures live</dt><dd>Attached to the thing they qualify. The interaction is pinned to the 6:00 PM call and marked on the morning Aspirin dose, because that is where it is true. The general disclosures sit past the end of the day, after the last event, where the spine runs out.</dd>
+    </dl>
+  </div>
+
+  <div class="boards">
+    <div>
+      <p class="board-label">B1. Dashboard, 1280</p>
+      <div class="scroller"><div class="wide frame">
+        <div class="sysbar">
+          <span><b>Demonstration.</b> Every patient, medicine and clinic below is invented.</span>
+          <span class="sysgap">Clock 3:41 PM</span>
+          <button type="button">Move clock to next dose</button>
+        </div>
+        <div class="appbar">
+          <span class="mark">CareLoop</span>
+          <span class="who"><b>Maria Santos</b>, Aetna Choice POS II, records from MyHealth</span>
+        </div>
+
+        <div class="b-body">
+          <div class="b-head">
+            <h2>Saturday 19 September</h2>
+            <p class="b-count">Three calls today. They cover five doses.</p>
+          </div>
+
+          <div class="b-spine">
+
+            <div class="b-ev">
+              <div class="b-when"><span class="t">7:45 AM</span><span class="d">Done</span></div>
+              <span class="b-node done" aria-hidden="true"></span>
+              <div class="b-card done">
+                <div class="b-call-h">
+                  <h3>CareLoop called you</h3>
+                  <p class="b-covers">One call, three doses</p>
+                  <p class="state taken" style="margin-left:auto"><span class="g" aria-hidden="true">&#10003;</span>You said you took all three</p>
+                </div>
+                <p class="finetext" style="margin-top:8px">Your 7:00 and 8:00 doses were close enough together that CareLoop rang once instead of three times.</p>
+                <ul class="b-doses">
+                  <li><span class="nm">Levothyroxine 50mcg</span><span class="at">7:00 AM</span><span class="state taken"><span class="g" aria-hidden="true">&#10003;</span>Taken</span></li>
+                  <li><span class="nm">Metformin 500mg</span><span class="at">8:00 AM</span><span class="state taken"><span class="g" aria-hidden="true">&#10003;</span>Taken</span></li>
+                  <li><span class="nm">Aspirin 81mg</span><span class="at">8:00 AM</span><span class="state taken"><span class="g" aria-hidden="true">&#10003;</span>Taken</span>
+                    <span class="finetext" style="margin-left:auto"><span aria-hidden="true">&#9670;</span> paired with your Coumadin, see 6:00 PM</span>
+                  </li>
+                </ul>
+              </div>
+            </div>
+
+            <div class="b-ev">
+              <div class="b-when"><span class="t">6:00 PM</span><span class="d">Next</span></div>
+              <span class="b-node now" aria-hidden="true"></span>
+              <div class="b-card now">
+                <div class="b-call-h">
+                  <h3>CareLoop rings your telephone</h3>
+                  <p class="b-covers">One call, one dose</p>
+                </div>
+                <ul class="b-doses">
+                  <li><span class="nm">Coumadin 5mg</span><span class="at">6:00 PM</span><span class="state later"><span class="g" aria-hidden="true">&#9675;</span>Still to come</span></li>
+                </ul>
+
+                <div class="b-flagline">
+                  <span aria-hidden="true" style="color:var(--flag);font-size:20px;line-height:1.2">&#9670;</span>
+                  <span class="measure"><b>Major interaction, this call.</b> Your Coumadin (warfarin) and your Aspirin carry additive bleeding risk together. FDA label, Coumadin, Drug Interactions. <strong>CareLoop cannot tell you what to do about this and has told no one.</strong> Do not start, stop or change any medicine because of it. Please speak to your prescriber or pharmacist. <a href="#b-checkin">Ask about it on this call</a></span>
+                </div>
+
+                <div class="b-cta">
+                  <a class="btn btn-lg" href="#b-checkin">Call my phone now</a>
+                  <p class="finetext measure">Your phone rings, like any other call. You do not have to wait for 6:00 PM and you never call CareLoop.</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="b-ev">
+              <div class="b-when"><span class="t">8:00 PM</span><span class="d">Later</span></div>
+              <span class="b-node" aria-hidden="true"></span>
+              <div class="b-card">
+                <div class="b-call-h">
+                  <h3>CareLoop will call again</h3>
+                  <p class="b-covers">One call, one dose</p>
+                </div>
+                <ul class="b-doses">
+                  <li><span class="nm">Metformin 500mg</span><span class="at">8:00 PM</span><span class="state later"><span class="g" aria-hidden="true">&#9675;</span>Still to come</span></li>
+                </ul>
+                <p class="b-off" style="margin-top:12px">The last call of the day. CareLoop never rings outside 8:00 AM to 8:00 PM, New York time.</p>
+              </div>
+            </div>
+
+            <div class="b-ev b-endofday">
+              <div class="b-when"><span class="t">Monday</span><span class="d">21 Sept</span></div>
+              <span class="b-node" aria-hidden="true"></span>
+              <div class="b-card">
+                <div class="b-call-h"><h3>Dr Raj Patel, Endocrinology, 9:30 AM</h3></div>
+                <p style="margin-top:8px">Covered by Aetna, inside the Choice network.</p>
+                <p class="finetext" style="margin-top:8px">CareLoop rang the clinic and booked this after you agreed to it on a call.</p>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <footer class="foot">
+          <h3>After the last call</h3>
+          <div class="foot-grid">
+            <div><h4>It notifies no human being</h4><p class="finetext">Nobody is watching your day. No nurse, doctor or family member is told what you said. CareLoop rings a clinic only when it asks you on a call and you say yes.</p></div>
+            <div><h4>It is not a medical device</h4><p class="finetext">CareLoop is a research prototype. No medical advice, diagnosis or treatment. In an emergency call 911. In crisis call or text 988.</p></div>
+            <div><h4>What it could not read</h4><p class="finetext">All 4 medicines were read from the Aetna record. One field was blank: the prescriber name on Metformin 500mg. Dose times are as the record holds them.</p></div>
+          </div>
+          <details>
+            <summary>How today was decided, and what was held back</summary>
+            <p class="finetext measure">Call times were worked out from the dose times on the record, and doses within the same hour were grouped into one call so your phone rings three times rather than five. When you answer, a fixed rule layer runs alongside the model and can only ever raise how serious your answer is judged to be, never lower it. Findings: one was raised with you today and nothing was held back. CareLoop only raises a finding at major severity or above. Anything below that is recorded for your prescriber or pharmacist and never mentioned on a call.</p>
+          </details>
+        </footer>
+      </div></div>
+    </div>
+
+    <div>
+      <p class="board-label">B2. Check-in, 1280. The 6:00 PM event opens in place, the day stays around it.</p>
+      <div class="scroller"><div class="wide frame" id="b-checkin">
+        <div class="sysbar">
+          <span><b>Demonstration.</b> Do not describe your own real health. Every record here is invented.</span>
+          <span class="sysgap">Clock 3:41 PM</span>
+        </div>
+        <div class="appbar">
+          <span class="mark">CareLoop</span>
+          <span class="who"><b>Maria Santos</b>, Aetna Choice POS II</span>
+        </div>
+
+        <div class="b-body">
+          <div class="b-head">
+            <h2>Saturday 19 September</h2>
+            <p class="b-count">Three calls today. This is the second.</p>
+          </div>
+
+          <div class="b-spine">
+            <div class="b-ev">
+              <div class="b-when"><span class="t">7:45 AM</span><span class="d">Done</span></div>
+              <span class="b-node done" aria-hidden="true"></span>
+              <div class="b-card done">
+                <div class="b-call-h">
+                  <h3>CareLoop called you</h3>
+                  <p class="b-covers">Levothyroxine, Metformin and Aspirin, one call</p>
+                  <p class="state taken" style="margin-left:auto"><span class="g" aria-hidden="true">&#10003;</span>All three taken</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="b-ev">
+              <div class="b-when"><span class="t">6:00 PM</span><span class="d">Now</span></div>
+              <span class="b-node now" aria-hidden="true"></span>
+              <div class="b-card b-open">
+                <h3>CareLoop rings your telephone</h3>
+                <p class="measure" style="margin-top:12px;font-size:20px">Press the button and your phone rings, like any other call. CareLoop asks about your Coumadin, listens to the answer, and you can hang up at any point. There is no app to hold and no screen to read.</p>
+
+                <div class="b-cta">
+                  <a class="btn btn-lg" href="#b-checkin">Call my phone now</a>
+                  <a class="btn-2" href="#b-checkin">Read the same check-in in writing</a>
+                </div>
+                <p class="finetext measure" style="margin-top:12px">The written version asks the same questions and your answers go to the same place. It is a written stand in, not a recording of a call.</p>
+
+                <ul class="b-ask" style="margin-top:32px;border-top:1px solid var(--line)">
+                  <li style="padding:12px 0;border-bottom:1px solid var(--line);font-size:18px"><strong>1.</strong> Did you take your Coumadin 5mg</li>
+                  <li style="padding:12px 0;border-bottom:1px solid var(--line);font-size:18px"><strong>2.</strong> How are you feeling since this morning</li>
+                  <li style="padding:12px 0;border-bottom:1px solid var(--line);font-size:18px"><strong>3.</strong> Any bleeding, bruising or anything new</li>
+                </ul>
+
+                <div class="b-flagline" style="margin-top:20px">
+                  <span aria-hidden="true" style="color:var(--flag);font-size:20px;line-height:1.2">&#9670;</span>
+                  <span class="measure"><b>Why the third question.</b> Your Coumadin (warfarin) and your Aspirin carry additive bleeding risk together. FDA label, Coumadin, Drug Interactions. <strong>CareLoop cannot tell you what to do about it and nothing should be stopped.</strong> Please speak to your prescriber or pharmacist.</span>
+                </div>
+
+                <p class="finetext measure" style="margin-top:20px">If what you say sounds like you should be seen, CareLoop offers to ring the clinic and book a time your insurance covers. It asks you first and it tells no one else.</p>
+              </div>
+            </div>
+
+            <div class="b-ev">
+              <div class="b-when"><span class="t">8:00 PM</span><span class="d">Later</span></div>
+              <span class="b-node" aria-hidden="true"></span>
+              <div class="b-card">
+                <div class="b-call-h"><h3>CareLoop will call again</h3><p class="b-covers">Metformin 500mg, 8:00 PM</p></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <footer class="foot">
+          <h3>After the last call</h3>
+          <div class="foot-grid">
+            <div><h4>It notifies no human being</h4><p class="finetext">The call is answered by CareLoop. Nothing you say reaches a person unless CareLoop asks you and you agree to a booking.</p></div>
+            <div><h4>It is not a medical device</h4><p class="finetext">A research prototype. No medical advice, diagnosis or treatment. In an emergency call 911. In crisis call or text 988.</p></div>
+            <div><h4>How it judges your answer</h4><p class="finetext">A fixed rule layer runs alongside the model and can only ever raise how serious your answer is judged to be. It can never lower it.</p></div>
+          </div>
+        </footer>
+      </div></div>
+    </div>
+
+    <div>
+      <p class="board-label">B3. Dashboard and check-in, 400</p>
+      <div style="display:flex;gap:24px;flex-wrap:wrap">
+        <div class="narrow frame">
+          <div class="sysbar"><span><b>Demonstration.</b> Records here are invented.</span></div>
+          <div class="appbar" style="padding:12px 16px"><span class="mark">CareLoop</span><span class="who"><b>Maria Santos</b>, Aetna</span></div>
+          <div class="b-body" style="padding:16px 16px 0">
+            <div class="b-head" style="display:block">
+              <h2 style="font-size:24px">Saturday 19 September</h2>
+              <p class="b-count" style="margin-top:4px">Three calls today. They cover five doses.</p>
+            </div>
+            <div class="b-spine">
+              <div class="b-ev">
+                <div class="b-when"><span class="t">7:45</span><span class="d">Done</span></div>
+                <span class="b-node done" aria-hidden="true"></span>
+                <div class="b-card done">
+                  <h3 style="font-size:19px">CareLoop called you</h3>
+                  <p class="finetext" style="margin-top:4px">One call, three doses, because they fell within the hour.</p>
+                  <ul class="b-doses">
+                    <li><span class="nm">Levothyroxine 50mcg</span><span class="at">7:00 AM</span><span class="state taken"><span class="g" aria-hidden="true">&#10003;</span>Taken</span></li>
+                    <li><span class="nm">Metformin 500mg</span><span class="at">8:00 AM</span><span class="state taken"><span class="g" aria-hidden="true">&#10003;</span>Taken</span></li>
+                    <li><span class="nm">Aspirin 81mg</span><span class="at">8:00 AM</span><span class="state taken"><span class="g" aria-hidden="true">&#10003;</span>Taken</span></li>
+                  </ul>
+                </div>
+              </div>
+              <div class="b-ev">
+                <div class="b-when"><span class="t">6:00 PM</span><span class="d">Next</span></div>
+                <span class="b-node now" aria-hidden="true"></span>
+                <div class="b-card now">
+                  <h3 style="font-size:20px">CareLoop rings your telephone</h3>
+                  <ul class="b-doses">
+                    <li><span class="nm">Coumadin 5mg</span><span class="at">6:00 PM</span><span class="state later"><span class="g" aria-hidden="true">&#9675;</span>To come</span></li>
+                  </ul>
+                  <div class="b-flagline">
+                    <span aria-hidden="true" style="color:var(--flag);font-size:20px;line-height:1.2">&#9670;</span>
+                    <span><b>Major interaction, this call.</b> Coumadin (warfarin) and Aspirin carry additive bleeding risk together. FDA label, Coumadin. <strong>CareLoop cannot tell you what to do and has told no one.</strong> Do not stop anything. Speak to your prescriber or pharmacist.</span>
+                  </div>
+                  <p style="margin-top:20px"><a class="btn btn-lg" href="#b" style="width:100%">Call my phone now</a></p>
+                  <p class="finetext" style="margin-top:8px">You never call CareLoop. It rings you.</p>
+                </div>
+              </div>
+              <div class="b-ev">
+                <div class="b-when"><span class="t">8:00 PM</span><span class="d">Later</span></div>
+                <span class="b-node" aria-hidden="true"></span>
+                <div class="b-card">
+                  <h3 style="font-size:19px">CareLoop will call again</h3>
+                  <ul class="b-doses">
+                    <li><span class="nm">Metformin 500mg</span><span class="at">8:00 PM</span><span class="state later"><span class="g" aria-hidden="true">&#9675;</span>To come</span></li>
+                  </ul>
+                </div>
+              </div>
+              <div class="b-ev b-endofday">
+                <div class="b-when"><span class="t">Mon</span><span class="d">21 Sept</span></div>
+                <span class="b-node" aria-hidden="true"></span>
+                <div class="b-card">
+                  <h3 style="font-size:19px">Dr Raj Patel, Endocrinology</h3>
+                  <p style="margin-top:4px">Monday 21 September, 9:30 AM. Covered by Aetna.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          <footer class="foot" style="padding:24px 16px 32px">
+            <h3>After the last call</h3>
+            <div class="foot-grid">
+              <div><h4>It notifies no human being</h4><p class="finetext">Nobody is watching your day.</p></div>
+              <div><h4>It is not a medical device</h4><p class="finetext">A research prototype. No medical advice. Emergency: 911. Crisis: 988.</p></div>
+              <div><h4>What it could not read</h4><p class="finetext">4 of 4 medicines read. The prescriber name on Metformin was blank.</p></div>
+            </div>
+            <details><summary>How today was decided, and what was held back</summary><p class="finetext">Doses within the same hour were grouped into one call. Nothing was held back today: only findings at major severity or above are raised with you.</p></details>
+          </footer>
+        </div>
+
+        <div class="narrow frame">
+          <div class="sysbar"><span><b>Demonstration.</b> Do not describe your own real health.</span></div>
+          <div class="appbar" style="padding:12px 16px"><span class="mark">CareLoop</span><span class="who">Call 2 of 3</span></div>
+          <div class="b-body" style="padding:16px 16px 0">
+            <div class="b-spine">
+              <div class="b-ev">
+                <div class="b-when"><span class="t">7:45</span><span class="d">Done</span></div>
+                <span class="b-node done" aria-hidden="true"></span>
+                <div class="b-card done"><h3 style="font-size:18px">Three doses, one call, all taken</h3></div>
+              </div>
+              <div class="b-ev">
+                <div class="b-when"><span class="t">6:00 PM</span><span class="d">Now</span></div>
+                <span class="b-node now" aria-hidden="true"></span>
+                <div class="b-card b-open">
+                  <h3 style="font-size:21px">CareLoop rings your telephone</h3>
+                  <p style="margin-top:12px">Press this and your phone rings. CareLoop asks about your Coumadin and listens.</p>
+                  <p style="margin-top:20px"><a class="btn btn-lg" href="#b" style="width:100%">Call my phone now</a></p>
+                  <ul style="margin-top:24px;border-top:1px solid var(--line)">
+                    <li style="padding:12px 0;border-bottom:1px solid var(--line)"><strong>1.</strong> Did you take your Coumadin 5mg</li>
+                    <li style="padding:12px 0;border-bottom:1px solid var(--line)"><strong>2.</strong> How are you feeling since this morning</li>
+                    <li style="padding:12px 0;border-bottom:1px solid var(--line)"><strong>3.</strong> Any bleeding, bruising or anything new</li>
+                  </ul>
+                  <div class="b-flagline">
+                    <span aria-hidden="true" style="color:var(--flag);font-size:20px;line-height:1.2">&#9670;</span>
+                    <span><b>Why the third question.</b> Coumadin and Aspirin carry additive bleeding risk together. FDA label, Coumadin. <strong>CareLoop cannot advise you and nothing should be stopped.</strong></span>
+                  </div>
+                  <p style="margin-top:20px"><a class="btn-2" href="#b" style="width:100%">Read it in writing instead</a></p>
+                </div>
+              </div>
+              <div class="b-ev">
+                <div class="b-when"><span class="t">8:00 PM</span><span class="d">Later</span></div>
+                <span class="b-node" aria-hidden="true"></span>
+                <div class="b-card"><h3 style="font-size:18px">Metformin 500mg, last call of the day</h3></div>
+              </div>
+            </div>
+          </div>
+          <footer class="foot" style="padding:24px 16px 32px">
+            <h3>After the last call</h3>
+            <div class="foot-grid">
+              <div><h4>It notifies no human being</h4><p class="finetext">Nothing you say reaches a person unless CareLoop asks you and you agree to a booking.</p></div>
+              <div><h4>How it judges your answer</h4><p class="finetext">A fixed rule layer can only raise how serious your answer is judged to be, never lower it.</p></div>
+            </div>
+          </footer>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="concept" id="c">
+  <div class="concept-head">
+    <p class="concept-kicker">Concept C</p>
+    <h2>The Consumer Health App</h2>
+    <dl>
+      <dt>Optimises for</dt><dd>One clear next action for someone holding a phone without reading glasses. Large type, generous space, a single decision per screen, and the day reduced to three plain lines.</dd>
+      <dt>Gives up</dt><dd>Density and simultaneity. A carer wanting the whole picture scrolls, and the record detail moves to pages behind this one.</dd>
+      <dt>Disclosures live</dt><dd>One line under the primary action for the thing that is true right now, one full width band for the interaction placed after the day and before the appointment, and a plain worded "What CareLoop does not do" section at the foot with headings you can read without opening anything.</dd>
+    </dl>
+  </div>
+
+  <div class="boards">
+    <div>
+      <p class="board-label">C1. Dashboard, 1280</p>
+      <div class="scroller"><div class="wide frame">
+        <div class="sysbar">
+          <span><b>Demonstration.</b> Every patient, medicine and clinic below is invented.</span>
+          <span class="sysgap">Clock 3:41 PM</span>
+          <button type="button">Move clock to next dose</button>
+        </div>
+        <div class="c-body">
+          <div class="inner">
+            <p class="c-hello">Good afternoon, <b>Maria</b>. Saturday 19 September.</p>
+
+            <section class="c-next">
+              <p class="c-kick">Your next call</p>
+              <h2 class="c-big">6:00 PM, about your Coumadin 5mg</h2>
+              <p class="c-lede">CareLoop rings your telephone and asks whether you took it and how you feel. You never call CareLoop, and you do not have to wait for 6:00 PM.</p>
+              <div class="c-act">
+                <a class="btn btn-lg" href="#c-checkin">Call my phone now</a>
+                <p class="c-actnote">Your phone rings within a minute.<br>You can hang up at any point.</p>
+              </div>
+            </section>
+
+            <section class="c-day">
+              <h3>Today is three calls, not five</h3>
+              <p class="c-sub">You have five doses today. CareLoop grouped the ones that fall close together, so your phone rings three times.</p>
+              <div class="c-calls">
+                <div class="c-call">
+                  <p class="t">7:45 AM</p>
+                  <p class="m">Levothyroxine 50mcg, Metformin 500mg and Aspirin 81mg<span>Three doses between 7:00 and 8:00, covered by one call</span></p>
+                  <p class="state taken"><span class="g" aria-hidden="true">&#10003;</span>All taken</p>
+                </div>
+                <div class="c-call">
+                  <p class="t">6:00 PM</p>
+                  <p class="m">Coumadin 5mg<span>Next call</span></p>
+                  <p class="state later"><span class="g" aria-hidden="true">&#9675;</span>Still to come</p>
+                </div>
+                <div class="c-call" style="border-bottom:1px solid var(--line)">
+                  <p class="t">8:00 PM</p>
+                  <p class="m">Metformin 500mg<span>Last call of the day</span></p>
+                  <p class="state later"><span class="g" aria-hidden="true">&#9675;</span>Still to come</p>
+                </div>
+              </div>
+            </section>
+
+            <section class="c-band">
+              <p class="lab"><span class="g" aria-hidden="true">&#9670;</span>Major interaction, worth asking about</p>
+              <h3>Your Coumadin and your Aspirin</h3>
+              <p>Taken together these two carry additive bleeding risk. Both were prescribed for you and both are on your list.</p>
+              <p><strong>CareLoop cannot tell you what to do about this.</strong> Do not start, stop or change any medicine because of this message. Please ask your prescriber or your pharmacist. CareLoop has told no one.</p>
+              <p class="src">Source: FDA label, Coumadin, Drug Interactions. This is a check against a short list of pairs, not a review of your medicines.</p>
+            </section>
+
+            <section class="c-appt">
+              <h3>Your next appointment is booked</h3>
+              <dl>
+                <dt>Who</dt><dd>Dr Raj Patel, Endocrinology</dd>
+                <dt>When</dt><dd>Monday 21 September, 9:30 AM</dd>
+                <dt>Cost</dt><dd>Covered by Aetna, inside your Choice network</dd>
+              </dl>
+              <p class="finetext" style="margin-top:16px">CareLoop rang the clinic and booked this after you agreed to it on a call.</p>
+            </section>
+          </div>
+        </div>
+
+        <footer class="foot" style="margin-top:64px">
+          <div class="inner" style="max-width:1000px;margin:0 auto">
+            <h3>What CareLoop does not do</h3>
+            <div class="foot-grid">
+              <div><h4>It tells no one</h4><p class="finetext">No nurse, doctor or family member sees this or hears what you say. CareLoop rings a clinic only when it asks you on a call and you say yes.</p></div>
+              <div><h4>It gives no medical advice</h4><p class="finetext">CareLoop is a research prototype, not a medical device. No diagnosis and no treatment. In an emergency call 911. In crisis call or text 988.</p></div>
+              <div><h4>It reads your record, it does not check it</h4><p class="finetext">All 4 medicines were read from Aetna at 3:41 PM. One field was blank: the prescriber on your Metformin. Finding no interaction is not the same as nothing being wrong.</p></div>
+            </div>
+            <details>
+              <summary>What CareLoop held back, and how it decides</summary>
+              <p class="finetext measure">Nothing was detected and held back today. CareLoop only raises a finding with you at major severity or above, and the Coumadin and Aspirin pair above is the only one on your list. Anything below major is recorded for your prescriber or pharmacist and never raised on a call. When you answer a call, a fixed rule layer runs alongside the model and can only ever raise how serious your answer is judged to be, never lower it.</p>
+            </details>
+          </div>
+        </footer>
+      </div></div>
+    </div>
+
+    <div>
+      <p class="board-label">C2. Check-in, 1280</p>
+      <div class="scroller"><div class="wide frame" id="c-checkin">
+        <div class="sysbar">
+          <span><b>Demonstration.</b> Do not describe your own real health. Every record here is invented.</span>
+          <span class="sysgap">Clock 3:41 PM</span>
+        </div>
+        <div class="c-body c-ci">
+          <div class="inner">
+            <p class="c-kick">Check-in, call 2 of 3</p>
+            <h2 class="c-big">CareLoop rings your telephone</h2>
+            <p class="c-lede">Press the button and your phone rings, like any other call. CareLoop asks about your Coumadin 5mg, listens to what you say, and you can hang up at any point. There is no app to hold and no screen to read.</p>
+
+            <div class="c-act">
+              <a class="btn btn-lg" href="#c-checkin">Call my phone now</a>
+              <p class="c-actnote">Nobody is listening but CareLoop.<br>It tells no one what you say.</p>
+            </div>
+
+            <ul class="c-ask">
+              <li>Did you take your Coumadin 5mg</li>
+              <li>How have you been feeling since this morning</li>
+              <li>Any bleeding, bruising or anything new</li>
+            </ul>
+
+            <section class="c-band" style="margin-top:48px">
+              <p class="lab"><span class="g" aria-hidden="true">&#9670;</span>Why it asks the third question</p>
+              <p>Your Coumadin (warfarin) and your Aspirin carry additive bleeding risk together. <strong>CareLoop cannot tell you what to do about this and nothing should be stopped.</strong> Please ask your prescriber or pharmacist.</p>
+              <p class="src">Source: FDA label, Coumadin, Drug Interactions.</p>
+            </section>
+
+            <p class="c-alt"><a class="btn-2" href="#c-checkin">Read the same check-in in writing</a></p>
+            <p class="finetext measure" style="margin-top:12px">The written version asks the same questions and your answers go to the same place. It is a written stand in, not a recording of a call.</p>
+          </div>
+        </div>
+
+        <footer class="foot" style="margin-top:64px">
+          <div class="inner" style="max-width:1000px;margin:0 auto">
+            <h3>What CareLoop does not do</h3>
+            <div class="foot-grid">
+              <div><h4>It tells no one</h4><p class="finetext">Nothing you say reaches a person unless CareLoop asks you on the call and you agree to a booking.</p></div>
+              <div><h4>It gives no medical advice</h4><p class="finetext">A research prototype, not a medical device. In an emergency call 911. In crisis call or text 988.</p></div>
+              <div><h4>How it judges your answer</h4><p class="finetext">A fixed rule layer runs alongside the model and can only ever raise how serious your answer is judged to be. It can never lower it.</p></div>
+            </div>
+          </div>
+        </footer>
+      </div></div>
+    </div>
+
+    <div>
+      <p class="board-label">C3. Dashboard and check-in, 400</p>
+      <div style="display:flex;gap:24px;flex-wrap:wrap">
+        <div class="narrow frame">
+          <div class="sysbar"><span><b>Demonstration.</b> Records here are invented.</span></div>
+          <div class="c-body">
+            <div class="inner">
+              <p class="c-hello">Good afternoon, <b>Maria</b>.<br>Saturday 19 September.</p>
+              <section class="c-next">
+                <p class="c-kick">Your next call</p>
+                <h2 class="c-big">6:00 PM, your Coumadin 5mg</h2>
+                <p class="c-lede">CareLoop rings your telephone. You never call it, and you do not have to wait.</p>
+                <p style="margin-top:24px"><a class="btn btn-lg" href="#c" style="width:100%">Call my phone now</a></p>
+                <p class="c-actnote" style="margin-top:12px">Your phone rings within a minute. You can hang up at any point.</p>
+              </section>
+
+              <section class="c-day">
+                <h3>Today is three calls, not five</h3>
+                <p class="c-sub">Five doses. CareLoop grouped the ones close together.</p>
+                <div class="c-calls">
+                  <div class="c-call">
+                    <p class="t">7:45 AM</p>
+                    <p class="m">Levothyroxine, Metformin and Aspirin<span>Three doses, one call</span></p>
+                    <p class="state taken"><span class="g" aria-hidden="true">&#10003;</span>All taken</p>
+                  </div>
+                  <div class="c-call">
+                    <p class="t">6:00 PM</p>
+                    <p class="m">Coumadin 5mg<span>Next call</span></p>
+                    <p class="state later"><span class="g" aria-hidden="true">&#9675;</span>Still to come</p>
+                  </div>
+                  <div class="c-call" style="border-bottom:1px solid var(--line)">
+                    <p class="t">8:00 PM</p>
+                    <p class="m">Metformin 500mg<span>Last call of the day</span></p>
+                    <p class="state later"><span class="g" aria-hidden="true">&#9675;</span>Still to come</p>
+                  </div>
+                </div>
+              </section>
+
+              <section class="c-band">
+                <p class="lab"><span class="g" aria-hidden="true">&#9670;</span>Worth asking about</p>
+                <h3>Your Coumadin and your Aspirin</h3>
+                <p>Taken together these two carry additive bleeding risk.</p>
+                <p><strong>CareLoop cannot tell you what to do about this.</strong> Do not start, stop or change any medicine because of it. Please ask your prescriber or pharmacist. CareLoop has told no one.</p>
+                <p class="src">Source: FDA label, Coumadin, Drug Interactions.</p>
+              </section>
+
+              <section class="c-appt">
+                <h3>Your next appointment is booked</h3>
+                <dl>
+                  <dt>Who</dt><dd>Dr Raj Patel, Endocrinology</dd>
+                  <dt>When</dt><dd>Monday 21 September, 9:30 AM</dd>
+                  <dt>Cost</dt><dd>Covered by Aetna</dd>
+                </dl>
+              </section>
+            </div>
+          </div>
+          <footer class="foot" style="margin-top:48px;padding:24px 16px 32px">
+            <h3>What CareLoop does not do</h3>
+            <div class="foot-grid">
+              <div><h4>It tells no one</h4><p class="finetext">No nurse, doctor or family member sees this.</p></div>
+              <div><h4>It gives no medical advice</h4><p class="finetext">A research prototype, not a medical device. Emergency: 911. Crisis: 988.</p></div>
+              <div><h4>It reads your record, it does not check it</h4><p class="finetext">4 medicines read from Aetna at 3:41 PM. The prescriber on your Metformin was blank.</p></div>
+            </div>
+            <details><summary>What CareLoop held back, and how it decides</summary><p class="finetext">Nothing was held back today. Only findings at major severity or above are raised with you. A fixed rule layer can only raise how serious an answer is judged to be, never lower it.</p></details>
+          </footer>
+        </div>
+
+        <div class="narrow frame">
+          <div class="sysbar"><span><b>Demonstration.</b> Do not describe your own real health.</span></div>
+          <div class="c-body c-ci">
+            <div class="inner">
+              <p class="c-kick">Check-in, call 2 of 3</p>
+              <h2 class="c-big">CareLoop rings your telephone</h2>
+              <p class="c-lede">Press this and your phone rings. CareLoop asks about your Coumadin 5mg and listens. You can hang up at any point.</p>
+              <p style="margin-top:24px"><a class="btn btn-lg" href="#c" style="width:100%">Call my phone now</a></p>
+              <p class="c-actnote" style="margin-top:12px">Nobody is listening but CareLoop. It tells no one what you say.</p>
+
+              <ul class="c-ask">
+                <li>Did you take your Coumadin 5mg</li>
+                <li>How have you been feeling since this morning</li>
+                <li>Any bleeding, bruising or anything new</li>
+              </ul>
+
+              <section class="c-band" style="margin-top:32px">
+                <p class="lab"><span class="g" aria-hidden="true">&#9670;</span>Why it asks the third question</p>
+                <p>Your Coumadin and your Aspirin carry additive bleeding risk together. <strong>CareLoop cannot advise you and nothing should be stopped.</strong> Ask your prescriber or pharmacist.</p>
+                <p class="src">FDA label, Coumadin, Drug Interactions.</p>
+              </section>
+
+              <p class="c-alt"><a class="btn-2" href="#c" style="width:100%">Read it in writing instead</a></p>
+            </div>
+          </div>
+          <footer class="foot" style="margin-top:48px;padding:24px 16px 32px">
+            <h3>What CareLoop does not do</h3>
+            <div class="foot-grid">
+              <div><h4>It tells no one</h4><p class="finetext">Nothing you say reaches a person unless CareLoop asks you and you agree to a booking.</p></div>
+              <div><h4>How it judges your answer</h4><p class="finetext">A fixed rule layer can only raise how serious your answer is judged to be, never lower it.</p></div>
+            </div>
+          </footer>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+</div>
+</body>
+</html>
