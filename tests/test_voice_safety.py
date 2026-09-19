@@ -129,3 +129,30 @@ def test_the_activity_log_opens_with_the_token():
     )
     assert r.status_code == 200
     assert "events" in r.json()
+
+
+def test_the_crisis_line_actually_stays_open():
+    xml = respond(CRISIS, "hold-open")
+    assert "<Hangup/>" not in xml
+    assert "<Redirect>" in xml, (
+        "without a redirect the TwiML document simply ends and Twilio drops the "
+        "call, so the promise to stay on the line lasts about forty seconds"
+    )
+
+
+def test_the_crisis_hold_redirect_is_absolute():
+    xml = respond(CRISIS, "hold-absolute")
+    target = re.search(r"<Redirect>([^<]+)</Redirect>", xml).group(1)
+    assert target.startswith("http"), (
+        f"{target} is relative, so the deployment would drop the /api prefix and "
+        "the hold would fail at exactly the wrong moment"
+    )
+
+
+def test_the_hold_loop_repeats_rather_than_ending():
+    body = client.post(
+        "/voice/checkin/hold?patient_id=p1", headers={"X-CareLoop-Session": "hold-loop"}
+    ).text
+    assert "<Redirect>" in body, "the hold must loop, not run out"
+    assert "988" in said(body)
+    assert "<Hangup/>" not in body

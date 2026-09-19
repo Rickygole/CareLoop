@@ -90,9 +90,22 @@ def _remember_bounded(store: Dict[str, bool], key: str, capacity: int) -> None:
         store.pop(next(iter(store)))
 
 
+def _anchor_history_to_today(patient: dict) -> None:
+    from scheduler import clinic_now
+
+    today = clinic_now().date().isoformat()
+    for entry in patient.get("history", []):
+        stamp = str(entry.get("timestamp", ""))
+        if len(stamp) >= 10:
+            entry["timestamp"] = today + stamp[10:]
+
+
 def load_patients() -> Dict[str, dict]:
     with open(DATA_DIR / "patients.json") as f:
-        return {p["patient_id"]: p for p in json.load(f)["patients"]}
+        patients = {p["patient_id"]: p for p in json.load(f)["patients"]}
+    for patient in patients.values():
+        _anchor_history_to_today(patient)
+    return patients
 
 
 BASELINE_PATIENTS = load_patients()
@@ -187,6 +200,8 @@ class SessionState:
     def __init__(self, session_id: str):
         self.session_id = session_id
         self.patients: Dict[str, dict] = deepcopy(BASELINE_PATIENTS)
+        for patient in self.patients.values():
+            _anchor_history_to_today(patient)
         self.memory = InMemoryBackend()
         self.escalations: Dict[str, List[dict]] = {}
         self.regimen_snapshots: Dict[str, List[dict]] = {}
@@ -1129,12 +1144,25 @@ async def voice_checkin(
     )
 
 
-def _fallback_twiml_body(transcript: str) -> str:
+CRISIS_HOLD_SECONDS = 600
+
+
+def _crisis_hold_tail(base_url: str, patient_id: str, session_id: str) -> str:
+    params = urlencode({"patient_id": patient_id, SESSION_QUERY_PARAM: session_id})
+    target = base_url.rstrip("/") + "/voice/checkin/hold?" + params
+    return (
+        f'<Pause length="{CRISIS_HOLD_SECONDS}"/>'
+        + f"<Redirect>{xml_escape(target)}</Redirect>"
+    )
+
+
+def _fallback_twiml_body(transcript: str, fallback_base_url: str = "") -> str:
     if CRISIS_RULES.intersection(detect_emergency(transcript)):
         return (
             _say(CHECKIN_CRISIS_HOLD)
             + '<Pause length="10"/>'
             + _say(CHECKIN_CRISIS_HOLD)
+            + _crisis_hold_tail(fallback_base_url, DEFAULT_DEMO_PATIENT_ID, "")
         )
     return _say(CHECKIN_TRIAGE_UNAVAILABLE) + "<Hangup/>"
 
@@ -1188,7 +1216,7 @@ async def voice_checkin_respond(
     try:
         result = await run_triage(session, transcript, patient_id)
     except Exception:
-        return _twiml(_fallback_twiml_body(transcript))
+        return _twiml(_fallback_twiml_body(transcript, str(request.base_url)))
 
     if result["is_crisis"]:
         try:
@@ -1201,6 +1229,7 @@ async def voice_checkin_respond(
             + _say(CHECKIN_CRISIS_HOLD)
             + '<Pause length="10"/>'
             + _say(CHECKIN_CRISIS_HOLD)
+            + _crisis_hold_tail(str(request.base_url), patient_id, session.session_id)
         )
 
     if result["is_emergency"]:
@@ -1220,6 +1249,19 @@ async def voice_checkin_respond(
         + '<Pause length="1"/>'
         + _say(CHECKIN_CLOSING.format(patient_first_name=first_name))
         + "<Hangup/>"
+    )
+
+
+@app.api_route("/voice/checkin/hold", methods=["GET", "POST"])
+async def voice_checkin_hold(
+    request: Request,
+    patient_id: str = DEFAULT_DEMO_PATIENT_ID,
+    session: SessionState = Depends(get_session),
+):
+    await session.bus.emit("CRISIS_LINE_HELD", {"patient_id": patient_id})
+    return _twiml(
+        _say(CHECKIN_CRISIS_HOLD)
+        + _crisis_hold_tail(str(request.base_url), patient_id, session.session_id)
     )
 
 
