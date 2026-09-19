@@ -9,6 +9,8 @@ REQUIRED = [
     ("TWILIO_ACCOUNT_SID", "outbound calling", False),
     ("TWILIO_AUTH_TOKEN", "outbound calling", False),
     ("BACKBOARD_API_KEY", "backboard", False),
+    ("CARELOOP_WEBHOOK_SECRET", "gates the agent webhook and trace stream", False),
+    ("GEMINI_MODEL", "overrides the Tier 1 model id", False),
 ]
 
 env_path = Path(__file__).parent / ".env"
