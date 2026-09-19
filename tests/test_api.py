@@ -7,11 +7,15 @@ from fastapi.testclient import TestClient
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from main import app
+from main import SESSION_HEADER, app
 
 client = TestClient(app)
 
 WEBHOOK_SECRET = os.environ.get("CARELOOP_WEBHOOK_SECRET", "")
+
+
+def session_headers(session_id):
+    return {SESSION_HEADER: session_id}
 
 
 def gated_webhook(payload):
@@ -584,3 +588,92 @@ def test_an_unrelated_pair_still_returns_nothing():
         {"medication": "Atorvastatin 20 mg tablet", "status": "active"},
     ]
     assert check_regimen(meds) == []
+
+
+def test_two_sessions_have_independent_patient_lists_after_a_medication_add():
+    sess_a = "isolation-session-a"
+    sess_b = "isolation-session-b"
+
+    before_b = client.get("/regimen/p1", headers=session_headers(sess_b)).json()
+    before_count = len(before_b["medications"])
+
+    client.post("/meds", json={
+        "patient_id": "p1", "medication": "Session A Only Medication",
+    }, headers=session_headers(sess_a))
+
+    after_a = client.get("/regimen/p1", headers=session_headers(sess_a)).json()
+    after_b = client.get("/regimen/p1", headers=session_headers(sess_b)).json()
+
+    assert len(after_a["medications"]) == before_count + 1
+    assert len(after_b["medications"]) == before_count
+    assert all(m["medication"] != "Session A Only Medication" for m in after_b["medications"])
+
+
+def test_adding_a_medication_does_not_affect_a_brand_new_session():
+    baseline = client.get("/regimen/p2", headers=session_headers("baseline-probe")).json()
+    before_count = len(baseline["medications"])
+
+    client.post("/meds", json={
+        "patient_id": "p2", "medication": "Session C Only Medication",
+    }, headers=session_headers("isolation-session-c"))
+
+    fresh = client.get("/regimen/p2", headers=session_headers("brand-new-session")).json()
+    assert len(fresh["medications"]) == before_count
+    assert all(m["medication"] != "Session C Only Medication" for m in fresh["medications"])
+
+
+def test_baseline_fixture_is_never_mutated_by_any_session():
+    original = client.get("/regimen/p4", headers=session_headers("probe-original")).json()
+    original_count = len(original["medications"])
+
+    for i in range(5):
+        client.post("/meds", json={
+            "patient_id": "p4", "medication": f"Stress Med {i}",
+        }, headers=session_headers(f"stress-session-{i}"))
+
+    brand_new = client.get("/regimen/p4", headers=session_headers("probe-after-stress")).json()
+    assert len(brand_new["medications"]) == original_count
+
+
+def test_trace_events_do_not_cross_sessions():
+    sess_x = "trace-session-x"
+    sess_y = "trace-session-y"
+
+    baseline_y = client.get("/trace/events?since=0", headers=session_headers(sess_y)).json()
+    assert baseline_y["events"] == []
+
+    client.post("/triage", json={
+        "transcript": "my chest is killing me", "patient_id": "p1",
+    }, headers=session_headers(sess_x))
+
+    events_x = client.get("/trace/events?since=0", headers=session_headers(sess_x)).json()["events"]
+    events_y = client.get("/trace/events?since=0", headers=session_headers(sess_y)).json()["events"]
+
+    assert "PATIENT_SPEECH" in [e["event_type"] for e in events_x]
+    assert events_y == []
+
+
+def test_admin_reset_clears_only_the_calling_session():
+    sess_p = "reset-session-p"
+    sess_q = "reset-session-q"
+
+    client.post("/triage", json={"transcript": "hello", "patient_id": "p1"}, headers=session_headers(sess_p))
+    client.post("/triage", json={"transcript": "hello", "patient_id": "p1"}, headers=session_headers(sess_q))
+
+    client.post("/admin/reset", json=gated(), headers=session_headers(sess_p))
+
+    after_p = client.get("/trace/events?since=0", headers=session_headers(sess_p)).json()
+    after_q = client.get("/trace/events?since=0", headers=session_headers(sess_q)).json()
+
+    assert after_p["events"] == []
+    assert after_q["events"] != []
+
+
+def test_request_with_no_session_id_still_works():
+    health = client.get("/health")
+    assert health.status_code == 200
+
+    triage_response = client.post("/triage", json={"transcript": "feeling okay"})
+    assert triage_response.status_code == 200
+    assert SESSION_HEADER in triage_response.headers
+    assert triage_response.headers[SESSION_HEADER]

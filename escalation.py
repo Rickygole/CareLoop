@@ -48,7 +48,15 @@ def classify_kind(tier: str, is_crisis: bool) -> Optional[str]:
     return None
 
 
-def record_escalation(patient_id: str, tier: str, is_crisis: bool, fired_at: datetime) -> Optional[dict]:
+def record_escalation(
+    patient_id: str,
+    tier: str,
+    is_crisis: bool,
+    fired_at: datetime,
+    store: Optional[Dict[str, List[dict]]] = None,
+) -> Optional[dict]:
+    if store is None:
+        store = _ESCALATIONS
     kind = classify_kind(tier, is_crisis)
     if kind is None:
         return None
@@ -67,12 +75,14 @@ def record_escalation(patient_id: str, tier: str, is_crisis: bool, fired_at: dat
         "ack_state": rule["initial_ack_state"],
         "mocked": kind == "crisis",
     }
-    _ESCALATIONS.setdefault(patient_id, []).append(record)
+    store.setdefault(patient_id, []).append(record)
     return record
 
 
-def get_escalations(patient_id: str) -> List[dict]:
-    return list(_ESCALATIONS.get(patient_id, []))
+def get_escalations(patient_id: str, store: Optional[Dict[str, List[dict]]] = None) -> List[dict]:
+    if store is None:
+        store = _ESCALATIONS
+    return list(store.get(patient_id, []))
 
 
 def ack_status(record: dict, now: datetime) -> str:
@@ -84,17 +94,25 @@ def ack_status(record: dict, now: datetime) -> str:
     return "pending"
 
 
-def unacknowledged_for_patient(patient_id: str, now: datetime) -> List[dict]:
+def unacknowledged_for_patient(
+    patient_id: str, now: datetime, store: Optional[Dict[str, List[dict]]] = None
+) -> List[dict]:
+    if store is None:
+        store = _ESCALATIONS
     out = []
-    for record in get_escalations(patient_id):
+    for record in get_escalations(patient_id, store):
         status = ack_status(record, now)
         if status == "ack_window_elapsed_no_recipient":
             out.append({**record, "status": status})
     return out
 
 
-def reset_escalations(patient_id: Optional[str] = None) -> None:
+def reset_escalations(
+    patient_id: Optional[str] = None, store: Optional[Dict[str, List[dict]]] = None
+) -> None:
+    if store is None:
+        store = _ESCALATIONS
     if patient_id is None:
-        _ESCALATIONS.clear()
+        store.clear()
     else:
-        _ESCALATIONS.pop(patient_id, None)
+        store.pop(patient_id, None)

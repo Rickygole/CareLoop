@@ -58,6 +58,25 @@ class MemoryStore(MemoryBackend):
         self._save(data)
 
 
+class InMemoryBackend(MemoryBackend):
+
+    def __init__(self):
+        self._data: Dict[str, List[dict]] = {}
+
+    def get_history(self, patient_id: str) -> List[dict]:
+        episodes = self._data.get(patient_id, [])
+        return [e for e in episodes if not e.get("is_crisis")]
+
+    def append_episode(self, patient_id: str, episode: dict) -> None:
+        self._data.setdefault(patient_id, []).append(episode)
+
+    def clear(self, patient_id: Optional[str] = None) -> None:
+        if patient_id is None:
+            self._data.clear()
+            return
+        self._data.pop(patient_id, None)
+
+
 def summarize_episode(transcript: str, tier: str, action_taken: str) -> str:
     text = (transcript or "").strip()
     if len(text) > 140:

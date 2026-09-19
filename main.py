@@ -1,13 +1,25 @@
 import asyncio
 import json
 import os
+import threading
+import time
 import uuid
+from copy import deepcopy
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, List, Optional
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException, Query, WebSocket, WebSocketDisconnect
+from fastapi import (
+    Depends,
+    FastAPI,
+    HTTPException,
+    Query,
+    Request,
+    Response,
+    WebSocket,
+    WebSocketDisconnect,
+)
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
@@ -24,7 +36,7 @@ from escalation import (
     reset_escalations,
     unacknowledged_for_patient,
 )
-from memory import MemoryStore, summarize_episode
+from memory import InMemoryBackend, summarize_episode
 from providers import find_provider, specialties
 from scheduler import build_day_plan
 from responses import suggested_response
@@ -47,14 +59,18 @@ app.add_middleware(
 DATA_DIR = Path(__file__).resolve().parent / "mock_data"
 WEBHOOK_SECRET = os.environ.get("CARELOOP_WEBHOOK_SECRET", "")
 
+SESSION_HEADER = "X-CareLoop-Session"
+SESSION_QUERY_PARAM = "session_id"
+SESSION_CAPACITY = 200
+SESSION_IDLE_SECONDS = 1800
+
 
 def load_patients() -> Dict[str, dict]:
     with open(DATA_DIR / "patients.json") as f:
         return {p["patient_id"]: p for p in json.load(f)["patients"]}
 
 
-PATIENTS = load_patients()
-MEMORY_STORE = MemoryStore()
+BASELINE_PATIENTS = load_patients()
 
 
 def derive_schedule(medication_requests: List[dict]) -> List[dict]:
@@ -141,31 +157,105 @@ class TraceBus:
             self._clients.remove(ws)
 
 
-bus = TraceBus()
+class SessionState:
+
+    def __init__(self, session_id: str):
+        self.session_id = session_id
+        self.patients: Dict[str, dict] = deepcopy(BASELINE_PATIENTS)
+        self.memory = InMemoryBackend()
+        self.escalations: Dict[str, List[dict]] = {}
+        self.bus = TraceBus()
+        self.last_touched = time.monotonic()
+
+
+class SessionManager:
+
+    def __init__(self, capacity: int = SESSION_CAPACITY, idle_seconds: int = SESSION_IDLE_SECONDS):
+        self._sessions: Dict[str, SessionState] = {}
+        self._capacity = capacity
+        self._idle_seconds = idle_seconds
+        self._lock = threading.Lock()
+
+    def _evict_idle(self) -> None:
+        now = time.monotonic()
+        stale = [
+            sid for sid, state in self._sessions.items()
+            if now - state.last_touched > self._idle_seconds
+        ]
+        for sid in stale:
+            self._sessions.pop(sid, None)
+
+    def _evict_oldest(self) -> None:
+        if not self._sessions:
+            return
+        oldest_id = min(self._sessions, key=lambda sid: self._sessions[sid].last_touched)
+        self._sessions.pop(oldest_id, None)
+
+    def get(self, session_id: str) -> SessionState:
+        with self._lock:
+            self._evict_idle()
+            state = self._sessions.get(session_id)
+            if state is None:
+                if len(self._sessions) >= self._capacity:
+                    self._evict_oldest()
+                state = SessionState(session_id)
+                self._sessions[session_id] = state
+            state.last_touched = time.monotonic()
+            return state
+
+    def reset(self, session_id: str) -> SessionState:
+        with self._lock:
+            self._sessions.pop(session_id, None)
+        return self.get(session_id)
+
+
+SESSIONS = SessionManager()
+
+
+def _fallback_session_id(client) -> str:
+    host = client.host if client else "anonymous"
+    return f"auto:{host}"
+
+
+def get_session(request: Request, response: Response) -> SessionState:
+    session_id = request.headers.get(SESSION_HEADER) or request.query_params.get(SESSION_QUERY_PARAM)
+    if not session_id:
+        session_id = _fallback_session_id(request.client)
+    session = SESSIONS.get(session_id)
+    response.headers[SESSION_HEADER] = session.session_id
+    return session
 
 
 @app.websocket("/trace")
-async def trace_socket(ws: WebSocket, token: str = Query(default="")):
+async def trace_socket(
+    ws: WebSocket,
+    token: str = Query(default=""),
+    session_id: str = Query(default=""),
+):
     if WEBHOOK_SECRET and token != WEBHOOK_SECRET:
         await ws.close(code=1008)
         return
+
+    resolved_id = ws.headers.get(SESSION_HEADER) or session_id or _fallback_session_id(ws.client)
+    session = SESSIONS.get(resolved_id)
+
     await ws.accept()
-    bus.connect(ws)
+    session.bus.connect(ws)
     try:
-        for event in bus.since(0):
+        for event in session.bus.since(0):
             await ws.send_json(event)
         while True:
             await asyncio.sleep(30)
             await ws.send_json({"event_type": "PING", "payload": {}})
     except WebSocketDisconnect:
-        bus.disconnect(ws)
+        session.bus.disconnect(ws)
     except Exception:
-        bus.disconnect(ws)
+        session.bus.disconnect(ws)
 
 
 @app.get("/trace/events")
-def trace_events(since: int = 0):
-    return {"events": bus.since(since), "boot_id": bus.boot_id}
+def trace_events(since: int = 0, session: SessionState = Depends(get_session)):
+    return {"events": session.bus.since(since), "boot_id": session.bus.boot_id}
 
 
 class ResetRequest(BaseModel):
@@ -173,15 +263,11 @@ class ResetRequest(BaseModel):
 
 
 @app.post("/admin/reset")
-async def admin_reset(body: ResetRequest):
+async def admin_reset(body: ResetRequest, session: SessionState = Depends(get_session)):
     if WEBHOOK_SECRET and body.secret != WEBHOOK_SECRET:
         raise HTTPException(401, "unauthorized")
-    global PATIENTS
-    PATIENTS = load_patients()
-    bus.reset()
-    MEMORY_STORE.clear()
-    reset_escalations()
-    return {"reset": True, "boot_id": bus.boot_id, "patients_loaded": len(PATIENTS)}
+    fresh = SESSIONS.reset(session.session_id)
+    return {"reset": True, "boot_id": fresh.bus.boot_id, "patients_loaded": len(fresh.patients)}
 
 
 class ConnectRequest(BaseModel):
@@ -189,15 +275,15 @@ class ConnectRequest(BaseModel):
 
 
 @app.post("/portal/connect")
-async def portal_connect(body: ConnectRequest):
-    patient = PATIENTS.get(body.patient_id)
+async def portal_connect(body: ConnectRequest, session: SessionState = Depends(get_session)):
+    patient = session.patients.get(body.patient_id)
     if patient is None:
         raise HTTPException(404, f"No patient with id {body.patient_id!r}")
 
     patient = dict(patient)
     patient["connected"] = True
     patient["connected_at"] = datetime.now(timezone.utc).isoformat()
-    PATIENTS[body.patient_id] = patient
+    session.patients[body.patient_id] = patient
 
     return {
         "patient": patient,
@@ -218,18 +304,18 @@ def _source_for(result) -> str:
     return "llm"
 
 
-async def run_triage(transcript: str, patient_id: Optional[str] = None) -> dict:
-    await bus.emit("PATIENT_SPEECH", {"text": transcript, "patient_id": patient_id})
-    await bus.emit("TIER_0_CHECK", {"transcript": transcript})
+async def run_triage(session: SessionState, transcript: str, patient_id: Optional[str] = None) -> dict:
+    await session.bus.emit("PATIENT_SPEECH", {"text": transcript, "patient_id": patient_id})
+    await session.bus.emit("TIER_0_CHECK", {"transcript": transcript})
 
     result = triage(transcript)
 
     if result.matched_rules:
-        await bus.emit("TIER_0_MATCH", {"rules": result.matched_rules})
+        await session.bus.emit("TIER_0_MATCH", {"rules": result.matched_rules})
     if result.normalized_text:
-        await bus.emit("NORMALIZE", {"normalized_text": result.normalized_text})
+        await session.bus.emit("NORMALIZE", {"normalized_text": result.normalized_text})
     if result.tier == "tier_1":
-        await bus.emit(
+        await session.bus.emit(
             "TIER_1_CLASSIFY",
             {
                 "severity": result.severity.label,
@@ -253,22 +339,22 @@ async def run_triage(transcript: str, patient_id: Optional[str] = None) -> dict:
     }
 
     if result.is_emergency:
-        await bus.emit(
+        await session.bus.emit(
             "EMERGENCY_ESCALATION",
             {
                 "rules": result.matched_rules,
                 "is_crisis": result.is_crisis,
             },
         )
-    await bus.emit("ACTION_DECIDED", {"tier": payload["tier"]})
+    await session.bus.emit("ACTION_DECIDED", {"tier": payload["tier"]})
     return payload
 
 
 @app.post("/triage")
-async def triage_transcript(body: TriageRequest):
-    start = bus.current_seq
-    result = await run_triage(body.transcript, body.patient_id)
-    result["events"] = bus.since(start)
+async def triage_transcript(body: TriageRequest, session: SessionState = Depends(get_session)):
+    start = session.bus.current_seq
+    result = await run_triage(session, body.transcript, body.patient_id)
+    result["events"] = session.bus.since(start)
     return result
 
 
@@ -282,12 +368,12 @@ class BookRequest(BaseModel):
 
 
 @app.post("/book")
-async def book_appointment(body: BookRequest):
+async def book_appointment(body: BookRequest, session: SessionState = Depends(get_session)):
     urgency = body.urgency.strip().lower()
     if urgency not in URGENCIES:
         raise HTTPException(400, f"urgency must be one of {sorted(URGENCIES)}")
 
-    patient = PATIENTS.get(body.patient_id) if body.patient_id else None
+    patient = session.patients.get(body.patient_id) if body.patient_id else None
     payer = patient["insurance_payer_id"] if patient else None
 
     provider = find_provider(body.specialty, payer)
@@ -302,7 +388,7 @@ async def book_appointment(body: BookRequest):
         )
 
     slot = provider["available_slots"][0]
-    await bus.emit(
+    await session.bus.emit(
         "BOOKING_CONFIRMED",
         {
             "provider_name": provider["name"],
@@ -328,17 +414,17 @@ class ToolCall(BaseModel):
 
 
 @app.post("/webhook/elevenlabs")
-async def elevenlabs_webhook(body: ToolCall):
+async def elevenlabs_webhook(body: ToolCall, session: SessionState = Depends(get_session)):
     if WEBHOOK_SECRET and body.secret != WEBHOOK_SECRET:
         raise HTTPException(401, "unauthorized")
 
-    if body.patient_id and body.patient_id not in PATIENTS:
+    if body.patient_id and body.patient_id not in session.patients:
         raise HTTPException(404, "unknown_patient")
 
-    await bus.emit("TOOL_CALL", {"tool": body.tool_name, "patient_id": body.patient_id})
+    await session.bus.emit("TOOL_CALL", {"tool": body.tool_name, "patient_id": body.patient_id})
 
     if body.tool_name == "report_symptom":
-        return await run_triage(body.transcript or "", body.patient_id)
+        return await run_triage(session, body.transcript or "", body.patient_id)
 
     if body.tool_name == "book_appointment":
         return await book_appointment(
@@ -346,7 +432,8 @@ async def elevenlabs_webhook(body: ToolCall):
                 specialty=body.specialty or "Internal Medicine",
                 urgency=body.urgency or "routine",
                 patient_id=body.patient_id,
-            )
+            ),
+            session=session,
         )
 
     raise HTTPException(400, f"unknown tool {body.tool_name!r}")
@@ -359,34 +446,34 @@ class RunLoopRequest(BaseModel):
 
 
 @app.post("/loop/run")
-async def run_loop(body: RunLoopRequest):
-    patient = PATIENTS.get(body.patient_id)
+async def run_loop(body: RunLoopRequest, session: SessionState = Depends(get_session)):
+    patient = session.patients.get(body.patient_id)
     if patient is None:
         raise HTTPException(404, "unknown_patient")
 
-    start = bus.current_seq
+    start = session.bus.current_seq
     plan = build_day_plan(patient)
-    await bus.emit("CALL_INITIATED", {
+    await session.bus.emit("CALL_INITIATED", {
         "patient_id": body.patient_id, "patient": patient["name"],
     })
     if plan["next_dose"]:
-        await bus.emit("REMINDER_DUE", {
+        await session.bus.emit("REMINDER_DUE", {
             "medication": plan["next_dose"]["medication"],
             "dosage": plan["next_dose"]["dosage"],
             "time": plan["next_dose"]["time"],
             "status": plan["next_dose"]["status"],
         })
-    await bus.emit("CALL_CONNECTED", {"patient_id": body.patient_id})
+    await session.bus.emit("CALL_CONNECTED", {"patient_id": body.patient_id})
 
-    history = MEMORY_STORE.get_history(body.patient_id)
+    history = session.memory.get_history(body.patient_id)
     prior_episode = history[-1] if history else None
 
-    result = await run_triage(body.transcript, body.patient_id)
+    result = await run_triage(session, body.transcript, body.patient_id)
 
     cross_call_findings = check_cross_call(body.transcript, prior_episode)
     for finding in cross_call_findings:
         if finding["surfaced"]:
-            await bus.emit("CONTRADICTION_FLAGGED", {
+            await session.bus.emit("CONTRADICTION_FLAGGED", {
                 "check_id": finding["check_id"],
                 "severity": finding["severity"],
                 "concern": finding["concern"],
@@ -406,7 +493,7 @@ async def run_loop(body: RunLoopRequest):
             body.transcript,
         )
         if call:
-            await bus.emit("CLINIC_CALL_INITIATED", {
+            await session.bus.emit("CLINIC_CALL_INITIATED", {
                 "provider": call["provider"]["name"],
                 "specialty": call["provider"]["specialty"],
                 "simulated": call["simulated"],
@@ -414,9 +501,9 @@ async def run_loop(body: RunLoopRequest):
             })
             for turn in call["turns"]:
                 event = "CLINIC_AGENT_SPEECH" if turn["speaker"] == "careloop" else "CLINIC_DESK_SPEECH"
-                await bus.emit(event, {"text": turn["text"]})
-            await bus.emit("CLINIC_CALL_ENDED", {"booked": True})
-            await bus.emit("BOOKING_CONFIRMED", {
+                await session.bus.emit(event, {"text": turn["text"]})
+            await session.bus.emit("CLINIC_CALL_ENDED", {"booked": True})
+            await session.bus.emit("BOOKING_CONFIRMED", {
                 "provider_name": call["provider"]["name"],
                 "time": call["slot"],
                 "specialty": call["provider"]["specialty"],
@@ -430,7 +517,7 @@ async def run_loop(body: RunLoopRequest):
                 "disclosure": call["disclosure"],
                 "turns": call["turns"],
             }
-            await bus.emit("PATIENT_CONFIRMED", {
+            await session.bus.emit("PATIENT_CONFIRMED", {
                 "text": (
                     "This is a simulated booking. In a real deployment you would "
                     f"now be booked with {call['provider']['name']} at "
@@ -441,10 +528,10 @@ async def run_loop(body: RunLoopRequest):
 
     now = datetime.now(timezone.utc)
     escalation_record = record_escalation(
-        body.patient_id, result["tier"], result["is_crisis"], now,
+        body.patient_id, result["tier"], result["is_crisis"], now, store=session.escalations,
     )
     if escalation_record:
-        await bus.emit("ESCALATION_FIRED", {
+        await session.bus.emit("ESCALATION_FIRED", {
             "kind": escalation_record["kind"],
             "would_notify": escalation_record["would_notify"],
             "notification_delivered": escalation_record["notification_delivered"],
@@ -463,12 +550,12 @@ async def run_loop(body: RunLoopRequest):
         "summary": summarize_episode(body.transcript, result["tier"], action_taken),
         "is_crisis": result["is_crisis"],
     }
-    MEMORY_STORE.append_episode(body.patient_id, episode)
+    session.memory.append_episode(body.patient_id, episode)
 
-    await bus.emit("BACKBOARD_WRITE", {
+    await session.bus.emit("BACKBOARD_WRITE", {
         "patient_id": body.patient_id, "tier": result["tier"],
     })
-    await bus.emit("CALL_ENDED", {"patient_id": body.patient_id})
+    await session.bus.emit("CALL_ENDED", {"patient_id": body.patient_id})
 
     return {
         "triage": result,
@@ -477,29 +564,31 @@ async def run_loop(body: RunLoopRequest):
         "prior_episode": prior_episode,
         "cross_call_findings": cross_call_findings,
         "escalation": escalation_record,
-        "unacknowledged_escalations": unacknowledged_for_patient(body.patient_id, now),
+        "unacknowledged_escalations": unacknowledged_for_patient(
+            body.patient_id, now, store=session.escalations,
+        ),
         "escalation_is_a_record_only": ESCALATION_IS_A_RECORD_ONLY,
         "safety_statement": NEVER_CONTACTS_EMERGENCY_SERVICES,
-        "events": bus.since(start),
-        "boot_id": bus.boot_id,
+        "events": session.bus.since(start),
+        "boot_id": session.bus.boot_id,
     }
 
 
 @app.get("/schedule/{patient_id}")
-def patient_schedule(patient_id: str):
-    patient = PATIENTS.get(patient_id)
+def patient_schedule(patient_id: str, session: SessionState = Depends(get_session)):
+    patient = session.patients.get(patient_id)
     if patient is None:
         raise HTTPException(404, "unknown_patient")
     return build_day_plan(patient)
 
 
 @app.get("/escalations/{patient_id}")
-def patient_escalations(patient_id: str):
-    if patient_id not in PATIENTS:
+def patient_escalations(patient_id: str, session: SessionState = Depends(get_session)):
+    if patient_id not in session.patients:
         raise HTTPException(404, "unknown_patient")
     return {
         "patient_id": patient_id,
-        "escalations": get_escalations(patient_id),
+        "escalations": get_escalations(patient_id, store=session.escalations),
         "escalation_is_a_record_only": ESCALATION_IS_A_RECORD_ONLY,
         "safety_statement": NEVER_CONTACTS_EMERGENCY_SERVICES,
     }
@@ -546,8 +635,8 @@ def evaluate_regimen(patient: dict) -> dict:
 
 
 @app.get("/regimen/{patient_id}")
-def regimen_state(patient_id: str):
-    patient = PATIENTS.get(patient_id)
+def regimen_state(patient_id: str, session: SessionState = Depends(get_session)):
+    patient = session.patients.get(patient_id)
     if patient is None:
         raise HTTPException(404, "unknown_patient")
     return {
@@ -559,8 +648,8 @@ def regimen_state(patient_id: str):
 
 
 @app.post("/meds")
-async def add_medication(body: AddMedicationRequest):
-    patient = PATIENTS.get(body.patient_id)
+async def add_medication(body: AddMedicationRequest, session: SessionState = Depends(get_session)):
+    patient = session.patients.get(body.patient_id)
     if patient is None:
         raise HTTPException(404, "unknown_patient")
 
@@ -581,19 +670,19 @@ async def add_medication(body: AddMedicationRequest):
     regimen = evaluate_regimen(patient)
     plan = build_day_plan(patient)
 
-    await bus.emit("REGIMEN_SNAPSHOT", {
+    await session.bus.emit("REGIMEN_SNAPSHOT", {
         "patient_id": body.patient_id,
         "previous_hash": before_hash,
         "content_hash": regimen["content_hash"],
         "medication_added": body.medication,
     })
-    await bus.emit("SCHEDULE_RECOMPUTED", {
+    await session.bus.emit("SCHEDULE_RECOMPUTED", {
         "patient_id": body.patient_id,
         "doses_total": plan["doses_total"],
         "next_dose": plan["next_dose"]["time"] if plan["next_dose"] else None,
     })
     for finding in regimen["surfaced"]:
-        await bus.emit("CONTRADICTION_FLAGGED", {
+        await session.bus.emit("CONTRADICTION_FLAGGED", {
             "ingredients": finding["ingredients"],
             "severity": finding["severity"],
             "concern": finding["concern"],
@@ -625,7 +714,7 @@ def health():
     key = os.environ.get("GEMINI_API_KEY") or ""
     return {
         "status": "ok",
-        "patients_loaded": len(PATIENTS),
+        "patients_loaded": len(BASELINE_PATIENTS),
         "gemini_configured": bool(key),
         "gemini_key_length": len(key),
         "model": os.environ.get("GEMINI_MODEL") or DEFAULT_MODEL,
