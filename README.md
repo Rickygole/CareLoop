@@ -26,38 +26,48 @@ is mainly about is not the voice call, it is whether the triage classifier treat
 phrased or dialect-varied symptom report the same way it treats the same symptom phrased in
 clinical, Standard American English.
 
-### The central claim, stated as a template
+### The central claim, and what the run actually returned
 
-The evaluation methodology (`eval/README.md`, `eval/vignettes.v2.json`) is built and the
-harness runs end to end in `--dry-run` mode with zero API calls. As of this writing, a real,
-API-backed run of that harness has not been executed and committed, so the numbers below do
-not exist yet. This is the exact sentence the result will be reported in once a real run has
-been made and its output file is committed. Read every bracket as pending, not as a number
-anyone is claiming right now:
+The preregistered confirmatory contrast (`eval/PREREGISTRATION.md`, committed before any
+result existed) was the difference in under-triage rate on gold-severe vignettes between
+condition D, casual register plus constructed dialect features, and condition A, clinical
+Standard American English, on the frozen test split, n=8 pairs.
 
-> On a 24-vignette synthetic benchmark, a naive LLM triage pipeline under-triaged
-> casually-phrased and dialect-varied presentations more often than clinical-register
-> Standard-American-English controls ([X] and [Y] points, paired bootstrap 95% CI), against a
-> paraphrase noise floor of [Z] points. Adding a normalization stage reduced the
-> casual-register gap by [W] points. n is small, the speech is TTS-rendered rather than
-> recorded from real speakers, and the gold labels are protocol-derived but not
-> clinician-validated. This is a directional finding, not an estimate of real-world
-> disparity.
+A real run was executed on 2026-09-19: 1,260 API calls, 24 vignettes, 5 conditions, 3 arms,
+k=3, temperature 0. The output is committed at `eval/results.v2.json`.
 
-**Correction to the sentence above, stated plainly because it matters:** the "the speech is
-TTS-rendered" clause describes a full audio pipeline pass that has not been built. The v2
-harness that will actually produce X, Y, Z, and W is **text-in, text-out only** (see
-Limitations, next section, and `eval/README.md`, "What was not built: TTS/ASR modality pass").
-No condition in the current corpus is synthesized to speech or run through speech
-recognition. Until a TTS/ASR pass exists, read that clause as not yet applicable and treat
-every placeholder above as describing the text-only pipeline, not a spoken one. This
-inconsistency is being surfaced here rather than quietly fixed, so a judge reading this file
-alongside `eval/README.md` sees the same thing this document does.
+**The result is null.** Under-triage was 0.000 in every arm and every condition, for both
+gold-severe and gold-moderate items. The contrast is 0.0 points, paired bootstrap 95% CI
+[0.0, 0.0], McNemar p=1.0. We did not measure a register or dialect gap. The stopping rule
+written into the preregistration before the run fired automatically.
 
-Until `eval/results_v2.json` exists and is committed, no measured fairness or safety claim is
-being made. `eval/results.json` in this repository is the output of the retired v1 methodology
-(paraphrase invariance, no gold labels, see `eval/archive/README.md`); it predates and is not
-compatible with the claim above and should not be read as evidence for it.
+**Part of the result is adverse to CareLoop, and is reported because it is what the run
+returned.** The full pipeline did not beat the naive baseline. On action-router accuracy the
+full arm scored 0.625 to 0.750 against the naive arm's 0.792 to 0.875, and it was worst on
+condition D, the one the normalization stage was built for. It over-triaged gold-moderate
+items at condition D three times as often as naive, 0.75 against 0.25, and its run-to-run
+agreement was lower, 0.842 against 0.942.
+
+**The null is about the instrument, not about the world, and the corpus shows why.** Every
+severe vignette keeps its clinical red-flag wording verbatim across all five conditions.
+"Crushing pressure in the middle of my chest that is going down my left arm" appears in the
+clinical condition; the dialect condition is the same sentence with the copula deleted. The
+manipulation varied grammar and never varied clinical content, and by content-word overlap it
+perturbs less than the paraphrase control that was supposed to calibrate it. Under-triage
+was pinned at zero because the design could not produce anything else. At n=8 pairs the
+confirmatory test cannot reach significance below a 75-point gap, and its power against a
+50-point gap is roughly 15 percent.
+
+**No claim of reduced under-triage, a closed gap, or an improvement over a baseline is made
+anywhere in this project.**
+
+The paraphrase noise floor, condition A against condition A-prime, is 8.3 percent for the
+naive arm and 12.5 percent for the full arm. Most differences between conditions are at or
+below that, which means they are not differences.
+
+`eval/results.json` is the output of the retired v1 methodology (paraphrase invariance, no
+gold labels, see `eval/archive/README.md`). It is not compatible with the claim above and
+should not be read as evidence for it.
 
 ### The two-tier architecture
 
@@ -164,11 +174,10 @@ information through this system.
   agent instructions in `docs/AGENT_CONFIG.md` require that a crisis call route to 988 (call
   or text), stay on the line, and never be cut short or handed to 911 and hung up. This is a
   response-design requirement enforced in the agent script and the suggested response text in
-  `responses.py`; it is not currently enforced by a server-side guarantee that a crisis call's
-  outcome is excluded from the `/loop/run` demo trace or its `BACKBOARD_WRITE` record, which
-  today logs every call outcome, crisis included. If crisis exclusion from persisted call
-  history is a requirement for this system, it is not yet built; treat it as an open item,
-  not a shipped guarantee.
+  `responses.py`. Exclusion from replay is also enforced in code: `memory.py` stores a crisis
+  episode but filters it out of `get_history`, so a later call never repeats a disclosure back
+  to the patient. The episode is retained on disk for audit. There is a test asserting both
+  halves, that it is excluded from replay and that it is still on disk.
 - **Booking is refused on emergency and crisis by design.** `/loop/run` only attempts to book
   a follow-up when the tier is moderate or severe and the result is not an emergency; an
   EMERGENCY severity (crisis included, since crisis carries the same severity) never reaches
@@ -199,7 +208,7 @@ there, not invented for this file:
 
 This requires `GEMINI_API_KEY` to be set. It verifies the pinned model resolves before
 spending the call budget, refuses to run if `docs/TIER_RUBRIC.md` is missing, and writes
-`eval/results_v2.json`. To run the entire pipeline with zero API calls (rule layer real,
+`eval/results.v2.json`. To run the entire pipeline with zero API calls (rule layer real,
 classifier and normalizer replaced with a deterministic offline fake), use
 `eval/score_v2.py --dry-run` instead, per `eval/README.md`.
 
@@ -309,10 +318,12 @@ to paste into the ElevenLabs dashboard, are documented in `docs/AGENT_CONFIG.md`
 pytest
 ```
 
-120 tests, all offline: 78 exercise the triage engine directly (`tests/test_triage.py`), 36
+208 tests, all offline: 107 exercise the triage engine directly (`tests/test_triage.py`), 57
 lock the frozen HTTP contract that the frontend and the voice agent are both built against
-(`tests/test_api.py`), and 6 guard the evaluation's own integrity, refusing to let a chart ship
-numbers that do not trace back to a real, committed run (`tests/test_eval_integrity.py`). The
+(`tests/test_api.py`), 36 measure emergency coverage against an adversarial corpus and its
+false-positive guards (`tests/test_emergency_coverage.py`), and 8 guard the evaluation's own
+integrity, refusing to let a chart ship numbers that do not trace back to a real, committed
+run (`tests/test_eval_integrity.py`). The
 Tier 1 classifier is injected as a fake everywhere it is exercised in `tests/`, so nothing
 touches the network or requires an API key. The suite is the primary evidence for the "never
 downgrade" safety property: it asserts that an emergency phrase reaches EMERGENCY even when
@@ -352,12 +363,23 @@ It is not HIPAA compliant. It is not guaranteed safe or accurate. It does not re
 line. It does not reduce ER visits. It has not been tested on real patients or real patient
 speech.
 
-Two narrower claims are made, and they are about internal behavior only. The first is
-structural: Tier 0 is deterministic by construction, so the same transcript always produces
-the same result and a model is never consulted on an emergency. That one is verifiable by
-reading `triage_engine.py` and running `pytest`. The second is the measured claim in Section 1
-above, which is not yet backed by a committed real run and must not be read as measured until
-it is.
+Two narrower claims are made, and they are about internal behavior only.
+
+The first is structural: Tier 0 is deterministic by construction, so the same transcript
+always produces the same result and a model is never consulted on a matched emergency. That
+is verifiable by reading `triage_engine.py` and running `pytest`.
+
+The second is a measured coverage figure, not an improvement claim: on a 25-phrase
+adversarial corpus of improvised emergency wordings, the rule layer matches 23, and on a
+16-phrase guard corpus of negations, past tense, hypotheticals and chronic baseline symptoms
+it matches none. Both corpora are in `tests/test_emergency_coverage.py` and both numbers are
+asserted there. Two phrasings remain uncaught and are named in that file rather than omitted.
+Typo tolerance is narrow and deliberate: three specific misspellings are covered and general
+misspelling is not.
+
+The claim this document previously reserved, a measured fairness or safety improvement, is
+withdrawn. The committed run returned a null result on the preregistered contrast and an
+adverse result on pipeline accuracy. See Section 1.
 
 ## License
 
