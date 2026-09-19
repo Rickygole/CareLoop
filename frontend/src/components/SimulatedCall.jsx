@@ -129,22 +129,32 @@ function Turn({ turn, index }) {
   return (
     <li
       className={
-        'enter-rise ledge ledge-strong rounded-card border px-6 py-5 ' +
-        (mine
-          ? 'border-line bg-sand sm:ml-10'
-          : 'border-line bg-surface sm:mr-10')
+        'enter-rise ledge ledge-strong rounded-card px-6 py-5 ' +
+        (turn.booked
+          ? 'border-l-8 border border-l-brand border-line bg-surface sm:mr-10'
+          : mine
+            ? 'border border-line bg-sand sm:ml-10'
+            : 'border border-line bg-surface sm:mr-10')
       }
       style={{ '--i': index }}
     >
       <p className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
         <span className="smallcaps text-micro text-ink">
-          {mine ? 'You' : 'CareLoop'}
+          {turn.booked ? 'CareLoop booked it' : mine ? 'You' : 'CareLoop'}
         </span>
         <span className="numeric text-2xs text-ink-2">
           <time dateTime={turn.at.toISOString()}>{timeLabel(turn.at)}</time>
         </span>
       </p>
-      <p className="measure mt-3 text-ink">{turn.text}</p>
+      <p
+        className={
+          turn.booked
+            ? 'measure display-tight mt-3 text-xl text-ink'
+            : 'measure mt-3 text-ink'
+        }
+      >
+        {turn.text}
+      </p>
       {turn.note ? (
         <p className="measure mt-4 rounded-card border border-moderate bg-moderate-tint px-4 py-3 text-sm text-ink">
           <span aria-hidden="true" className="mr-3 text-moderate">
@@ -262,9 +272,12 @@ export default function SimulatedCall({
     poll.current = setInterval(read, POLL_MS)
   }, [stopPolling])
 
-  const say = useCallback((speaker, text, note) => {
+  const say = useCallback((speaker, text, note, booked) => {
     seq.current += 1
-    const turn = { id: seq.current, speaker, text, note: note || null, at: new Date() }
+    const turn = {
+      id: seq.current, speaker, text, note: note || null,
+      booked: Boolean(booked), at: new Date(),
+    }
     setTurns((list) => list.concat(turn))
   }, [])
 
@@ -304,7 +317,7 @@ export default function SimulatedCall({
       if (booking) {
         await pause(GAP_LONG)
         if (!alive.current) return
-        say('careloop', bookingLine(booking), booking.disclosure)
+        say('careloop', bookingLine(booking), booking.disclosure, true)
       }
       await pause(GAP)
       if (!alive.current) return
