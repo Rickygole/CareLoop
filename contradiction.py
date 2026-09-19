@@ -1,3 +1,4 @@
+import re
 from typing import Dict, List, Optional
 
 SURFACE_THRESHOLD = "major"
@@ -92,6 +93,44 @@ def patient_message(finding: dict) -> Optional[str]:
         "and speak to your prescriber or your pharmacist about it. Do not stop "
         "or change anything on your own."
     )
+
+
+TAKING_EVERY_DAY_PATTERN = re.compile(
+    r"\b(taking|take|takes|took)\b[^.!?]{0,25}\b(every day|daily|every dose|"
+    r"as prescribed|without missing|regularly|each day)\b"
+    r"|\b(haven'?t|have not|never)\b[^.!?]{0,20}\bmiss(ed)?\b[^.!?]{0,20}\bdose\b",
+    re.IGNORECASE,
+)
+
+STOPPED_TAKING_PATTERN = re.compile(
+    r"\b(stopped|quit|discontinued|not taking|haven'?t been taking|"
+    r"ran out and didn'?t restart|gave up on)\b",
+    re.IGNORECASE,
+)
+
+
+def check_cross_call(transcript: str, prior_episode: Optional[dict]) -> List[dict]:
+    if not prior_episode:
+        return []
+    if not TAKING_EVERY_DAY_PATTERN.search(transcript or ""):
+        return []
+    prior_text = " ".join(filter(None, [
+        prior_episode.get("transcript"),
+        prior_episode.get("summary"),
+    ]))
+    if not STOPPED_TAKING_PATTERN.search(prior_text):
+        return []
+    return [{
+        "check_id": "cross_call",
+        "ingredients": [],
+        "severity": "major",
+        "concern": (
+            "patient now reports taking the medication every day, but the "
+            "prior call recorded that they had stopped"
+        ),
+        "source": "cross-call memory comparison",
+        "surfaced": SEVERITY_ORDER["major"] >= SEVERITY_ORDER[SURFACE_THRESHOLD],
+    }]
 
 
 LIMITATIONS = (

@@ -15,7 +15,15 @@ from pydantic import BaseModel, Field
 load_dotenv()
 
 from clinic import plan_clinic_call
-from contradiction import LIMITATIONS, check_regimen, patient_message
+from contradiction import LIMITATIONS, check_cross_call, check_regimen, patient_message
+from escalation import (
+    NEVER_CONTACTS_EMERGENCY_SERVICES,
+    get_escalations,
+    record_escalation,
+    reset_escalations,
+    unacknowledged_for_patient,
+)
+from memory import MemoryStore, summarize_episode
 from providers import find_provider, specialties
 from scheduler import build_day_plan
 from responses import suggested_response
@@ -45,6 +53,7 @@ def load_patients() -> Dict[str, dict]:
 
 
 PATIENTS = load_patients()
+MEMORY_STORE = MemoryStore()
 
 
 def derive_schedule(medication_requests: List[dict]) -> List[dict]:
@@ -169,6 +178,8 @@ async def admin_reset(body: ResetRequest):
     global PATIENTS
     PATIENTS = load_patients()
     bus.reset()
+    MEMORY_STORE.clear()
+    reset_escalations()
     return {"reset": True, "boot_id": bus.boot_id, "patients_loaded": len(PATIENTS)}
 
 
@@ -366,7 +377,20 @@ async def run_loop(body: RunLoopRequest):
         })
     await bus.emit("CALL_CONNECTED", {"patient_id": body.patient_id})
 
+    history = MEMORY_STORE.get_history(body.patient_id)
+    prior_episode = history[-1] if history else None
+
     result = await run_triage(body.transcript, body.patient_id)
+
+    cross_call_findings = check_cross_call(body.transcript, prior_episode)
+    for finding in cross_call_findings:
+        if finding["surfaced"]:
+            await bus.emit("CONTRADICTION_FLAGGED", {
+                "check_id": finding["check_id"],
+                "severity": finding["severity"],
+                "concern": finding["concern"],
+                "source": finding["source"],
+            })
 
     booking = None
     if body.auto_book and result["tier"] in ("moderate", "severe") and not result["is_emergency"]:
@@ -409,6 +433,31 @@ async def run_loop(body: RunLoopRequest):
                 "text": f"You're booked with {call['provider']['name']} at {call['slot']}.",
             })
 
+    now = datetime.now(timezone.utc)
+    escalation_record = record_escalation(
+        body.patient_id, result["tier"], result["is_crisis"], now,
+    )
+    if escalation_record:
+        await bus.emit("ESCALATION_FIRED", {
+            "kind": escalation_record["kind"],
+            "notified_party": escalation_record["notified_party"],
+            "ack_required_by": escalation_record["ack_required_by"],
+        })
+
+    action_taken = "booked_appointment" if booking else (
+        "escalated" if escalation_record else "logged"
+    )
+    episode = {
+        "call_id": uuid.uuid4().hex,
+        "timestamp": now.isoformat(),
+        "transcript": body.transcript,
+        "tier": result["tier"],
+        "action_taken": action_taken,
+        "summary": summarize_episode(body.transcript, result["tier"], action_taken),
+        "is_crisis": result["is_crisis"],
+    }
+    MEMORY_STORE.append_episode(body.patient_id, episode)
+
     await bus.emit("BACKBOARD_WRITE", {
         "patient_id": body.patient_id, "tier": result["tier"],
     })
@@ -418,6 +467,11 @@ async def run_loop(body: RunLoopRequest):
         "triage": result,
         "plan": plan,
         "booking": booking,
+        "prior_episode": prior_episode,
+        "cross_call_findings": cross_call_findings,
+        "escalation": escalation_record,
+        "unacknowledged_escalations": unacknowledged_for_patient(body.patient_id, now),
+        "safety_statement": NEVER_CONTACTS_EMERGENCY_SERVICES,
         "events": bus.since(start),
         "boot_id": bus.boot_id,
     }
@@ -429,6 +483,17 @@ def patient_schedule(patient_id: str):
     if patient is None:
         raise HTTPException(404, "unknown_patient")
     return build_day_plan(patient)
+
+
+@app.get("/escalations/{patient_id}")
+def patient_escalations(patient_id: str):
+    if patient_id not in PATIENTS:
+        raise HTTPException(404, "unknown_patient")
+    return {
+        "patient_id": patient_id,
+        "escalations": get_escalations(patient_id),
+        "safety_statement": NEVER_CONTACTS_EMERGENCY_SERVICES,
+    }
 
 
 EXPECTED_ENV_KEYS = [

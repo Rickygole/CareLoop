@@ -90,23 +90,25 @@ export default function CheckIn({
           Set up for this demonstration
         </p>
         <div className="mt-3 flex flex-wrap items-center gap-x-6 gap-y-4">
-          <div className="flex items-center gap-3">
-            <label htmlFor="patient" className="text-xs text-ink-2">
-              Whose record
-            </label>
-            <select
-              id="patient"
-              value={patientId}
-              onChange={(event) => onPatientChange(event.target.value)}
-              className="field-select min-h-[48px] rounded-control border-2 border-line-strong bg-surface px-4 py-2 text-xs font-medium text-ink"
-            >
-              {PATIENTS.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
-            </select>
-          </div>
+          {onPatientChange ? (
+            <div className="flex items-center gap-3">
+              <label htmlFor="patient" className="text-xs text-ink-2">
+                Whose record
+              </label>
+              <select
+                id="patient"
+                value={patientId}
+                onChange={(event) => onPatientChange(event.target.value)}
+                className="field-select min-h-[48px] rounded-control border-2 border-line-strong bg-surface px-4 py-2 text-xs font-medium text-ink"
+              >
+                {PATIENTS.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          ) : null}
 
           {scenarios && scenarios.length ? (
             <div className="flex flex-wrap items-center gap-2.5">

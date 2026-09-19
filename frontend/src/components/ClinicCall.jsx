@@ -1,4 +1,5 @@
 import { humanizeTimes } from '../lib/narrate.js'
+import { tierMeta } from './TierBadge.jsx'
 
 function speakerLabel(eventType) {
   return eventType === 'CLINIC_DESK_SPEECH' ? 'Front desk' : 'CareLoop'
@@ -6,8 +7,9 @@ function speakerLabel(eventType) {
 
 export default function ClinicCall({ events, booking, tier }) {
   if (!booking) {
-    const level = String(tier || '').toLowerCase()
+    const level = String(tier || '').trim().toLowerCase()
     if (!level) return null
+    const known = tierMeta(level)
     return (
       <section aria-labelledby="clinic-heading" className="mt-14">
         <h3
@@ -19,7 +21,9 @@ export default function ClinicCall({ events, booking, tier }) {
         <p className="measure mt-5 text-ink-2">
           {level === 'emergency'
             ? 'CareLoop never books an appointment for an emergency. An appointment is too slow, so it tells you to get help now and alerts your care team instead.'
-            : 'CareLoop only rings the clinic when what you said means you should be seen. Nothing you said today needed that, so it did not take up an appointment.'}
+            : known
+              ? 'CareLoop only rings the clinic when what you said means you should be seen. Nothing you said today needed that, so it did not take up an appointment.'
+              : 'CareLoop did not ring the clinic, because it did not reach a decision it was willing to act on. No appointment exists. If you think you should be seen, please phone your clinic yourself.'}
         </p>
       </section>
     )

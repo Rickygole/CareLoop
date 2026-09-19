@@ -8,7 +8,7 @@ const TIERS = {
     text: 'text-mild',
     bg: 'bg-mild-tint',
     border: 'border-mild/45',
-    rail: '#1a5c3a',
+    rail: '#14472d',
     darkText: 'text-dark-mild',
     darkBg: 'bg-dark-mild/12',
     darkBorder: 'border-dark-mild/40',
@@ -25,13 +25,12 @@ const TIERS = {
     text: 'text-moderate',
     bg: 'bg-moderate-tint',
     border: 'border-moderate/45',
-    rail: '#7a4a05',
+    rail: '#5f3a04',
     darkText: 'text-dark-moderate',
     darkBg: 'bg-dark-moderate/12',
     darkBorder: 'border-dark-moderate/40',
     darkRail: '#f0b757',
-    meaning:
-      'Someone should look at this. CareLoop phoned the clinic and booked the appointment for you.',
+    meaning: 'Someone should look at this, and not in a hurry.',
   },
   severe: {
     term: 'Severe',
@@ -42,13 +41,12 @@ const TIERS = {
     text: 'text-severe',
     bg: 'bg-severe-tint',
     border: 'border-severe/45',
-    rail: '#963205',
+    rail: '#7a2804',
     darkText: 'text-dark-severe',
     darkBg: 'bg-dark-severe/12',
     darkBorder: 'border-dark-severe/40',
     darkRail: '#ffa06b',
-    meaning:
-      'This should not wait. CareLoop phoned the clinic and booked the soonest appointment it could get.',
+    meaning: 'This should not wait. You need to be seen soon.',
   },
   emergency: {
     term: 'Emergency',
@@ -59,23 +57,54 @@ const TIERS = {
     text: 'text-emergency',
     bg: 'bg-emergency-tint',
     border: 'border-emergency/50',
-    rail: '#9e1c13',
+    rail: '#86170f',
     darkText: 'text-dark-emergency',
     darkBg: 'bg-dark-emergency/14',
     darkBorder: 'border-dark-emergency/50',
     darkRail: '#ff8a80',
     meaning:
-      'CareLoop does not book an appointment for an emergency. It tells you to get help now and alerts your care team.',
+      'CareLoop never books an appointment for an emergency, because an appointment is too slow. It tells you to get help now and alerts your care team.',
   },
 }
 
 export function tierMeta(tier) {
-  return TIERS[String(tier || '').toLowerCase()] || TIERS.moderate
+  const key = String(tier || '').trim().toLowerCase()
+  return Object.prototype.hasOwnProperty.call(TIERS, key) ? TIERS[key] : null
+}
+
+export const UNDECIDED = {
+  headline: 'CareLoop could not decide this time',
+  meaning:
+    'CareLoop did not come back with an answer it is willing to stand behind, so it is not guessing one. Please contact your clinic yourself. If this is an emergency, call 911. If you are in crisis, call or text 988.',
+  glyph: String.fromCharCode(9633),
+  shape: 'a square',
+  rail: '#14171a',
 }
 
 export default function TierBadge({ tier, size = 'md', tone = 'light' }) {
   const meta = tierMeta(tier)
   const dark = tone === 'dark'
+
+  if (!meta) {
+    return (
+      <span
+        className={
+          'inline-flex items-center rounded-full border-2 border-line-ink font-semibold ' +
+          (size === 'sm'
+            ? 'text-micro px-3 py-1.5 gap-2'
+            : 'text-2xs px-4 py-2 gap-2.5') +
+          ' ' +
+          (dark ? 'text-console-ink' : 'text-ink')
+        }
+      >
+        <span aria-hidden="true" className="text-[1.15em] leading-none">
+          {UNDECIDED.glyph}
+        </span>
+        No decision
+      </span>
+    )
+  }
+
   const scale =
     size === 'sm'
       ? 'text-micro px-3 py-1.5 gap-2'
@@ -92,7 +121,7 @@ export default function TierBadge({ tier, size = 'md', tone = 'light' }) {
           : meta.bg + ' ' + meta.text + ' ' + meta.border)
       }
     >
-      <span aria-hidden="true" className="text-[0.95em] leading-none">
+      <span aria-hidden="true" className="text-[1.25em] leading-none">
         {meta.glyph}
       </span>
       {meta.label}

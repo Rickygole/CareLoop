@@ -378,3 +378,152 @@ def test_health_distinguishes_absent_from_present_but_empty(monkeypatch):
         "That distinction cost an hour of misdiagnosis in production."
     )
     assert env["GEMINI_MODEL"].startswith("set (")
+
+
+def test_crisis_episode_is_stored_but_never_returned_by_get_history(tmp_path):
+    import json as _json
+
+    from memory import MemoryStore
+
+    store = MemoryStore(tmp_path / "memory_store.json")
+    crisis_episode = {
+        "call_id": "call_crisis_1",
+        "timestamp": "2026-09-19T12:00:00+00:00",
+        "transcript": "I want to end my life",
+        "tier": "emergency",
+        "action_taken": "escalated",
+        "summary": "crisis call, action escalated: I want to end my life",
+        "is_crisis": True,
+    }
+    ordinary_episode = {
+        "call_id": "call_ordinary_1",
+        "timestamp": "2026-09-19T13:00:00+00:00",
+        "transcript": "feeling fine today",
+        "tier": "mild",
+        "action_taken": "logged",
+        "summary": "mild call, action logged: feeling fine today",
+        "is_crisis": False,
+    }
+    store.append_episode("px", crisis_episode)
+    store.append_episode("px", ordinary_episode)
+
+    history = store.get_history("px")
+    assert len(history) == 1
+    assert history[0]["call_id"] == "call_ordinary_1"
+    assert all(not e.get("is_crisis") for e in history)
+
+    raw = _json.loads((tmp_path / "memory_store.json").read_text())
+    assert any(e["is_crisis"] for e in raw["px"]), "the crisis episode must still be on disk"
+
+
+def test_second_loop_run_surfaces_prior_episode():
+    client.post("/admin/reset", json={})
+    first = client.post("/loop/run", json={
+        "patient_id": "p2", "transcript": "feeling fine on the lisinopril",
+    }).json()
+    assert first["prior_episode"] is None
+
+    second = client.post("/loop/run", json={
+        "patient_id": "p2", "transcript": "still feeling fine",
+    }).json()
+    assert second["prior_episode"] is not None
+    assert second["prior_episode"]["transcript"] == "feeling fine on the lisinopril"
+
+
+def test_a_crisis_episode_from_the_loop_is_never_surfaced_as_a_prior_episode():
+    client.post("/admin/reset", json={})
+    client.post("/loop/run", json={"patient_id": "p3", "transcript": "I want to die"})
+    second = client.post("/loop/run", json={
+        "patient_id": "p3", "transcript": "feeling okay now",
+    }).json()
+    assert second["prior_episode"] is None
+
+
+def test_severe_escalation_has_a_thirty_minute_window():
+    from datetime import datetime, timedelta, timezone
+
+    from escalation import record_escalation
+
+    fired_at = datetime(2026, 9, 19, 12, 0, tzinfo=timezone.utc)
+    record = record_escalation("unit-test-patient", "severe", False, fired_at)
+
+    assert record["kind"] == "severe"
+    assert record["notified_party"] == "on call clinician"
+    assert record["ack_state"] == "pending"
+    deadline = datetime.fromisoformat(record["ack_required_by"])
+    assert deadline - fired_at == timedelta(minutes=30)
+
+
+def test_escalation_past_its_window_reports_unacknowledged():
+    from datetime import datetime, timedelta, timezone
+
+    from escalation import ack_status, record_escalation, unacknowledged_for_patient
+
+    fired_at = datetime(2026, 9, 19, 8, 0, tzinfo=timezone.utc)
+    record = record_escalation("unit-test-patient-2", "severe", False, fired_at)
+
+    just_before = fired_at + timedelta(minutes=29)
+    just_after = fired_at + timedelta(minutes=31)
+
+    assert ack_status(record, just_before) == "pending"
+    assert ack_status(record, just_after) == "unacknowledged_emergency"
+
+    overdue = unacknowledged_for_patient("unit-test-patient-2", just_after)
+    assert any(r["escalation_id"] == record["escalation_id"] for r in overdue)
+
+    not_yet_due = unacknowledged_for_patient("unit-test-patient-2", just_before)
+    assert not_yet_due == []
+
+
+def test_cross_call_check_fires_on_stopped_then_claims_taking():
+    from contradiction import check_cross_call
+
+    prior_episode = {
+        "transcript": "I stopped taking the metformin about a week ago",
+        "summary": "moderate call, action logged: I stopped taking the metformin about a week ago",
+    }
+    findings = check_cross_call("I have been taking it every day", prior_episode)
+    assert findings
+    assert findings[0]["check_id"] == "cross_call"
+    assert findings[0]["surfaced"] is True
+
+
+def test_cross_call_check_does_not_fire_without_a_contradiction():
+    from contradiction import check_cross_call
+
+    assert check_cross_call("I have been taking it every day", None) == []
+
+    consistent_prior = {"transcript": "I have been taking it every day", "summary": ""}
+    assert check_cross_call("I have been taking it every day", consistent_prior) == []
+
+    stopped_prior = {"transcript": "I stopped taking it", "summary": ""}
+    assert check_cross_call("I feel okay today", stopped_prior) == []
+
+
+def test_never_contacts_emergency_services_statement_is_in_the_api_response():
+    from escalation import NEVER_CONTACTS_EMERGENCY_SERVICES
+
+    client.post("/admin/reset", json={})
+    body = client.post("/loop/run", json={
+        "patient_id": "p1", "transcript": "feeling okay today",
+    }).json()
+    assert body["safety_statement"] == NEVER_CONTACTS_EMERGENCY_SERVICES
+    assert "never contacts emergency services" in body["safety_statement"].lower()
+
+    esc_body = client.get("/escalations/p1").json()
+    assert esc_body["safety_statement"] == NEVER_CONTACTS_EMERGENCY_SERVICES
+
+
+def test_escalations_endpoint_returns_records_for_a_patient():
+    client.post("/admin/reset", json={})
+    client.post("/loop/run", json={
+        "patient_id": "p1",
+        "transcript": "I have been throwing up after every dose for three days",
+    })
+    body = client.get("/escalations/p1").json()
+    assert body["patient_id"] == "p1"
+    assert body["escalations"], "a moderate or severe outcome should have written an escalation"
+
+
+def test_escalations_endpoint_unknown_patient_is_404():
+    assert client.get("/escalations/ghost").status_code == 404

@@ -41,8 +41,8 @@ export const LOOP_STEPS = [
   {
     id: 'triage',
     number: '03',
-    title: 'Triage',
-    detail: 'Deterministic rules run first. The model can raise severity, never lower it.',
+    title: 'Checking urgency',
+    detail: 'Fixed safety rules run first. The computer can make an answer more urgent, never less.',
     patientDetail: 'Anything you report is checked for urgency.',
     events: ['TIER_0_CHECK', 'TIER_0_MATCH', 'NORMALIZE', 'TIER_1_CLASSIFY', 'EMERGENCY_ESCALATION'],
   },

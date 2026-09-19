@@ -13,11 +13,14 @@ export const API_BASE = (
 
 export const TRACE_TOKEN = import.meta.env.VITE_TRACE_TOKEN || ''
 
+const UNREACHABLE = 'CareLoop could not reach its own service just now.'
+
 export class ApiError extends Error {
-  constructor(message, status) {
+  constructor(message, status, technical) {
     super(message)
     this.name = 'ApiError'
     this.status = status
+    this.technical = technical || message
   }
 }
 
@@ -26,20 +29,17 @@ async function request(path, options = {}) {
   try {
     response = await fetch(API_BASE + path, options)
   } catch {
-    throw new ApiError(
-      'Cannot reach the CareLoop API at ' + API_BASE + '. Is the backend running?',
-      0,
-    )
+    throw new ApiError(UNREACHABLE, 0, 'network failure calling ' + API_BASE + path)
   }
 
   if (!response.ok) {
-    let detail = 'Request failed with status ' + response.status
+    let detail = 'status ' + response.status
     try {
       const body = await response.json()
       if (body && body.detail) detail = String(body.detail)
     } catch {
     }
-    throw new ApiError(detail, response.status)
+    throw new ApiError(UNREACHABLE, response.status, detail)
   }
 
   return response.json()
@@ -63,6 +63,14 @@ export function triage(transcript, patientId) {
 
 export function runLoop(transcript, patientId) {
   return post('/loop/run', { patient_id: patientId, transcript })
+}
+
+export function regimenState(patientId) {
+  return request('/regimen/' + encodeURIComponent(patientId))
+}
+
+export function addMedication(body) {
+  return post('/meds', body)
 }
 
 export function schedule(patientId) {

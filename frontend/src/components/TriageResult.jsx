@@ -1,4 +1,5 @@
-import { tierMeta } from './TierBadge.jsx'
+import { tierMeta, UNDECIDED } from './TierBadge.jsx'
+import { dateTimeLabel } from '../lib/format.js'
 import { useCountUp } from '../lib/useCountUp.js'
 
 const OPEN = String.fromCharCode(8220)
@@ -13,13 +14,56 @@ function Fact({ label, value }) {
   )
 }
 
-export default function TriageResult({ result, latencyMs }) {
+function bookingSentence(tier, booking) {
+  if (booking && booking.confirmed !== false) {
+    return (
+      'CareLoop phoned ' +
+      booking.provider_name +
+      ' and booked an appointment for ' +
+      dateTimeLabel(booking.time) +
+      '.'
+    )
+  }
+  if (tier === 'emergency') {
+    return 'No appointment was booked. An appointment is too slow for an emergency.'
+  }
+  if (tier === 'moderate' || tier === 'severe') {
+    return 'No appointment was booked on this call. If nobody contacts you, please phone your clinic yourself.'
+  }
+  return 'No appointment was needed, so none was booked.'
+}
+
+export default function TriageResult({ result, latencyMs, booking }) {
   const ms = useCountUp(result ? latencyMs : null, 900, 260)
 
   if (!result) return null
 
-  const tier = String(result.tier || '').toLowerCase()
+  const tier = String(result.tier || '').trim().toLowerCase()
   const meta = tierMeta(tier)
+
+  if (!meta) {
+    return (
+      <section
+        aria-labelledby="verdict-heading"
+        className="enter-verdict overflow-hidden rounded-panel border-2 border-line-ink bg-surface px-6 py-8 shadow-lift sm:px-10 sm:py-10"
+      >
+        <p className="text-micro font-semibold uppercase text-muted">
+          What CareLoop decided
+        </p>
+        <h3
+          id="verdict-heading"
+          className="font-display mt-3 flex flex-wrap items-baseline gap-x-5 gap-y-2 text-3xl font-semibold text-ink"
+        >
+          <span aria-hidden="true" className="text-[0.55em] leading-none">
+            {UNDECIDED.glyph}
+          </span>
+          {UNDECIDED.headline}
+        </h3>
+        <p className="measure mt-5 text-ink-2">{UNDECIDED.meaning}</p>
+      </section>
+    )
+  }
+
   const emergency = tier === 'emergency'
   const ruleOnly = result.source === 'rule'
 
@@ -79,8 +123,12 @@ export default function TriageResult({ result, latencyMs }) {
           </p>
         </blockquote>
 
+        <p className="measure mt-7 font-semibold text-ink">
+          {bookingSentence(tier, booking)}
+        </p>
+
         {result.reasoning ? (
-          <p className="measure mt-7 text-sm text-ink-2">{result.reasoning}</p>
+          <p className="measure mt-5 text-sm text-ink-2">{result.reasoning}</p>
         ) : null}
       </div>
 

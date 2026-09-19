@@ -1,33 +1,6 @@
 import { clockLabel } from '../lib/format.js'
+import { doseMeta } from '../lib/dose.js'
 import { MARK, ROW_GRID } from './Section.jsx'
-
-const STATUS = {
-  taken: {
-    label: 'Taken',
-    glyph: String.fromCharCode(10003),
-    tone: 'text-mild',
-  },
-  due_now: {
-    label: 'Due now',
-    glyph: String.fromCharCode(9679),
-    tone: 'text-brand-deep',
-  },
-  due_soon: {
-    label: 'Due soon',
-    glyph: String.fromCharCode(9675),
-    tone: 'text-ink-2',
-  },
-  missed: {
-    label: 'Missed',
-    glyph: String.fromCharCode(9651),
-    tone: 'text-severe',
-  },
-  upcoming: {
-    label: 'Later today',
-    glyph: String.fromCharCode(9675),
-    tone: 'text-ink-2',
-  },
-}
 
 export default function MedicationCard({ med, index }) {
   return (
@@ -56,7 +29,7 @@ export default function MedicationCard({ med, index }) {
 
         <ul className="mt-5 flex flex-wrap gap-x-9 gap-y-4">
           {med.doses.map((dose) => {
-            const meta = STATUS[dose.status] || STATUS.upcoming
+            const meta = doseMeta(dose.status)
             return (
               <li key={dose.time} className="flex items-baseline gap-2.5">
                 <span

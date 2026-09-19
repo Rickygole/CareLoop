@@ -3,7 +3,14 @@ import { useCallback, useEffect, useRef } from 'react'
 const FOCUSABLE =
   'a[href], button:not([disabled]), input, select, textarea, [tabindex]:not([tabindex="-1"])'
 
-export default function ConsentModal({ open, patientName, busy, onAgree, onCancel }) {
+export const SHARED_ITEMS = [
+  'Active medication list',
+  'Dose schedule',
+  'Allergies',
+  'Preferred contact window',
+]
+
+export default function ConsentModal({ open, patientName, busy, onAllow, onDeny }) {
   const panel = useRef(null)
   const opener = useRef(null)
 
@@ -11,7 +18,7 @@ export default function ConsentModal({ open, patientName, busy, onAgree, onCance
     (event) => {
       if (event.key === 'Escape') {
         event.stopPropagation()
-        onCancel()
+        onDeny()
         return
       }
       if (event.key !== 'Tab' || !panel.current) return
@@ -29,7 +36,7 @@ export default function ConsentModal({ open, patientName, busy, onAgree, onCance
         first.focus()
       }
     },
-    [onCancel],
+    [onDeny],
   )
 
   useEffect(() => {
@@ -53,9 +60,9 @@ export default function ConsentModal({ open, patientName, busy, onAgree, onCance
 
   return (
     <div
-      className="enter-fade fixed inset-0 z-50 flex items-end justify-center bg-ink/60 p-4 sm:items-center"
+      className="enter-fade fixed inset-0 z-50 flex max-h-dvh items-end justify-center overflow-y-auto overscroll-contain bg-ink/60 p-4 sm:items-center"
       onMouseDown={(event) => {
-        if (event.target === event.currentTarget) onCancel()
+        if (event.target === event.currentTarget) onDeny()
       }}
     >
       <div
@@ -65,7 +72,7 @@ export default function ConsentModal({ open, patientName, busy, onAgree, onCance
         aria-labelledby="consent-title"
         aria-describedby="consent-body"
         onKeyDown={handleKey}
-        className="enter-rise w-full max-w-2xl overflow-hidden rounded-panel border-2 border-line-ink bg-surface shadow-modal"
+        className="enter-rise my-auto w-full max-w-2xl overflow-hidden rounded-panel border-2 border-line-ink bg-surface shadow-modal"
       >
         <div className="px-7 pb-8 pt-8 sm:px-10">
           <p className="smallcaps text-micro text-brand-deep">
@@ -75,44 +82,54 @@ export default function ConsentModal({ open, patientName, busy, onAgree, onCance
             id="consent-title"
             className="font-display mt-3 border-b-2 border-line-ink pb-3 text-2xl font-semibold text-ink"
           >
-            Before we connect your portal
+            MyHealth wants to share four things
           </h2>
 
-          <div id="consent-body" className="mt-6 space-y-4 text-ink-2">
+          <div id="consent-body" className="mt-6 text-ink-2">
             <p className="measure">
-              CareLoop will read{' '}
-              {patientName ? patientName + String.fromCharCode(8217) + 's' : 'this'}{' '}
-              list of medicines and the times they are due, so it can ask about
-              them on a check-in call. It will keep a record of what is said on
-              those calls.
+              MyHealth will share with CareLoop
+              {patientName ? ', from the record for ' + patientName : ''}:
             </p>
-            <p className="measure">
-              CareLoop is a research prototype. It is not a medical device and
-              it does not give medical advice.
+            <ul className="mt-5 border-t border-line">
+              {SHARED_ITEMS.map((item) => (
+                <li
+                  key={item}
+                  className="flex items-baseline gap-4 border-b border-line py-3.5 text-ink"
+                >
+                  <span aria-hidden="true" className="text-muted">
+                    {String.fromCharCode(8213)}
+                  </span>
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
+            <p className="measure mt-6">
+              Nothing else is read, and nothing is shared back. CareLoop uses
+              this to know when to call you and what to ask about.
             </p>
           </div>
 
           <p className="measure mt-6 border-l-4 border-line-strong bg-surface-2 px-5 py-4 text-sm text-muted">
-            This demonstration uses made up records only. Nothing here is a real
-            person, and nothing you type should be real health information.
+            MyHealth is a fictional portal built for this demonstration, and
+            every record behind it is made up.
           </p>
         </div>
 
         <div className="flex flex-col-reverse gap-4 border-t border-line bg-surface-2 px-7 py-6 sm:flex-row sm:justify-end sm:px-10">
           <button
             type="button"
-            onClick={onCancel}
-            className="min-h-[52px] rounded-control border-2 border-line-strong bg-surface px-6 py-3 text-sm font-semibold text-ink-2 transition-colors duration-150 hover:border-ink hover:text-ink"
+            onClick={onDeny}
+            className="min-h-[52px] rounded-control border-2 border-line-strong bg-surface px-8 py-3 text-sm font-semibold text-ink-2 transition-colors duration-150 hover:border-ink hover:text-ink"
           >
-            Not now
+            Deny
           </button>
           <button
             type="button"
-            onClick={onAgree}
+            onClick={onAllow}
             disabled={busy}
-            className="min-h-[52px] rounded-control bg-brand px-7 py-3 text-sm font-semibold text-white shadow-raised transition-[background-color,transform] duration-200 ease-out hover:bg-brand-deep active:translate-y-px disabled:bg-muted disabled:shadow-none"
+            className="min-h-[52px] rounded-control bg-brand px-10 py-3 text-sm font-semibold text-white shadow-raised transition-[background-color,transform] duration-200 ease-out hover:bg-brand-deep active:translate-y-px disabled:bg-muted disabled:shadow-none"
           >
-            {busy ? 'Connecting...' : 'Yes, connect my portal'}
+            {busy ? 'Connecting...' : 'Allow'}
           </button>
         </div>
       </div>
