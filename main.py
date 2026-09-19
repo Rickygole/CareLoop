@@ -26,6 +26,7 @@ from fastapi import (
 )
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
+from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 
 
 load_dotenv()
@@ -105,6 +106,29 @@ async def _verify_twilio_request(request: Request) -> None:
         url += "?" + request.url.query
     if not twilio_signature.valid_signature(auth_token, url, fields, signature):
         raise HTTPException(403, "invalid_twilio_signature")
+
+
+@app.api_route("/debug/twilio_echo", methods=["GET", "POST"])
+async def debug_twilio_echo(request: Request, secret: str = ""):
+    if not WEBHOOK_SECRET or secret != WEBHOOK_SECRET:
+        raise HTTPException(404)
+    raw_body = (await request.body()).decode("utf-8")
+    fields = dict(parse_qsl(raw_body, keep_blank_values=True))
+    url = str(request.base_url).rstrip("/") + request.url.path
+    if request.url.query:
+        url += "?" + request.url.query
+    return {
+        "reconstructed_url": url,
+        "fields": fields,
+        "has_signature_header": bool(request.headers.get(TWILIO_SIGNATURE_HEADER, "")),
+        "host_header": request.headers.get("host", ""),
+        "x_forwarded_proto": request.headers.get("x-forwarded-proto", ""),
+        "x_forwarded_host": request.headers.get("x-forwarded-host", ""),
+        "scope_scheme": request.scope.get("scheme"),
+        "scope_root_path": request.scope.get("root_path"),
+        "scope_path": request.scope.get("path"),
+        "scope_server": request.scope.get("server"),
+    }
 
 
 SESSION_CAPACITY = 200
@@ -2254,3 +2278,6 @@ def health():
         "telephony_missing": telephony.missing_env_vars(),
         "runtime": os.environ.get("VERCEL_ENV", "local"),
     }
+
+
+app = ProxyHeadersMiddleware(app, trusted_hosts="*")
