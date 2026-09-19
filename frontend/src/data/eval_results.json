@@ -1,0 +1,31 @@
+{
+  "placeholder": true,
+  "_comment": "PLACEHOLDER. Replace this whole file with the output of the eval harness. Keep the shape and set placeholder to false. Every value below is zero on purpose so that nothing on screen can be mistaken for a measurement.",
+  "metric": "paraphrase_invariance",
+  "metric_label": "Share of paraphrase pairs given the same tier",
+  "generated_at": null,
+  "model": null,
+  "temperature": null,
+  "repeats_per_case": 0,
+  "cases": 0,
+  "arms": [
+    { "id": "naive", "label": "Naive", "note": "raw transcript, single call" },
+    { "id": "cot", "label": "Chain of thought", "note": "single call, restate then classify" },
+    { "id": "normalized", "label": "Normalize then classify", "note": "CareLoop pipeline" }
+  ],
+  "categories": ["Clinical", "Colloquial", "Mixed-language", "Low-literacy"],
+  "results": [
+    { "category": "Clinical", "arm": "naive", "value": 0, "stderr": 0, "n": 0 },
+    { "category": "Clinical", "arm": "cot", "value": 0, "stderr": 0, "n": 0 },
+    { "category": "Clinical", "arm": "normalized", "value": 0, "stderr": 0, "n": 0 },
+    { "category": "Colloquial", "arm": "naive", "value": 0, "stderr": 0, "n": 0 },
+    { "category": "Colloquial", "arm": "cot", "value": 0, "stderr": 0, "n": 0 },
+    { "category": "Colloquial", "arm": "normalized", "value": 0, "stderr": 0, "n": 0 },
+    { "category": "Mixed-language", "arm": "naive", "value": 0, "stderr": 0, "n": 0 },
+    { "category": "Mixed-language", "arm": "cot", "value": 0, "stderr": 0, "n": 0 },
+    { "category": "Mixed-language", "arm": "normalized", "value": 0, "stderr": 0, "n": 0 },
+    { "category": "Low-literacy", "arm": "naive", "value": 0, "stderr": 0, "n": 0 },
+    { "category": "Low-literacy", "arm": "cot", "value": 0, "stderr": 0, "n": 0 },
+    { "category": "Low-literacy", "arm": "normalized", "value": 0, "stderr": 0, "n": 0 }
+  ]
+}

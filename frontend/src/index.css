@@ -1,0 +1,185 @@
+@import "tailwindcss";
+
+/*
+  CareLoop design tokens.
+
+  One type scale, one spacing scale, semantic color names. Nothing in a
+  component should reach for a raw hex value: if a color is missing here,
+  add it here.
+
+  Contrast: every text token below meets WCAG AA against the surface it is
+  used on (4.5:1 body, 3:1 for large text and UI boundaries).
+*/
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI",
+    sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  /* Surfaces */
+  --color-canvas: #f6f7f7;
+  --color-surface: #ffffff;
+  --color-sunken: #f0f2f2;
+  --color-line: #e2e6e6;
+  --color-line-strong: #c9d0d0;
+
+  /* Text */
+  --color-ink: #16191d;
+  --color-ink-2: #454c55;
+  --color-muted: #6a727d;
+
+  /* Brand */
+  --color-brand: #0f766e;
+  --color-brand-deep: #0b5a54;
+  --color-brand-tint: #e6f2f0;
+
+  /* Severity. Always paired with a text label and a shape, never hue alone. */
+  --color-mild: #0f766e;
+  --color-mild-tint: #e6f2f0;
+  --color-moderate: #9a5b06;
+  --color-moderate-tint: #fdf2e0;
+  --color-severe: #b3430c;
+  --color-severe-tint: #fdeee6;
+  --color-emergency: #b42318;
+  --color-emergency-tint: #fdeceb;
+
+  /* Console. Dark surface, its own scale. */
+  --color-console: #0d0d0d;
+  --color-console-2: #141414;
+  --color-console-line: #262626;
+  --color-console-ink: #e7e7e7;
+  --color-console-muted: #8b8b8b;
+
+  /* Type scale. Nothing outside this list. */
+  --text-2xs: 0.6875rem; /* 11px */
+  --text-xs: 0.75rem; /* 12px */
+  --text-trace: 0.8125rem; /* 13px, console only */
+  --text-sm: 0.875rem; /* 14px */
+  --text-base: 1rem; /* 16px */
+  --text-lg: 1.125rem; /* 18px */
+  --text-xl: 1.5rem; /* 24px */
+  --text-2xl: 2rem; /* 32px */
+
+  --radius-card: 12px;
+
+  --ease-out-soft: cubic-bezier(0.16, 0.84, 0.44, 1);
+}
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    margin: 0;
+    background: var(--color-canvas);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-size: var(--text-base);
+    line-height: 1.55;
+  }
+
+  /* Visible, attractive focus. Never suppressed. */
+  :focus-visible {
+    outline: 2px solid var(--color-brand);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  ::selection {
+    background: var(--color-brand-tint);
+  }
+}
+
+@layer utilities {
+  /*
+    The medication card entrance. 8px up plus fade, 200ms, staggered 60ms
+    per card. The stagger index is passed in as --i by the card.
+  */
+  .enter-rise {
+    animation: enter-rise 200ms var(--ease-out-soft) both;
+    animation-delay: calc(var(--i, 0) * 60ms);
+  }
+
+  .enter-fade {
+    animation: enter-fade 200ms var(--ease-out-soft) both;
+  }
+
+  .trace-flash {
+    animation: trace-flash 900ms ease-out both;
+  }
+
+  .skeleton {
+    background: linear-gradient(
+      90deg,
+      var(--color-sunken) 25%,
+      #e7eaea 37%,
+      var(--color-sunken) 63%
+    );
+    background-size: 400% 100%;
+    animation: skeleton-pan 1.4s ease-in-out infinite;
+  }
+}
+
+@keyframes enter-rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes enter-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes trace-flash {
+  0% {
+    background-color: rgba(251, 191, 36, 0.22);
+  }
+  100% {
+    background-color: rgba(251, 191, 36, 0);
+  }
+}
+
+@keyframes skeleton-pan {
+  from {
+    background-position: 100% 50%;
+  }
+  to {
+    background-position: 0 50%;
+  }
+}
+
+@keyframes pulse-ring {
+  0% {
+    box-shadow: 0 0 0 0 rgba(15, 118, 110, 0.35);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(15, 118, 110, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(15, 118, 110, 0);
+  }
+}
+
+/* Motion is information. If a user does not want it, the information still
+   arrives, just without the movement. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
