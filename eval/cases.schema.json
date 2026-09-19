@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://careloop.local/eval/cases.schema.json",
+  "title": "CareLoop eval v2 vignette corpus",
+  "type": "object",
+  "required": ["schema_version", "provenance", "conditions", "tier_rubric", "emergency_scores_as", "vignettes"],
+  "properties": {
+    "schema_version": { "const": 2 },
+    "provenance": {
+      "type": "object",
+      "required": ["human_authored", "authored_by"],
+      "properties": {
+        "human_authored": { "type": "boolean" },
+        "authored_by": { "type": "string" },
+        "note": { "type": "string" }
+      }
+    },
+    "conditions": {
+      "type": "object",
+      "required": ["A", "A_prime", "B", "C", "D"],
+      "properties": {
+        "A": { "type": "string" },
+        "A_prime": { "type": "string" },
+        "B": { "type": "string" },
+        "C": { "type": "string" },
+        "D": { "type": "string" }
+      }
+    },
+    "tier_rubric": { "type": "string" },
+    "emergency_scores_as": { "const": "severe" },
+    "vignettes": {
+      "type": "array",
+      "minItems": 24,
+      "maxItems": 24,
+      "items": {
+        "type": "object",
+        "required": ["id", "scenario", "gold", "protocol_rule", "split", "text"],
+        "properties": {
+          "id": { "type": "string" },
+          "scenario": { "type": "string" },
+          "gold": { "enum": ["mild", "moderate", "severe"] },
+          "protocol_rule": { "type": "string", "minLength": 1 },
+          "split": { "enum": ["dev", "test"] },
+          "text": {
+            "type": "object",
+            "required": ["A", "A_prime", "B", "C", "D"],
+            "properties": {
+              "A": { "type": "string" },
+              "A_prime": { "type": "string" },
+              "B": { "type": "string" },
+              "C": { "type": "string" },
+              "D": { "type": "string" }
+            },
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false,
+  "notes": {
+    "split_counts": "exactly 8 vignettes with split=dev and 16 with split=test, checked by score_v2.py at load time, not expressible in this schema draft without a separate counting tool",
+    "id_uniqueness": "every vignette id must be unique, also checked by score_v2.py at load time",
+    "file_this_describes": "eval/vignettes.v2.json",
+    "why_not_cases_v2_json": "the original plan for this eval rebuild was an empty eval/cases.v2.json scaffold with all five condition fields left blank for a human to fill in later under a no-LLM-writes-the-phrasings rule. That plan was superseded mid-build: eval/vignettes.v2.json was authored and committed directly by the project owner's own process, with provenance.human_authored set to false. This schema was updated to describe the file that actually exists rather than the file that was originally planned. See eval/README.md for the full account of that change and eval/PREREGISTRATION.md for what was locked in before it happened."
+  }
+}
