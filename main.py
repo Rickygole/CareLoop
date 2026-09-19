@@ -743,9 +743,9 @@ CHECKIN_GREETING = (
 )
 
 CHECKIN_DOSE_PROMPT = (
-    "{patient_first_name}, it is time for your {medication}. Please take it "
-    "now if you have not already. When you have, tell me you took it, and "
-    "tell me how you have been feeling since."
+    "{patient_first_name}, it is time for your {medication}{indication}. "
+    "Please take it now if you have not already. When you have, tell me you "
+    "took it, and tell me how you have been feeling since."
 )
 
 CHECKIN_NO_ANSWER = (
@@ -794,13 +794,38 @@ def _spoken_medication(patient: Optional[dict]) -> str:
     plan = build_day_plan(patient)
     dose = plan["next_dose"]
     if dose:
-        dosage = (dose.get("dosage") or "").strip()
-        return f"{dosage} {dose['medication']}".strip() if dosage else dose["medication"]
+        dosage = _spell_dosage(dose.get("dosage"))
+        return f"{dose['medication']}, {dosage}" if dosage else dose["medication"]
     return _demo_medication_name(patient)
+
+
+def _spell_dosage(dosage: Optional[str]) -> str:
+    text = (dosage or "").strip()
+    if not text:
+        return ""
+    for short, spoken in (("mcg", " micrograms"), ("mg", " milligrams"), ("ml", " millilitres")):
+        if text.lower().endswith(short):
+            return text[: -len(short)].strip() + spoken
+    return text
 
 
 def _first_name(patient: Optional[dict]) -> str:
     return patient["name"].split()[0] if patient else "there"
+
+
+def _spoken_indication(patient: Optional[dict]) -> str:
+    if not patient:
+        return ""
+    plan = build_day_plan(patient)
+    dose = plan["next_dose"]
+    wanted = (dose or {}).get("medication_id")
+    for request in patient["medication_requests"]:
+        if request.get("status") != "active":
+            continue
+        if wanted and request.get("medication_id") != wanted:
+            continue
+        return (request.get("indication") or "").strip()
+    return ""
 
 
 def _telephony_not_configured(missing: List[str]) -> dict:
@@ -831,6 +856,7 @@ async def voice_checkin(
 
     first_name = _first_name(patient)
     medication = _spoken_medication(patient)
+    indication = _spoken_indication(patient)
 
     action = "/voice/checkin/respond?" + urlencode({
         "patient_id": patient_id, SESSION_QUERY_PARAM: session.session_id,
@@ -841,7 +867,9 @@ async def voice_checkin(
         + f'<Gather input="speech" action="{xml_escape(action)}" method="POST" '
         'speechTimeout="auto" timeout="8" language="en-US">'
         + _say(CHECKIN_DOSE_PROMPT.format(
-            patient_first_name=first_name, medication=medication,
+            patient_first_name=first_name,
+            medication=medication,
+            indication=f", the one {indication}" if indication else "",
         ))
         + "</Gather>"
         + _say(CHECKIN_NO_ANSWER.format(medication=medication))
