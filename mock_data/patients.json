@@ -10,7 +10,7 @@
       "connected_at": null,
       "medication_requests": [
         {
-          "medication_id": "med1",
+          "medication_id": "p1-mr1",
           "medication": "Metformin",
           "dosage_text": "500mg",
           "frequency": "twice daily",
@@ -23,9 +23,60 @@
           },
           "prescriber": "Dr. Elena Vance",
           "status": "active",
-          "start_date": "2026-08-01",
-          "indication": "to keep your blood sugar steady",
-          "authored_on": "2026-08-01"
+          "start_date": "2026-05-20",
+          "authored_on": "2026-05-20",
+          "indication": "to keep your blood sugar steady"
+        },
+        {
+          "medication_id": "p1-mr2",
+          "medication": "Coumadin",
+          "dosage_text": "5mg",
+          "frequency": "once daily",
+          "timing": {
+            "times_per_day": 1,
+            "preferred_hours": [
+              18
+            ]
+          },
+          "prescriber": "Dr. Elena Vance",
+          "status": "active",
+          "start_date": "2026-05-20",
+          "authored_on": "2026-05-20",
+          "indication": "to stop your blood clotting too easily"
+        },
+        {
+          "medication_id": "p1-mr3",
+          "medication": "Aspirin",
+          "dosage_text": "81mg",
+          "frequency": "once daily",
+          "timing": {
+            "times_per_day": 1,
+            "preferred_hours": [
+              8
+            ]
+          },
+          "prescriber": "Dr. Ana Reyes",
+          "status": "active",
+          "start_date": "2026-05-20",
+          "authored_on": "2026-05-20",
+          "indication": "to lower your risk of a clot"
+        },
+        {
+          "medication_id": "p1-mr4",
+          "medication": "Levothyroxine",
+          "dosage_text": "50mcg",
+          "frequency": "once daily",
+          "timing": {
+            "times_per_day": 1,
+            "preferred_hours": [
+              7
+            ]
+          },
+          "prescriber": "Dr. Elena Vance",
+          "status": "active",
+          "start_date": "2026-05-20",
+          "authored_on": "2026-05-20",
+          "indication": "to support your thyroid"
         }
       ],
       "care_plan_notes": [
@@ -41,19 +92,33 @@
       "history": [
         {
           "call_id": "call_001",
-          "timestamp": "2026-09-17T08:02:00Z",
+          "timestamp": "2026-09-19T12:02:00Z",
           "outcome": "answered",
-          "symptom_reported": "mild nausea",
+          "taken": true,
+          "medication_id": "p1-mr4",
+          "symptom_reported": null,
           "tier": "mild",
           "action_taken": "logged"
         },
         {
           "call_id": "call_002",
-          "timestamp": "2026-09-18T08:02:00Z",
-          "outcome": "no_answer",
+          "timestamp": "2026-09-19T12:05:00Z",
+          "outcome": "answered",
+          "taken": true,
+          "medication_id": "p1-mr1",
           "symptom_reported": null,
-          "tier": null,
-          "action_taken": "none"
+          "tier": "mild",
+          "action_taken": "logged"
+        },
+        {
+          "call_id": "call_003",
+          "timestamp": "2026-09-19T12:05:00Z",
+          "outcome": "answered",
+          "taken": true,
+          "medication_id": "p1-mr3",
+          "symptom_reported": null,
+          "tier": "mild",
+          "action_taken": "logged"
         }
       ],
       "allergies": [
@@ -72,20 +137,20 @@
       "portal_pending": [
         {
           "medication_id": "p1-mr-portal-1",
-          "medication": "Aspirin",
-          "dosage_text": "81mg",
-          "frequency": "once daily",
+          "medication": "Motrin",
+          "dosage_text": "400mg",
+          "frequency": "as needed",
           "timing": {
             "times_per_day": 1,
             "preferred_hours": [
-              9
+              12
             ]
           },
           "prescriber": "Dr. Ana Reyes",
           "status": "active",
-          "start_date": "2026-09-19",
-          "indication": "to lower your risk of a clot",
-          "authored_on": "2026-09-19"
+          "start_date": "2026-05-20",
+          "authored_on": "2026-05-20",
+          "indication": "for pain relief"
         }
       ]
     },

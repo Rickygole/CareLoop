@@ -1,6 +1,18 @@
 export const PATIENTS = [
-  { id: 'p1', name: 'Maria Santos', insurer: 'Aetna', medicines: 1 },
-  { id: 'p2', name: 'Dorothy Klein', insurer: 'CareFirst BlueCross', medicines: 2 },
+  {
+    id: 'p1',
+    name: 'Maria Santos',
+    insurer: 'Aetna',
+    medicines: 4,
+    note: 'One pair on this list is flagged',
+  },
+  {
+    id: 'p2',
+    name: 'Dorothy Klein',
+    insurer: 'CareFirst BlueCross',
+    medicines: 5,
+    note: 'A prescription is waiting at the portal',
+  },
 ]
 
 export const DEFAULT_PATIENT_ID = 'p1'

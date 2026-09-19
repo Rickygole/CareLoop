@@ -157,6 +157,9 @@ export default function ConnectPage() {
                         ? '1 medicine on the record'
                         : person.medicines + ' medicines on the record'}
                     </span>
+                    <span className="mt-1 block text-sm text-ink-2">
+                      {person.note}
+                    </span>
                     <span
                       className={
                         'smallcaps mt-4 flex items-center gap-2 text-micro ' +

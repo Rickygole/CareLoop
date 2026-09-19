@@ -58,7 +58,7 @@ def test_connect_returns_patient_and_derived_schedule():
     assert body["patient"]["connected"] is True
 
     times = [s["time"] for s in body["derived_schedule"]]
-    assert times == ["08:00", "20:00"]
+    assert times == ["07:00", "08:00", "08:00", "18:00", "20:00"]
 
 
 def test_connect_flattens_multiple_medications():
@@ -275,7 +275,7 @@ def test_loop_never_books_on_a_crisis():
 
 def test_schedule_endpoint_returns_a_day_plan():
     body = client.get("/schedule/p1").json()
-    assert body["doses_total"] == 2
+    assert body["doses_total"] == 5
     assert body["next_call"] is not None
 
 
@@ -327,13 +327,13 @@ def test_day_plan_uses_clinic_local_time_not_utc():
         "At 09:00 local the 08:00 dose must read due_now. Treating the hour as "
         "UTC made it read missed at exactly demo time."
     )
-    assert plan["next_dose"]["time"] == "08:00"
+    assert plan["next_dose"]["time"] == "07:00"
 
 
 def test_adding_a_medication_cascades_snapshot_schedule_and_check():
     client.post("/admin/reset", json=gated())
     before = client.get("/regimen/p1").json()
-    assert before["regimen"]["surfaced"] == []
+    assert [f["ingredients"] for f in before["regimen"]["surfaced"]] == [["warfarin", "aspirin"]]
 
     body = client.post("/meds", json={
         "patient_id": "p1", "medication": "Warfarin 5 mg tablet",

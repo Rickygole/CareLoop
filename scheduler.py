@@ -102,10 +102,13 @@ def dose_status(due_at: datetime, now: datetime, taken: bool) -> str:
 
 def build_day_plan(patient: dict, now: Optional[datetime] = None) -> dict:
     now = now.astimezone(clinic_timezone()) if now else clinic_now()
+    today = now.date().isoformat()
     taken_ids = {
         entry.get("medication_id")
         for entry in patient.get("history", [])
-        if entry.get("outcome") == "answered" and entry.get("taken")
+        if entry.get("outcome") == "answered"
+        and entry.get("taken")
+        and str(entry.get("timestamp", ""))[:10] == today
     }
 
     doses = []
