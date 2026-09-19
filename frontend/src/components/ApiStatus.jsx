@@ -33,7 +33,7 @@ export default function ApiStatus({ tone = 'light' }) {
 
   return (
     <span
-      className={'inline-flex items-center gap-2 text-xs ' + text}
+      className={'hidden items-center gap-2 text-xs sm:inline-flex ' + text}
       title={API_BASE}
     >
       <span className={'size-2 rounded-full ' + dot} aria-hidden="true" />

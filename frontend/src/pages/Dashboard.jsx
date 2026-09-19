@@ -53,9 +53,15 @@ export default function Dashboard() {
 
   return (
     <div className="flex min-h-dvh flex-col">
+      <a
+        href="#portal-main"
+        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-[8px] focus:bg-surface focus:px-4 focus:py-2 focus:text-sm focus:font-medium"
+      >
+        Skip to content
+      </a>
       <AppHeader />
 
-      <main className="mx-auto w-full max-w-5xl flex-1 px-6 py-10">
+      <main id="portal-main" className="mx-auto w-full max-w-5xl flex-1 px-6 py-10">
         {phase === 'idle' || phase === 'error' ? (
           <ConnectPanel
             patientId={patientId}
