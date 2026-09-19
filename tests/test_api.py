@@ -70,7 +70,7 @@ def test_crisis_response_offers_988_and_does_not_say_911():
 
 
 def test_smart_apostrophe_still_reaches_emergency_through_the_api():
-    body = client.post("/triage", json={"transcript": "I can’t breathe"}).json()
+    body = client.post("/triage", json={"transcript": "I can\u2019t breathe"}).json()
     assert body["tier"] == "emergency"
 
 

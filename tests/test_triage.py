@@ -218,9 +218,9 @@ def test_spec_false_positive_guards_do_not_fire(transcript):
 @pytest.mark.parametrize(
     "transcript",
     [
-        "I can’t breathe",
-        "he won’t wake up",
-        "I can‘t move one side of it",
+        "I can\u2019t breathe",
+        "he won\u2019t wake up",
+        "I can\u2018t move one side of it",
         "I  can't    breathe",
         "  I can't breathe  ",
     ],
