@@ -1,0 +1,126 @@
+{
+  "patients": [
+    {
+      "patient_id": "pt-1001",
+      "name": "Marcus Webb",
+      "phone": "+15551234001",
+      "insurance_payer_id": "payer-aetna-0442",
+      "medication_requests": [
+        {
+          "id": "medreq-1001-a",
+          "status": "active",
+          "intent": "order",
+          "medication": "Lisinopril 10 mg tablet",
+          "dosage": "1 tablet (10 mg)",
+          "frequency": "once daily",
+          "timing": "morning",
+          "prescriber": "Dr. Aisha Rahman, Internal Medicine"
+        },
+        {
+          "id": "medreq-1001-b",
+          "status": "active",
+          "intent": "order",
+          "medication": "Atorvastatin 20 mg tablet",
+          "dosage": "1 tablet (20 mg)",
+          "frequency": "once daily",
+          "timing": "evening",
+          "prescriber": "Dr. Aisha Rahman, Internal Medicine"
+        }
+      ]
+    },
+    {
+      "patient_id": "pt-1002",
+      "name": "Dolores Nkemelu",
+      "phone": "+15551234002",
+      "insurance_payer_id": "payer-uhc-7781",
+      "medication_requests": [
+        {
+          "id": "medreq-1002-a",
+          "status": "active",
+          "intent": "order",
+          "medication": "Metformin 500 mg tablet",
+          "dosage": "1 tablet (500 mg)",
+          "frequency": "twice daily",
+          "timing": "morning, evening",
+          "prescriber": "Dr. Peter Okonjo, Endocrinology"
+        },
+        {
+          "id": "medreq-1002-b",
+          "status": "active",
+          "intent": "order",
+          "medication": "Furosemide 40 mg tablet",
+          "dosage": "1 tablet (40 mg)",
+          "frequency": "once daily",
+          "timing": "morning",
+          "prescriber": "Dr. Peter Okonjo, Endocrinology"
+        }
+      ]
+    },
+    {
+      "patient_id": "pt-1003",
+      "name": "Ruth Castellanos",
+      "phone": "+15551234003",
+      "insurance_payer_id": "payer-bcbs-3310",
+      "medication_requests": [
+        {
+          "id": "medreq-1003-a",
+          "status": "active",
+          "intent": "order",
+          "medication": "Warfarin 5 mg tablet",
+          "dosage": "1 tablet (5 mg)",
+          "frequency": "once daily",
+          "timing": "evening",
+          "prescriber": "Dr. Lena Vogt, Cardiology"
+        },
+        {
+          "id": "medreq-1003-b",
+          "status": "active",
+          "intent": "order",
+          "medication": "Levothyroxine 75 mcg tablet",
+          "dosage": "1 tablet (75 mcg)",
+          "frequency": "once daily",
+          "timing": "before breakfast",
+          "prescriber": "Dr. Lena Vogt, Cardiology"
+        },
+        {
+          "id": "medreq-1003-c",
+          "status": "active",
+          "intent": "order",
+          "medication": "Amoxicillin 500 mg capsule",
+          "dosage": "1 capsule (500 mg)",
+          "frequency": "three times daily",
+          "timing": "morning, midday, evening",
+          "prescriber": "Dr. Lena Vogt, Cardiology"
+        }
+      ]
+    },
+    {
+      "patient_id": "pt-1004",
+      "name": "Tran Bao Nguyen",
+      "phone": "+15551234004",
+      "insurance_payer_id": "payer-cigna-9026",
+      "medication_requests": [
+        {
+          "id": "medreq-1004-a",
+          "status": "active",
+          "intent": "order",
+          "medication": "Sertraline 50 mg tablet",
+          "dosage": "1 tablet (50 mg)",
+          "frequency": "once daily",
+          "timing": "morning",
+          "prescriber": "Dr. Hannah Weiss, Psychiatry"
+        },
+        {
+          "id": "medreq-1004-b",
+          "status": "active",
+          "intent": "order",
+          "medication": "Albuterol HFA 90 mcg inhaler",
+          "dosage": "2 puffs",
+          "frequency": "as needed",
+          "timing": "as needed",
+          "prescriber": "Dr. Hannah Weiss, Psychiatry"
+        }
+      ]
+    }
+  ]
+}
