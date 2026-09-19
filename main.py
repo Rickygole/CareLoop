@@ -205,6 +205,7 @@ class SessionState:
         self.memory = InMemoryBackend()
         self.escalations: Dict[str, List[dict]] = {}
         self.regimen_snapshots: Dict[str, List[dict]] = {}
+        self.bookings: Dict[str, List[dict]] = {}
         self.answered_calls: Dict[str, bool] = {}
         self.callback_nonces: Dict[str, bool] = {}
         self.consumed_callbacks: Dict[str, bool] = {}
@@ -647,6 +648,7 @@ async def run_loop(
                 "disclosure": call["disclosure"],
                 "turns": call["turns"],
             }
+            _remember_booking(session, body.patient_id, booking, body.transcript)
             await session.bus.emit("PATIENT_CONFIRMED", {
                 "text": (
                     "This is a simulated booking. In a real deployment you would "
@@ -1502,6 +1504,59 @@ async def call_start(
     return {"configured": True, **result}
 
 
+def _remember_booking(
+    session: SessionState, patient_id: str, booking: dict, transcript: str,
+) -> None:
+    held = session.bookings.setdefault(patient_id, [])
+    if any(b["slot"] == booking["time"] and b["provider_name"] == booking["provider_name"]
+           for b in held):
+        return
+    held.append({
+        "provider_name": booking["provider_name"],
+        "specialty": booking["specialty"],
+        "slot": booking["time"],
+        "disclosure": booking["disclosure"],
+        "simulated_front_desk": booking.get("simulated_front_desk", True),
+        "booked_at": datetime.now(timezone.utc).isoformat(),
+        "reason_transcript": (transcript or "").strip()[:160],
+    })
+    del held[:-10]
+
+
+def _booking_as_visit(patient: dict, booking: dict) -> dict:
+    said = booking.get("reason_transcript") or ""
+    reason = (
+        f"You said: {said}" if said
+        else "Booked during a check-in."
+    )
+    return {
+        "note_id": "checkin-" + booking["slot"],
+        "status": followup.STATUS_BOOKED,
+        "source": "check_in",
+        "specialty": booking["specialty"],
+        "provider_name": booking["provider_name"],
+        "provider": None,
+        "slot": booking["slot"],
+        "slot_local": followup.format_slot(booking["slot"]),
+        "starts_at": booking["slot"],
+        "due_date": None,
+        "in_network": True,
+        "prescriber": None,
+        "reason": reason,
+        "note_text": None,
+        "issue": None,
+        "issue_detail": None,
+        "simulated": booking.get("simulated_front_desk", True),
+        "disclosure": booking.get("disclosure"),
+        "payer_display": patient.get("insurance_display_name"),
+        "payer_id": patient.get("insurance_payer_id"),
+        "patient_id": patient.get("patient_id"),
+        "patient_name": patient.get("name"),
+        "patient_first_name": _first_name(patient),
+        "reminders": [],
+    }
+
+
 @app.get("/followups/{patient_id}")
 def followups(patient_id: str, session: SessionState = Depends(get_session)):
     patient = session.patients.get(patient_id)
@@ -1510,6 +1565,9 @@ def followups(patient_id: str, session: SessionState = Depends(get_session)):
 
     now = datetime.now(timezone.utc)
     visits = followup.plan_with_reminders(patient, today=now.date(), now=now)
+    for held in session.bookings.get(patient_id, []):
+        visits.append(_booking_as_visit(patient, held))
+    visits.sort(key=lambda v: v.get("slot") or "9999")
     booked = [v for v in visits if v["status"] == followup.STATUS_BOOKED]
     return {
         "patient_id": patient_id,
