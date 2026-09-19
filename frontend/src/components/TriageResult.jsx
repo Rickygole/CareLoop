@@ -6,7 +6,7 @@ function Field({ label, value }) {
       <dt className="font-mono text-2xs uppercase tracking-wide text-console-muted">
         {label}
       </dt>
-      <dd className="mt-0.5 font-mono text-xs text-console-ink">{value}</dd>
+      <dd className="mt-0.5 break-words font-mono text-xs text-console-ink">{value}</dd>
     </div>
   )
 }
@@ -44,7 +44,7 @@ export default function TriageResult({ result, latencyMs, booking, onBook, booki
         ) : null}
       </div>
 
-      <dl className="mt-4 grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-4">
+      <dl className="mt-4 grid grid-cols-2 gap-x-6 gap-y-3">
         <Field label="source" value={result.source || 'unknown'} />
         <Field
           label="confidence"

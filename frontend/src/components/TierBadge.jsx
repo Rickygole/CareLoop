@@ -4,7 +4,7 @@ const TIERS = {
     text: 'text-mild',
     bg: 'bg-mild-tint',
     border: 'border-mild/30',
-    glyph: 'o',
+    glyph: '-',
   },
   moderate: {
     label: 'Moderate',

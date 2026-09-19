@@ -17,12 +17,14 @@ export default function Dashboard() {
   const [phase, setPhase] = useState('idle')
   const [data, setData] = useState(null)
   const [error, setError] = useState(null)
+  const [sinceSeq, setSinceSeq] = useState(0)
 
   const { events } = useTrace()
 
-  const connect = useCallback(async (id) => {
+  const connect = useCallback(async (id, fromSeq) => {
     setPhase('loading')
     setError(null)
+    setSinceSeq(fromSeq)
     try {
       const result = await connectPatient(id)
       setData(result)
@@ -33,10 +35,12 @@ export default function Dashboard() {
     }
   }, [])
 
+  const latestSeq = events.length ? events[events.length - 1].seq : 0
+
   const agree = useCallback(() => {
     setConsentOpen(false)
-    connect(patientId)
-  }, [connect, patientId])
+    connect(patientId, latestSeq)
+  }, [connect, latestSeq, patientId])
 
   useEffect(() => {
     document.title = 'CareLoop portal'
@@ -45,7 +49,7 @@ export default function Dashboard() {
   const schedule = (data && data.derived_schedule) || []
   const medications = useMemo(() => groupSchedule(schedule), [schedule])
   const nextTime = useMemo(() => nextDoseTime(schedule), [schedule])
-  const call = useCallStatus(events, patientId)
+  const call = useCallStatus(events, patientId, sinceSeq)
 
   return (
     <div className="flex min-h-dvh flex-col">
@@ -90,12 +94,13 @@ export default function Dashboard() {
   )
 }
 
-function useCallStatus(events, patientId) {
+function useCallStatus(events, patientId, sinceSeq) {
   return useMemo(() => {
     let state = { status: 'scheduled', transcript: '', tier: null, isCrisis: false }
     let mine = false
 
     for (const event of events) {
+      if (event.seq <= sinceSeq) continue
       const payload = event.payload || {}
       switch (event.event_type) {
         case 'PATIENT_SPEECH': {
@@ -121,7 +126,7 @@ function useCallStatus(events, patientId) {
     }
 
     return state
-  }, [events, patientId])
+  }, [events, patientId, sinceSeq])
 }
 
 function ConnectPanel({ patientId, onPatientChange, onConnect, error }) {
@@ -219,7 +224,7 @@ function Portal({ patient, medications, nextTime, call, onSwitch }) {
           <p className="mt-1 text-sm text-ink-2">
             {patient.insurance_display_name}
             {patient.connected_at
-              ? ' · connected ' + dateTimeLabel(patient.connected_at)
+              ? ' \u00b7 connected ' + dateTimeLabel(patient.connected_at)
               : ''}
           </p>
         </div>
@@ -291,7 +296,7 @@ function Portal({ patient, medications, nextTime, call, onSwitch }) {
                         : 'No symptoms reported'}
                   </p>
                   <p className="mt-0.5 text-xs text-muted">
-                    {dateTimeLabel(item.timestamp)} {'·'}{' '}
+                    {dateTimeLabel(item.timestamp)} {'\u00b7'}{' '}
                     {String(item.action_taken || '').replace(/_/g, ' ')}
                   </p>
                 </div>

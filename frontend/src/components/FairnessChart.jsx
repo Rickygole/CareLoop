@@ -6,7 +6,6 @@ const ARM_COLOR = {
   naive: '#64748B',
   cot: '#38BDF8',
   normalize: '#2DD4BF',
-  normalized: '#2DD4BF',
 }
 
 const CAPTION =
@@ -110,7 +109,17 @@ export default function FairnessChart() {
         ))}
       </div>
 
-      <p className="mt-6 max-w-[75ch] text-xs leading-relaxed text-console-muted">
+      {!placeholder && evalResults.model ? (
+        <p className="mt-6 font-mono text-2xs text-console-muted">
+          {evalResults.model}
+          {evalResults.temperature === null || evalResults.temperature === undefined
+            ? ''
+            : ' at temperature ' + evalResults.temperature}
+          {evalResults.generated_at ? ', run ' + evalResults.generated_at : ''}
+        </p>
+      ) : null}
+
+      <p className="mt-4 max-w-[75ch] text-xs leading-relaxed text-console-muted">
         {CAPTION}
       </p>
     </section>

@@ -13,7 +13,7 @@ export default function MedicationCard({ med, index, nextTime }) {
 
       <p className="mt-1 text-sm text-muted">
         {med.frequency}
-        {med.prescriber ? ' · ' + med.prescriber : ''}
+        {med.prescriber ? ' \u00b7 ' + med.prescriber : ''}
       </p>
 
       <ul className="mt-4 flex flex-wrap gap-2">
@@ -30,7 +30,7 @@ export default function MedicationCard({ med, index, nextTime }) {
                 }
               >
                 <span aria-hidden="true" className="font-mono leading-none">
-                  {isNext ? '>' : '·'}
+                  {isNext ? '>' : '\u00b7'}
                 </span>
                 {clockLabel(time)}
                 {isNext ? <span className="sr-only">next dose</span> : null}

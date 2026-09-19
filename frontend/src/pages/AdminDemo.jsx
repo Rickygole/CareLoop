@@ -105,11 +105,6 @@ export default function AdminDemo() {
               busy={busy}
               onCall={() => run(scenario.transcript)}
             />
-          </div>
-
-          <div className="flex min-h-0 flex-col gap-4">
-            <ConsoleNotice />
-            <FreeTextTriage busy={busy} error={error} onSubmit={run} />
             <TriageResult
               result={result}
               latencyMs={latency}
@@ -117,6 +112,11 @@ export default function AdminDemo() {
               bookingBusy={bookingBusy}
               onBook={bookFollowUp}
             />
+          </div>
+
+          <div className="flex min-h-0 flex-col gap-4">
+            <ConsoleNotice />
+            <FreeTextTriage busy={busy} error={error} onSubmit={run} />
             <TracePanel
               events={events}
               status={status}
