@@ -2,6 +2,13 @@ import uuid
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional
 
+ESCALATION_IS_A_RECORD_ONLY = (
+    "CareLoop does not notify anyone. These records describe what a deployed "
+    "system would do. No message, call, page or alert is sent to any person by "
+    "this software, and the acknowledgement windows are simulated timers with "
+    "no recipient on the other end."
+)
+
 NEVER_CONTACTS_EMERGENCY_SERVICES = (
     "This system never contacts emergency services on a patient's behalf "
     "because it has no verified address and no consent to do so."
@@ -47,14 +54,16 @@ def record_escalation(patient_id: str, tier: str, is_crisis: bool, fired_at: dat
         return None
 
     rule = ESCALATION_RULES[kind]
-    ack_required_by = fired_at + rule["window"]
+    ack_window_would_expire_at = fired_at + rule["window"]
     record = {
         "escalation_id": uuid.uuid4().hex,
         "patient_id": patient_id,
         "kind": kind,
         "fired_at": fired_at.isoformat(),
-        "notified_party": rule["notified_party"],
-        "ack_required_by": ack_required_by.isoformat(),
+        "would_notify": rule["notified_party"],
+        "notification_delivered": False,
+        "notification_transport": "none, no recipient is configured in this prototype",
+        "ack_window_would_expire_at": ack_window_would_expire_at.isoformat(),
         "ack_state": rule["initial_ack_state"],
         "mocked": kind == "crisis",
     }
@@ -69,9 +78,9 @@ def get_escalations(patient_id: str) -> List[dict]:
 def ack_status(record: dict, now: datetime) -> str:
     if record["ack_state"] != "pending":
         return record["ack_state"]
-    deadline = datetime.fromisoformat(record["ack_required_by"])
+    deadline = datetime.fromisoformat(record["ack_window_would_expire_at"])
     if now >= deadline:
-        return "unacknowledged_emergency"
+        return "ack_window_elapsed_no_recipient"
     return "pending"
 
 
@@ -79,7 +88,7 @@ def unacknowledged_for_patient(patient_id: str, now: datetime) -> List[dict]:
     out = []
     for record in get_escalations(patient_id):
         status = ack_status(record, now)
-        if status == "unacknowledged_emergency":
+        if status == "ack_window_elapsed_no_recipient":
             out.append({**record, "status": status})
     return out
 

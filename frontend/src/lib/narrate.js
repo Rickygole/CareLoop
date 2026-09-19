@@ -76,7 +76,7 @@ export function sentenceFor(event) {
       return {
         text: p.is_crisis
           ? 'This is a crisis. CareLoop stayed with you and gave you the 988 lifeline.'
-          : 'This is an emergency. CareLoop told you to call 911 and alerted your care team.',
+          : 'This is an emergency. CareLoop told you to call 911. Nobody has been notified for you. This prototype cannot contact anyone.',
         tone: 'alarm',
       }
     case 'ACTION_DECIDED': {

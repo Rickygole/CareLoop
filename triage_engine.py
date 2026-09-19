@@ -109,7 +109,10 @@ EMERGENCY_RULES: List[tuple] = [
         r"end\w*\s+(it all|it|my life|his life|her life)|"
         r"tak\w*\s+(my|his|her) own life|"
         r"do(n'?t| not)\s+want\s+to\s+(be here|live|wake up|go on|exist)|"
-        r"better off dead|suicid\w*|"
+        r"better off dead|suicid\w*|tired of living|"
+        r"end\w*\s+things|(see|seeing)\s+(the\s+)?point\s+(anymore|any\s?more)|"
+        r"no\s+point\s+(anymore|any\s?more|in\s+living)|"
+        r"(life|livin\w*)\s+ain'?t\s+worth|swallow\w*\s+(a bunch|all|the rest)|"
         r"(hurt\w*|harm\w*)\s+(myself|himself|herself))\b",
     ),
     (
@@ -136,7 +139,7 @@ _NEGATION_BEFORE = re.compile(
     r"do(n'?t| not)|does(n'?t| not)|did(n'?t| not)|have(n'?t| not)|has(n'?t| not)|"
     r"is(n'?t| not)|are(n'?t| not)|was(n'?t| not)|were(n'?t| not)|"
     r"used to|if i|if you|in case|watch for|warn\w*|ask\w* if|told me to|"
-    r"call if|supposed to|any sign of|worried about|scared i)\b[^.!?]{0,15}$",
+    r"call if|supposed to|any sign of)\b[^.!?]{0,15}$",
     re.IGNORECASE,
 )
 _HISTORY_AFTER = re.compile(
@@ -147,11 +150,13 @@ _HISTORY_AFTER = re.compile(
 )
 
 _NEG_WINDOW = 45
+
+_CRISIS_NEG_WINDOW = 12
 _HIST_WINDOW = 30
 
 
-def _is_scoped_out(text: str, start: int, end: int) -> bool:
-    before = text[max(0, start - _NEG_WINDOW) : start]
+def _is_scoped_out(text: str, start: int, end: int, window: int = _NEG_WINDOW) -> bool:
+    before = text[max(0, start - window) : start]
     after = text[end : end + _HIST_WINDOW]
     return bool(_NEGATION_BEFORE.search(before) or _HISTORY_AFTER.search(after))
 
@@ -207,7 +212,8 @@ def detect_emergency(transcript: str) -> List[str]:
     matched = []
     for name, rx in _COMPILED_EMERGENCY_RULES:
         for m in rx.finditer(text):
-            if not _is_scoped_out(text, m.start(), m.end()):
+            window = _CRISIS_NEG_WINDOW if name in CRISIS_RULES else _NEG_WINDOW
+            if not _is_scoped_out(text, m.start(), m.end(), window):
                 matched.append(name)
                 break
     return matched

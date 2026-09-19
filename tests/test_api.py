@@ -349,10 +349,22 @@ def test_patient_message_never_tells_anyone_to_stop_a_drug():
     body = client.post("/meds", json={"patient_id": "p2", "medication": "Aspirin 81 mg tablet"}).json()
 
     message = body["regimen"]["patient_message"].lower()
-    assert "do not stop" in message
+    assert "do not start, stop or change" in message
     assert "prescriber" in message or "pharmacist" in message
-    for forbidden in ["stop taking", "reduce your dose", "lower the dose", "half a tablet"]:
-        assert forbidden not in message
+
+    for forbidden in [
+        "stop taking",
+        "reduce your dose",
+        "lower the dose",
+        "half a tablet",
+        "keep taking both",
+    ]:
+        assert forbidden not in message, (
+            f"the patient message must not instruct medication use: {forbidden!r}. "
+            "Telling someone to keep taking a pair the same message just flagged "
+            "as a major interaction is advice, and it is advice in the unsafe "
+            "direction."
+        )
 
 
 def test_minor_and_moderate_findings_are_not_surfaced_to_the_patient():
@@ -459,9 +471,9 @@ def test_severe_escalation_has_a_thirty_minute_window():
     record = record_escalation("unit-test-patient", "severe", False, fired_at)
 
     assert record["kind"] == "severe"
-    assert record["notified_party"] == "on call clinician"
+    assert record["would_notify"] == "on call clinician"
     assert record["ack_state"] == "pending"
-    deadline = datetime.fromisoformat(record["ack_required_by"])
+    deadline = datetime.fromisoformat(record["ack_window_would_expire_at"])
     assert deadline - fired_at == timedelta(minutes=30)
 
 
@@ -477,7 +489,7 @@ def test_escalation_past_its_window_reports_unacknowledged():
     just_after = fired_at + timedelta(minutes=31)
 
     assert ack_status(record, just_before) == "pending"
-    assert ack_status(record, just_after) == "unacknowledged_emergency"
+    assert ack_status(record, just_after) == "ack_window_elapsed_no_recipient"
 
     overdue = unacknowledged_for_patient("unit-test-patient-2", just_after)
     assert any(r["escalation_id"] == record["escalation_id"] for r in overdue)

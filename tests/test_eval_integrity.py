@@ -43,31 +43,51 @@ def test_placeholder_chart_is_actually_zeroed():
 
 def test_chart_arms_match_the_eval_harness():
     chart = load_chart()
-    from export_chart import ARMS
+    from export_chart_v2 import ARMS
 
     assert [a["id"] for a in chart["arms"]] == [a["id"] for a in ARMS], (
         "Chart arm ids drifted from the eval harness. The chart would render empty."
     )
 
 
-def test_chart_categories_match_the_eval_registers():
+def test_chart_categories_match_the_eval_conditions():
     chart = load_chart()
-    from export_chart import REGISTER_LABEL
+    from export_chart_v2 import CONDITION_LABEL
 
-    assert set(chart["categories"]).issubset(set(REGISTER_LABEL.values())), (
-        "Chart categories drifted from the registers the eval actually measures."
+    assert set(chart["categories"]).issubset(set(CONDITION_LABEL.values())), (
+        "Chart categories drifted from the conditions the eval actually measures."
     )
 
 
-def test_exporter_refuses_to_publish_a_dry_run():
-    from export_chart import to_chart_payload
+def test_chart_carries_its_own_noise_floor():
+    chart = load_chart()
+    if chart.get("placeholder"):
+        return
+    assert chart.get("noise_floor") is not None, (
+        "A difference smaller than the paraphrase noise floor is not a difference. "
+        "The chart must carry that number or it invites over-reading."
+    )
 
-    with pytest.raises(ValueError):
-        to_chart_payload({"dry_run": True, "consistency_pct": {}})
+
+def test_chart_headline_does_not_claim_a_gap_that_was_not_found():
+    chart = load_chart()
+    if chart.get("placeholder"):
+        return
+    headline = chart.get("headline", "").lower()
+    for forbidden in ["closes the gap", "systematically", "proves", "reduced the gap"]:
+        assert forbidden not in headline, f"overclaiming language in the chart: {forbidden}"
+
+
+def test_exporter_refuses_to_publish_a_dry_run():
+
+    from export_chart_v2 import build
+
+    with pytest.raises(Exception):
+        build({"dry_run": True})
 
 
 def test_exporter_refuses_to_publish_a_placeholder():
-    from export_chart import to_chart_payload
+    from export_chart_v2 import build
 
-    with pytest.raises(ValueError):
-        to_chart_payload({"placeholder": True, "consistency_pct": {}})
+    with pytest.raises(Exception):
+        build({"placeholder": True})

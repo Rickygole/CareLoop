@@ -327,3 +327,60 @@ def test_legacy_tuple_classifier_still_supported():
 def test_tier0_match_reports_full_confidence():
     result = triage("I can't breathe", llm_classifier=exploding_llm)
     assert result.confidence == 1.0
+
+
+HEDGED_CRISIS = [
+    "I'm not gonna lie, I want to die.",
+    "Never mind, I took the whole bottle of pills.",
+    "I'm tired of living.",
+    "I have been thinking about ending things.",
+    "Life ain't worth living no more.",
+]
+
+
+@pytest.mark.parametrize("transcript", HEDGED_CRISIS)
+def test_a_negation_earlier_in_the_sentence_cannot_silence_a_crisis(transcript):
+    """A hedge before a disclosure must not suppress it.
+
+    The negation guard scanned 45 characters backward, so any earlier "not",
+    "never" or "don't" silenced the suicide rule entirely: no crisis flag, no
+    988, and the routine moderate response was served instead. A hedge is how
+    people actually raise this.
+    """
+    result = triage(transcript, llm_classifier=exploding_llm)
+    assert result.severity is Severity.EMERGENCY, f"crisis silenced: {transcript!r}"
+    assert result.is_crisis is True
+
+
+DIRECT_CRISIS_DENIAL = [
+    "I'm not suicidal, just a bit blue about the weather",
+    "I am not suicidal",
+]
+
+
+@pytest.mark.parametrize("transcript", DIRECT_CRISIS_DENIAL)
+def test_a_direct_denial_adjacent_to_the_phrase_is_still_suppressed(transcript):
+    """Denying it outright must still be heard as a denial.
+
+    The window is tight rather than absent: a negation immediately against the
+    phrase suppresses, one further back does not.
+    """
+    assert detect_emergency(transcript) == []
+
+
+HEDGED_EMERGENCY = [
+    "I'm scared I'm having a heart attack right now.",
+    "I'm scared I can't breathe.",
+    "I'm worried about my chest pain, it's really bad right now.",
+]
+
+
+@pytest.mark.parametrize("transcript", HEDGED_EMERGENCY)
+def test_fear_is_not_a_hypothetical(transcript):
+    """"I'm scared I'm having a heart attack" is a report, not a hypothetical.
+
+    Two cues meant to catch hypotheticals were instead catching the most
+    common way a frightened patient opens a sentence.
+    """
+    result = triage(transcript, llm_classifier=exploding_llm)
+    assert result.severity is Severity.EMERGENCY, f"suppressed a real emergency: {transcript!r}"

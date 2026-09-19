@@ -88,10 +88,12 @@ def patient_message(finding: dict) -> Optional[str]:
         return None
     a, b = finding["ingredients"]
     return (
-        f"Something on your list looks worth checking. Your {a} and your {b} "
-        "can interact. Please keep taking both exactly as prescribed for now, "
-        "and speak to your prescriber or your pharmacist about it. Do not stop "
-        "or change anything on your own."
+        f"Something on your medication list is worth asking about. Your {a} and "
+        f"your {b} appear together on a short list of pairs this prototype "
+        "checks for. This is not a review of your medicines and CareLoop cannot "
+        "tell you what to do about it. Please contact your prescriber or "
+        "pharmacist. Do not start, stop or change any medicine because of this "
+        "message."
     )
 
 
@@ -138,5 +140,8 @@ LIMITATIONS = (
     "Not a formulary check and not a drug interaction database. There is no "
     "ingredient normalization, so brand names and combination products are not "
     "resolved and a duplicate ingredient inside a combination product will be "
-    "missed. There is no indication, renal function, dose or timing context."
+    "missed. There is no indication, renal function, dose or timing context. No "
+    "clinician reviewed this table, and the labels named in each row were not "
+    "consulted when the row was written. A pair missing from this list is not "
+    "evidence that the pair is safe."
 )

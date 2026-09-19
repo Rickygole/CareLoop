@@ -50,7 +50,7 @@ export default function TriageResult({ result, latencyMs, booking }) {
         <p className="text-micro font-semibold uppercase text-muted">
           What CareLoop decided
         </p>
-        <h3
+        <h2
           id="verdict-heading"
           className="font-display mt-3 flex flex-wrap items-baseline gap-x-5 gap-y-2 text-3xl font-semibold text-ink"
         >
@@ -58,7 +58,7 @@ export default function TriageResult({ result, latencyMs, booking }) {
             {UNDECIDED.glyph}
           </span>
           {UNDECIDED.headline}
-        </h3>
+        </h2>
         <p className="measure mt-5 text-ink-2">{UNDECIDED.meaning}</p>
       </section>
     )
@@ -83,7 +83,7 @@ export default function TriageResult({ result, latencyMs, booking }) {
           What CareLoop decided
         </p>
 
-        <h3
+        <h2
           id="verdict-heading"
           className="font-display mt-3 flex flex-wrap items-baseline gap-x-5 gap-y-2 text-3xl font-semibold"
           style={{ color: meta.rail }}
@@ -92,7 +92,7 @@ export default function TriageResult({ result, latencyMs, booking }) {
             {meta.glyph}
           </span>
           {meta.headline}
-        </h3>
+        </h2>
 
         <p className="measure mt-5 text-ink-2">{meta.meaning}</p>
 

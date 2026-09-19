@@ -1,8 +1,18 @@
+import os
 import json
 from pathlib import Path
 from typing import Dict, List, Optional
 
-DEFAULT_PATH = Path(__file__).resolve().parent / "memory_store.json"
+def _default_memory_path():
+    override = os.environ.get("CARELOOP_MEMORY_PATH")
+    if override:
+        return Path(override)
+    if os.environ.get("VERCEL"):
+        return Path("/tmp/careloop_memory.json")
+    return Path(__file__).resolve().parent / "memory_store.json"
+
+
+DEFAULT_PATH = _default_memory_path()
 
 
 class MemoryBackend:

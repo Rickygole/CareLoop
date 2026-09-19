@@ -49,26 +49,18 @@ export default function DecisionPage() {
       title="What CareLoop did about it"
       lead="You have just been on a check-in call. This is what CareLoop made of your answer, what it did next, and the whole of its working."
     >
-      <section aria-labelledby="verdict-heading" className="mt-10">
-        <h2
-          id="verdict-heading"
-          className="font-display border-b-2 border-line-ink pb-2 text-2xl font-semibold text-ink"
-        >
-          The decision
-        </h2>
-        <div className="mt-7">
-          <TriageResult
-            result={triage}
-            latencyMs={run.latencyMs}
-            booking={run.booking}
-          />
-        </div>
+      <div className="mt-10">
+        <TriageResult
+          result={triage}
+          latencyMs={run.latencyMs}
+          booking={run.booking}
+        />
         <ClinicCall
           events={run.events}
           booking={run.booking}
           tier={triage.tier}
         />
-      </section>
+      </div>
 
       <section aria-labelledby="said-heading" className="mt-16">
         <h2

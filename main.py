@@ -17,6 +17,7 @@ load_dotenv()
 from clinic import plan_clinic_call
 from contradiction import LIMITATIONS, check_cross_call, check_regimen, patient_message
 from escalation import (
+    ESCALATION_IS_A_RECORD_ONLY,
     NEVER_CONTACTS_EMERGENCY_SERVICES,
     get_escalations,
     record_escalation,
@@ -430,7 +431,12 @@ async def run_loop(body: RunLoopRequest):
                 "turns": call["turns"],
             }
             await bus.emit("PATIENT_CONFIRMED", {
-                "text": f"You're booked with {call['provider']['name']} at {call['slot']}.",
+                "text": (
+                    "This is a simulated booking. In a real deployment you would "
+                    f"now be booked with {call['provider']['name']} at "
+                    f"{call['slot']}. No real clinic was contacted and no "
+                    "appointment exists."
+                ),
             })
 
     now = datetime.now(timezone.utc)
@@ -440,8 +446,9 @@ async def run_loop(body: RunLoopRequest):
     if escalation_record:
         await bus.emit("ESCALATION_FIRED", {
             "kind": escalation_record["kind"],
-            "notified_party": escalation_record["notified_party"],
-            "ack_required_by": escalation_record["ack_required_by"],
+            "would_notify": escalation_record["would_notify"],
+            "notification_delivered": escalation_record["notification_delivered"],
+            "ack_window_would_expire_at": escalation_record["ack_window_would_expire_at"],
         })
 
     action_taken = "booked_appointment" if booking else (
@@ -471,6 +478,7 @@ async def run_loop(body: RunLoopRequest):
         "cross_call_findings": cross_call_findings,
         "escalation": escalation_record,
         "unacknowledged_escalations": unacknowledged_for_patient(body.patient_id, now),
+        "escalation_is_a_record_only": ESCALATION_IS_A_RECORD_ONLY,
         "safety_statement": NEVER_CONTACTS_EMERGENCY_SERVICES,
         "events": bus.since(start),
         "boot_id": bus.boot_id,
@@ -492,6 +500,7 @@ def patient_escalations(patient_id: str):
     return {
         "patient_id": patient_id,
         "escalations": get_escalations(patient_id),
+        "escalation_is_a_record_only": ESCALATION_IS_A_RECORD_ONLY,
         "safety_statement": NEVER_CONTACTS_EMERGENCY_SERVICES,
     }
 
