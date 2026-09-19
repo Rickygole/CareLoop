@@ -293,3 +293,72 @@ has to be re-tested, so get one stable URL early and do not move it.
 
 If the backend URL ever changes (redeploy to a new host, new environment,
 etc.), repeat the last four checks before the next demo or judging pass.
+
+---
+
+## 5. Creating the agent in the ElevenLabs dashboard
+
+The frontend widget (`frontend/src/components/VoiceAgent.jsx` and
+`frontend/src/lib/voice.js`) starts a session with only an agent id, no
+server-issued token, so the agent must be reachable that way. These steps
+build it from scratch.
+
+1. Sign in at elevenlabs.io and open Agents, then Create an agent. Pick the
+   Conversational AI agent type, not a plain text-to-speech voice.
+2. Paste the system prompt from section 1 above, verbatim, into the agent's
+   system prompt field. Do not let the dashboard's default starter prompt
+   survive alongside it.
+3. Under Security, leave the agent set to public (no authentication
+   required to start a session). The browser widget calls
+   `Conversation.startSession({ agentId })` directly with no signed URL and
+   no server-issued token, so a private agent will refuse every session
+   from the browser. Making an agent private and brokering a signed URL
+   through the backend is possible but is a separate change to `main.py`,
+   not part of this wiring.
+4. Pick a voice per section 3, and set it on the agent.
+5. Add both server tools from section 2 (`report_symptom` and
+   `book_appointment`). For each tool's URL, use
+   `https://<your-deployed-backend>/webhook/elevenlabs`, the same backend
+   from `docs/DEPLOY.md`. Set the `secret` field on each tool to the exact
+   value of the server's `CARELOOP_WEBHOOK_SECRET`. This is a hardcoded
+   value on the tool definition, not something the agent infers from the
+   call.
+6. Leave the agent's own post-call webhook OFF. CareLoop does not use it:
+   transcript capture happens client side, from the SDK's message events in
+   the browser, and is posted straight to this backend's own `/triage`
+   route. A post-call webhook needs a public callback URL reachable from
+   ElevenLabs' servers, which is unavailable on localhost and unreliable on
+   conference wifi, so the demo path does not depend on it.
+7. Find the agent id on the agent's overview page, in the URL
+   (`/app/agents/<agent id>`) or in Settings. It looks like
+   `agent_01xxxxxxxxxxxxxxxxxxxxxxxx`.
+8. Set `VITE_ELEVENLABS_AGENT_ID` to that id: in `frontend/.env` for local
+   development, and as a build time environment variable on whichever host
+   serves the frontend bundle (Vercel project settings, or the environment
+   used to run `npm run build` before a GitHub Pages deploy). Rebuild the
+   frontend after setting it; Vite inlines `VITE_*` variables at build time,
+   so changing the value requires a new build, not just a page refresh.
+9. Until that variable is set, `VoiceAgent` renders a plain "voice agent not
+   configured" panel naming `VITE_ELEVENLABS_AGENT_ID` instead of a blank
+   space or a crash, so the rest of the console stays usable while the
+   agent id is still being sourced.
+
+### Dynamic variables the frontend sends
+
+`VoiceAgent` passes `patient_id` and `patient_first_name` as
+`dynamicVariables` on every session, drawn from the patient selected in the
+judge console. The greeting in section 1 also references `{medication}`
+and a dosage; those come from the patient's schedule and are not sent by
+this component, because the judge console does not load a patient's full
+medication schedule the way the patient dashboard does. If the widget is
+later mounted somewhere that already has that schedule loaded, add the
+medication name and dosage to the same `dynamicVariables` call in
+`frontend/src/lib/voice.js` and reference them from the system prompt with
+`{{medication}}` and `{{dosage}}`.
+
+### What this build intentionally does not do
+
+No outbound phone call is placed anywhere in this path. The agent only
+answers a browser mic session started by `VoiceAgent`. Nothing in this
+repository dials a real phone number, and nothing should be added that
+does.

@@ -8,10 +8,11 @@ import FreeTextTriage from '../components/FreeTextTriage.jsx'
 import LoopRibbon from '../components/LoopRibbon.jsx'
 import TracePanel from '../components/TracePanel.jsx'
 import TriageResult from '../components/TriageResult.jsx'
+import VoiceAgent from '../components/VoiceAgent.jsx'
 import { ConsoleNotice } from '../components/Disclaimers.jsx'
 import { runLoop } from '../lib/api.js'
 import { useTrace } from '../lib/useTrace.js'
-import { DEFAULT_PATIENT_ID, PATIENTS } from '../data/patients.js'
+import { DEFAULT_PATIENT_ID, PATIENTS, patientName } from '../data/patients.js'
 import { SCENARIOS } from '../data/scenarios.js'
 
 export default function AdminDemo() {
@@ -89,6 +90,8 @@ export default function AdminDemo() {
       <main className="mx-auto max-w-6xl px-5 py-6">
         <div className="flex flex-col gap-5">
           <ConsoleNotice />
+
+          <VoiceAgent patientId={patientId} patientName={patientName(patientId)} />
 
           <FreeTextTriage
             busy={busy}
