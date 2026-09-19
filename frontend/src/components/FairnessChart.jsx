@@ -5,6 +5,7 @@ import evalResults from '../data/eval_results.json'
 const ARM_COLOR = {
   naive: '#64748B',
   cot: '#38BDF8',
+  normalize: '#2DD4BF',
   normalized: '#2DD4BF',
 }
 
@@ -36,7 +37,7 @@ function Bar({ arm, entry, grown, placeholder }) {
           ? '--'
           : percent(value) +
             '%' +
-            (entry && entry.stderr ? ' ± ' + percent(entry.stderr) : '')}
+            (entry && entry.stderr ? ' \u00b1 ' + percent(entry.stderr) : '')}
       </span>
     </div>
   )
@@ -76,7 +77,7 @@ export default function FairnessChart() {
           </span>
         ) : (
           <span className="font-mono text-2xs text-console-muted">
-            {evalResults.cases} cases {'×'} {evalResults.repeats_per_case}{' '}
+            {evalResults.cases} cases {'\u00d7'} {evalResults.repeats_per_case}{' '}
             repeats
           </span>
         )}

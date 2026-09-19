@@ -1,8 +1,8 @@
 {
   "placeholder": true,
-  "placeholder_note": "Placeholder file. Every value is zero until the eval harness writes real results over it.",
+  "placeholder_note": "No eval has been run. Every value is zero. Run eval/score.py with a live API key to replace this file with measured results.",
   "metric": "paraphrase_invariance",
-  "metric_label": "Share of paraphrase pairs given the same tier",
+  "metric_label": "Share of paraphrases given the same tier",
   "generated_at": null,
   "model": null,
   "temperature": null,
@@ -20,16 +20,16 @@
       "note": "single call, restate then classify"
     },
     {
-      "id": "normalized",
+      "id": "normalize",
       "label": "Normalize then classify",
       "note": "CareLoop pipeline"
     }
   ],
   "categories": [
     "Clinical",
-    "Colloquial",
-    "Mixed-language",
-    "Low-literacy"
+    "Casual",
+    "Understated",
+    "Mixed-language"
   ],
   "results": [
     {
@@ -48,28 +48,49 @@
     },
     {
       "category": "Clinical",
-      "arm": "normalized",
+      "arm": "normalize",
       "value": 0,
       "stderr": 0,
       "n": 0
     },
     {
-      "category": "Colloquial",
+      "category": "Casual",
       "arm": "naive",
       "value": 0,
       "stderr": 0,
       "n": 0
     },
     {
-      "category": "Colloquial",
+      "category": "Casual",
       "arm": "cot",
       "value": 0,
       "stderr": 0,
       "n": 0
     },
     {
-      "category": "Colloquial",
-      "arm": "normalized",
+      "category": "Casual",
+      "arm": "normalize",
+      "value": 0,
+      "stderr": 0,
+      "n": 0
+    },
+    {
+      "category": "Understated",
+      "arm": "naive",
+      "value": 0,
+      "stderr": 0,
+      "n": 0
+    },
+    {
+      "category": "Understated",
+      "arm": "cot",
+      "value": 0,
+      "stderr": 0,
+      "n": 0
+    },
+    {
+      "category": "Understated",
+      "arm": "normalize",
       "value": 0,
       "stderr": 0,
       "n": 0
@@ -90,28 +111,7 @@
     },
     {
       "category": "Mixed-language",
-      "arm": "normalized",
-      "value": 0,
-      "stderr": 0,
-      "n": 0
-    },
-    {
-      "category": "Low-literacy",
-      "arm": "naive",
-      "value": 0,
-      "stderr": 0,
-      "n": 0
-    },
-    {
-      "category": "Low-literacy",
-      "arm": "cot",
-      "value": 0,
-      "stderr": 0,
-      "n": 0
-    },
-    {
-      "category": "Low-literacy",
-      "arm": "normalized",
+      "arm": "normalize",
       "value": 0,
       "stderr": 0,
       "n": 0

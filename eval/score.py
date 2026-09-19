@@ -512,6 +512,12 @@ def main():
     print_summary_table(results)
     print(f"Wrote {out_path}")
 
+    if not args.dry_run:
+        from export_chart import export
+
+        export(out_path)
+        print("Exported chart data to frontend/src/data/eval_results.json")
+
     if errors and not args.dry_run:
         print(f"{len(errors)} call(s) failed to parse. Exiting nonzero so this is not missed.")
         sys.exit(1)
