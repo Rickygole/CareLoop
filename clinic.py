@@ -29,7 +29,7 @@ def clinic_call_script(
         {"speaker": "careloop", "text":
             "That works. Please book it and I will confirm with the patient."},
         {"speaker": "clinic", "text":
-            f"Booked with {provider['name']} at {slot}. Confirmation will be sent."},
+            f"Booked with {provider['name']} at {slot}. Nothing is sent from here."},
     ]
 
 
