@@ -12,7 +12,7 @@ export const SHARED_ITEMS = [
   'Preferred contact window',
 ]
 
-export default function ConsentModal({ open, patientName, busy, onAllow, onDeny }) {
+export default function ConsentModal({ open, insurerName, busy, onAllow, onDeny }) {
   const panel = useRef(null)
   const opener = useRef(null)
 
@@ -89,7 +89,7 @@ export default function ConsentModal({ open, patientName, busy, onAllow, onDeny 
           <div id="consent-body" className="text-ink-2">
             <p className="measure text-ink">
               MyHealth will share with CareLoop
-              {patientName ? ', from the record for ' + patientName : ''}:
+              {insurerName ? ', from your ' + insurerName + ' record' : ''}:
             </p>
             <ul className="mt-6 flex flex-col gap-3">
               {SHARED_ITEMS.map((item) => (
@@ -116,7 +116,7 @@ export default function ConsentModal({ open, patientName, busy, onAllow, onDeny 
           </p>
         </div>
 
-        <div className="flex flex-col-reverse gap-y-6 border-t border-line bg-sunken px-7 py-8 sm:flex-row sm:justify-end sm:gap-x-12 sm:px-10">
+        <div className="flex flex-col gap-y-6 border-t border-line bg-sunken px-7 py-8 sm:flex-row sm:justify-end sm:gap-x-12 sm:px-10">
           <button type="button" onClick={onDeny} className={BTN_SECONDARY}>
             Deny
           </button>

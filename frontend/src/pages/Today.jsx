@@ -14,6 +14,7 @@ import { Rule } from '../components/Block.jsx'
 import { applyClockShift } from '../lib/clock.js'
 import { dateTimeLabel, groupSchedule } from '../lib/format.js'
 import { BTN_HERO, BTN_PRIMARY, BTN_SECONDARY, CARD } from '../lib/ui.js'
+import { flaggedNames, isFlagged, pairLabels, pinFlagged } from '../lib/flagged.js'
 import { bookedVisits, useFollowups } from '../lib/useFollowups.js'
 import { usePortal } from '../lib/usePortal.js'
 import { useSession } from '../lib/session.jsx'
@@ -33,6 +34,8 @@ export default function TodayPage() {
     patientId,
     record,
     connected,
+    restoring,
+    restoreFailed,
     medications,
     schedule,
     clockShiftMs,
@@ -64,19 +67,34 @@ export default function TodayPage() {
     }))
   }, [plan, medications])
 
+  if (restoring) {
+    return (
+      <Screen title="Today">
+        <Loading what="Reading your records again after the page reloaded." />
+      </Screen>
+    )
+  }
+
   if (!connected) {
     return (
       <Screen title="Today">
+        {restoreFailed ? (
+          <Notice role="alert" tone="alarm" word="Not read" className="measure mb-10">
+            CareLoop could not read your records again after the page
+            reloaded. Nothing on the record changed. Choose your insurance
+            again below.
+          </Notice>
+        ) : null}
         <div className={CARD + ' measure px-7 py-8'}>
           <h2 className="display-tight text-xl text-ink">
-            Connect MyHealth to see your medicines
+            Choose your insurance to see your medicines
           </h2>
           <p className="mt-3 text-ink-2">
-            CareLoop reads the medicine list from MyHealth and works out when
-            to call. You never type a medicine in.
+            CareLoop reads the medicine list from the records your insurer
+            holds, and works out when to call. You never type a medicine in.
           </p>
           <Link to="/connect" className={BTN_PRIMARY + ' mt-7'}>
-            Connect MyHealth
+            Choose your insurance
           </Link>
         </div>
       </Screen>
@@ -86,6 +104,10 @@ export default function TodayPage() {
   const next = bookedVisits(visits)[0]
   const who = record ? record.name.split(' ')[0] : ''
   const flagged = (regimen && regimen.surfaced) || []
+  const marked = flaggedNames(flagged)
+  const shown = pinFlagged(list, marked, SHOWN)
+  const pinned =
+    list.length > SHOWN && shown.some((med) => isFlagged(med, marked))
 
   return (
     <Screen title={who ? 'Today, ' + who : 'Today'} lead={today()}>
@@ -118,9 +140,9 @@ export default function TodayPage() {
               <p className="text-lg leading-[1.45] text-ink">
                 Two of your medicines are worth asking about:{' '}
                 <strong className="inline-block font-semibold first-letter:uppercase">
-                  {flagged[0].ingredients.join(' and ')}
+                  {pairLabels(flagged[0]).join(' and ')}
                 </strong>
-                .
+                . Both are in the list below.
               </p>
               <Link to="/meds" className={BTN_SECONDARY + ' mt-6'}>
                 See what to ask about
@@ -144,9 +166,15 @@ export default function TodayPage() {
             <div className="min-w-0">
               <h2 className="display text-2xl text-ink">Medications</h2>
               <Rule />
+              {pinned ? (
+                <p className="measure mt-5 text-sm text-ink-2">
+                  The medicines named above are shown first, so a short list
+                  never hides the pair worth asking about.
+                </p>
+              ) : null}
               {list.length ? (
                 <ul className="mt-8 flex flex-col gap-6">
-                  {list.slice(0, SHOWN).map((med, index) => (
+                  {shown.map((med, index) => (
                     <MedicationCard key={med.key} med={med} index={index} />
                   ))}
                 </ul>

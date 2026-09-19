@@ -2,14 +2,32 @@ import { cleanup, render, screen, fireEvent, within } from '@testing-library/rea
 import { HashRouter } from 'react-router-dom'
 import { afterEach, expect, test, vi } from 'vitest'
 
-afterEach(cleanup)
+afterEach(() => {
+  cleanup()
+  window.sessionStorage.clear()
+  window.location.hash = '#/signup'
+})
 
 function startAtFirstScreen() {
-  window.location.hash = '#/signin'
+  window.sessionStorage.clear()
+  window.location.hash = '#/signup'
 }
 
-function signIn() {
-  fireEvent.click(screen.getByRole('button', { name: 'Sign in' }))
+function openReviewerTools() {
+  fireEvent.click(
+    screen.getByRole('button', { name: /Show where this list comes from/ }),
+  )
+}
+
+function signUp() {
+  fireEvent.click(
+    screen.getByRole('button', { name: 'Sign up and choose my insurance' }),
+  )
+}
+
+function connect() {
+  fireEvent.click(screen.getByText(/^Connect Aetna and load my records$/))
+  fireEvent.click(screen.getByText('Allow'))
 }
 
 const PATIENT = {
@@ -207,6 +225,9 @@ import MedicationCard from './src/components/MedicationCard.jsx'
 import SimulatedCall from './src/components/SimulatedCall.jsx'
 import { callState, followups, withTimeout } from './src/lib/api.js'
 import { tierMeta } from './src/components/TierBadge.jsx'
+import { zoneLabel } from './src/components/PortalShared.jsx'
+import { flaggedNames, isFlagged, pairLabels, pinFlagged } from './src/lib/flagged.js'
+import { SCENARIOS } from './src/data/scenarios.js'
 
 const events = [
   { seq: 1, timestamp: '2026-09-19T10:00:00Z', event_type: 'CALL_INITIATED', payload: { patient: 'Maria Santos' } },
@@ -220,75 +241,126 @@ const events = [
   { seq: 9, timestamp: '2026-09-19T10:00:08Z', event_type: 'CALL_ENDED', payload: {} },
 ]
 
-test('the sign in screen is the first screen and it is an honest demo gate', () => {
+test('the sign up screen is the first screen and it collects nothing real', () => {
   startAtFirstScreen()
+  render(<HashRouter><App /></HashRouter>)
+  expect(screen.getByRole('heading', { level: 1 }).textContent).toMatch(
+    /Sign up for the CareLoop demonstration/,
+  )
+  expect(screen.getByLabelText('Full name').value).toBe('Demo Reviewer')
+  expect(screen.getByLabelText('Email address').value).toBe('demo@careloop.health')
+  expect(screen.getByLabelText('Password').value).toBe('careloop-demo')
+  expect(screen.getByText(/Never type a real password into a demonstration/)).toBeTruthy()
+  expect(screen.getByText(/No account is created here/)).toBeTruthy()
+  expect(screen.getByText(/never ask you for a date of birth/)).toBeTruthy()
+
+  for (const forbidden of [/Date of birth/i, /Member (number|id)/i, /Home address/i, /Social security/i]) {
+    expect(screen.queryByLabelText(forbidden)).toBe(null)
+  }
+
+  fireEvent.change(screen.getByLabelText('Email address'), {
+    target: { value: 'someone@example.com' },
+  })
+  signUp()
+  expect(screen.getByRole('alert').textContent).toMatch(/Nothing you type is sent anywhere/)
+  expect(screen.getByRole('heading', { level: 1 }).textContent).toMatch(
+    /Sign up for the CareLoop demonstration/,
+  )
+  fireEvent.click(
+    screen.getByRole('button', { name: /Put the demonstration details back and carry on/ }),
+  )
+  expect(screen.getByRole('heading', { level: 1 }).textContent).toMatch(/Choose your insurance/)
+})
+
+test('the sign in screen is still there for a returning reviewer', () => {
+  window.location.hash = '#/signin'
   render(<HashRouter><App /></HashRouter>)
   expect(screen.getByRole('heading', { level: 1 }).textContent).toMatch(/Sign in to CareLoop/)
   expect(screen.getByLabelText('Email address').value).toBe('demo@careloop.health')
   expect(screen.getByLabelText('Password').value).toBe('careloop-demo')
-  expect(screen.queryByText('The demo account')).toBe(null)
-  expect(screen.queryByRole('button', { name: /Fill in the demo account/ })).toBe(null)
   expect(screen.getByText(/Never type a real password into a demonstration/)).toBeTruthy()
 
   fireEvent.change(screen.getByLabelText('Email address'), { target: { value: 'someone@example.com' } })
-  fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'nope' } })
   fireEvent.click(screen.getByRole('button', { name: 'Sign in' }))
   expect(screen.getByRole('alert').textContent).toMatch(/not the demo account/)
   fireEvent.click(screen.getByRole('button', { name: /Put the demo account back/ }))
   expect(screen.getByLabelText('Email address').value).toBe('demo@careloop.health')
-  expect(screen.getByRole('heading', { level: 1 }).textContent).toMatch(/Sign in to CareLoop/)
 
-  fireEvent.click(screen.getByRole('button', { name: 'Sign up' }))
-  expect(screen.getByText(/There are no new accounts to create/)).toBeTruthy()
+  fireEvent.click(screen.getByRole('button', { name: 'Sign in' }))
+  expect(screen.getByRole('heading', { level: 1 }).textContent).toMatch(/Choose your insurance/)
 })
 
-test('signing in lands on the dashboard, not on a wizard step', async () => {
+test('signing up lands on the insurance step and nothing is locked', async () => {
   startAtFirstScreen()
   render(<HashRouter><App /></HashRouter>)
-  signIn()
-  expect(screen.getByRole('heading', { level: 1 }).textContent).toMatch(/Today/)
-  expect(screen.getByText(/Connect MyHealth to see your medicines/)).toBeTruthy()
+  signUp()
+  expect(screen.getByRole('heading', { level: 1 }).textContent).toMatch(/Choose your insurance/)
   expect(screen.getByText('Sign out')).toBeTruthy()
   expect(screen.getByText('Demo system. All patient data is synthetic.')).toBeTruthy()
+
+  expect(screen.getByText(/Who insures you\?/)).toBeTruthy()
+  expect(screen.getByText('Aetna')).toBeTruthy()
+  expect(screen.getByText('CareFirst BlueCross')).toBeTruthy()
+  expect(screen.queryByText('Maria Santos')).toBe(null)
+  expect(screen.queryByText('Dorothy Klein')).toBe(null)
+
+  expect(screen.getByRole('heading', { name: /What Aetna means here/ })).toBeTruthy()
+  expect(screen.getByText('Aetna Choice network')).toBeTruthy()
+  expect(screen.getByText(/No membership is checked and no insurer is contacted/)).toBeTruthy()
 
   const tabs = screen.getByRole('navigation', { name: 'Sections' })
   for (const label of ['Today', 'Medications', 'Check-in', 'Appointments', 'Safety']) {
     expect(within(tabs).getByText(label)).toBeTruthy()
   }
   expect(within(tabs).queryByText('Locked')).toBe(null)
-  expect(within(tabs).getByText('Today').closest('a').getAttribute('aria-current')).toBe('page')
 
   fireEvent.click(within(tabs).getByText('Appointments'))
   expect(screen.getByRole('heading', { level: 1 }).textContent).toMatch(/Appointments/)
 
-  fireEvent.click(screen.getAllByText(/^Connect MyHealth$/)[0])
-  expect(screen.getByText(/Who is this check-in for\?/)).toBeTruthy()
-  fireEvent.click(screen.getByText(/^Connect MyHealth for/))
+  fireEvent.click(within(tabs).getByText('Today'))
+  expect(screen.getByText(/Choose your insurance to see your medicines/)).toBeTruthy()
+  fireEvent.click(screen.getAllByText(/^Choose your insurance$/)[0])
+  fireEvent.click(screen.getByText(/^Connect Aetna and load my records$/))
   const dialog = screen.getByRole('dialog')
   expect(dialog.textContent).toMatch(/MyHealth will share with CareLoop/)
+  expect(dialog.textContent).toMatch(/from your Aetna record/)
   expect(screen.getByText('Allow')).toBeTruthy()
   expect(screen.getByText('Deny')).toBeTruthy()
+})
+
+test('the consent modal reaches Deny before Allow, in the order they are drawn', () => {
+  startAtFirstScreen()
+  render(<HashRouter><App /></HashRouter>)
+  signUp()
+  fireEvent.click(screen.getByText(/^Connect Aetna and load my records$/))
+
+  const dialog = screen.getByRole('dialog')
+  const buttons = within(dialog).getAllByRole('button')
+  const deny = buttons.findIndex((b) => b.textContent.trim() === 'Deny')
+  const allow = buttons.findIndex((b) => b.textContent.trim() === 'Allow')
+  expect(deny).toBeGreaterThan(-1)
+  expect(allow).toBeGreaterThan(deny)
+  expect(document.activeElement).toBe(buttons[deny])
+
+  const row = buttons[deny].parentElement
+  expect(row.className).not.toMatch(/flex-col-reverse/)
 })
 
 test('denying shares nothing and stays on the connect screen', () => {
   startAtFirstScreen()
   render(<HashRouter><App /></HashRouter>)
-  signIn()
-  fireEvent.click(screen.getAllByText(/^Connect MyHealth$/)[0])
-  fireEvent.click(screen.getByText(/^Connect MyHealth for/))
+  signUp()
+  fireEvent.click(screen.getByText(/^Connect Aetna and load my records$/))
   fireEvent.click(screen.getByText('Deny'))
   expect(screen.getByText(/Nothing was shared/)).toBeTruthy()
-  expect(screen.getByRole('heading', { level: 1 }).textContent).toMatch(/Connect MyHealth/)
-  window.location.hash = '#/signin'
+  expect(screen.getByRole('heading', { level: 1 }).textContent).toMatch(/Choose your insurance/)
 })
 
 async function connectAndOpenMedications() {
   startAtFirstScreen()
   render(<HashRouter><App /></HashRouter>)
-  signIn()
-  fireEvent.click(screen.getAllByText(/^Connect MyHealth$/)[0])
-  fireEvent.click(screen.getByText(/^Connect MyHealth for/))
-  fireEvent.click(screen.getByText('Allow'))
+  signUp()
+  connect()
   await screen.findByRole('heading', { level: 1, name: /Today/ }, { timeout: 15000 })
   const tabs = screen.getByRole('navigation', { name: 'Sections' })
   fireEvent.click(within(tabs).getByText('Medications'))
@@ -298,10 +370,8 @@ async function connectAndOpenMedications() {
 test('the dashboard shows the next call, the medicines and the next appointment', async () => {
   startAtFirstScreen()
   render(<HashRouter><App /></HashRouter>)
-  signIn()
-  fireEvent.click(screen.getAllByText(/^Connect MyHealth$/)[0])
-  fireEvent.click(screen.getByText(/^Connect MyHealth for/))
-  fireEvent.click(screen.getByText('Allow'))
+  signUp()
+  connect()
   await screen.findByRole('heading', { level: 1, name: /Today/ }, { timeout: 4000 })
   expect(screen.getAllByText('Metformin').length).toBeGreaterThan(0)
   await screen.findByText('Tuesday, September 22 at 12:00 PM', {}, { timeout: 4000 })
@@ -312,10 +382,8 @@ test('the dashboard shows the next call, the medicines and the next appointment'
 test('the appointments section shows the booking, the reminders and the refusal', async () => {
   startAtFirstScreen()
   render(<HashRouter><App /></HashRouter>)
-  signIn()
-  fireEvent.click(screen.getAllByText(/^Connect MyHealth$/)[0])
-  fireEvent.click(screen.getByText(/^Connect MyHealth for/))
-  fireEvent.click(screen.getByText('Allow'))
+  signUp()
+  connect()
   await screen.findByRole('heading', { level: 1, name: /Today/ }, { timeout: 4000 })
   const tabs = screen.getByRole('navigation', { name: 'Sections' })
   fireEvent.click(within(tabs).getByText('Appointments'))
@@ -347,6 +415,7 @@ test('the medicines section renders what the portal sent', async () => {
 
 test('a medicine arriving from the portal cascades through snapshot, schedule and flag', async () => {
   await connectAndOpenMedications()
+  openReviewerTools()
   await screen.findByText('a1b2c3d4e5f6', {}, { timeout: 4000 })
 
   fireEvent.click(
@@ -369,20 +438,20 @@ test('a medicine arriving from the portal cascades through snapshot, schedule an
 test('the check-in summary explains itself with no run', async () => {
   startAtFirstScreen()
   render(<HashRouter><App /></HashRouter>)
-  signIn()
+  signUp()
   window.location.hash = '#/decision'
   const heading = await screen.findByRole('heading', { level: 1, name: /Check-in summary/ })
   expect(heading).toBeTruthy()
   expect(screen.getByText(/No check-in has been taken yet/)).toBeTruthy()
   expect(screen.getByText(/Go to the check-in/)).toBeTruthy()
-  window.location.hash = '#/signin'
 })
 
-test('every section is behind the sign in screen', () => {
+test('every section is behind the sign up screen', () => {
   window.location.hash = '#/meds'
   render(<HashRouter><App /></HashRouter>)
-  expect(screen.getByRole('heading', { level: 1 }).textContent).toMatch(/Sign in to CareLoop/)
-  window.location.hash = '#/signin'
+  expect(screen.getByRole('heading', { level: 1 }).textContent).toMatch(
+    /Sign up for the CareLoop demonstration/,
+  )
 })
 
 test('an unknown tier never renders as moderate', () => {
@@ -544,10 +613,8 @@ function accessibleName(element) {
 async function openSection(label, heading) {
   startAtFirstScreen()
   render(<HashRouter><App /></HashRouter>)
-  signIn()
-  fireEvent.click(screen.getAllByText(/^Connect MyHealth$/)[0])
-  fireEvent.click(screen.getByText(/^Connect MyHealth for/))
-  fireEvent.click(screen.getByText('Allow'))
+  signUp()
+  connect()
   await screen.findByRole('heading', { level: 1, name: /Today/ }, { timeout: 15000 })
   if (!label) return
   const tabs = screen.getByRole('navigation', { name: 'Sections' })
@@ -557,6 +624,7 @@ async function openSection(label, heading) {
 
 test('every control on the medicines section is a button the accessibility tree can see', async () => {
   await connectAndOpenMedications()
+  openReviewerTools()
   await screen.findByText(/Your prescriber has sent a new prescription/, {}, { timeout: 4000 })
 
   const buttons = screen.getAllByRole('button')
@@ -675,18 +743,19 @@ test('an empty appointment list does not read like a failed one', async () => {
   }
 }, 20000)
 
-test('the demo account arrives in the fields so no one types a password', () => {
+test('the demo details arrive in the fields so no one types a password', () => {
   startAtFirstScreen()
   render(<HashRouter><App /></HashRouter>)
+  expect(screen.getByLabelText('Full name').value).toBe('Demo Reviewer')
   expect(screen.getByLabelText('Email address').value).toBe('demo@careloop.health')
   expect(screen.getByLabelText('Password').value).toBe('careloop-demo')
-  fireEvent.click(screen.getByRole('button', { name: 'Sign in' }))
-  expect(screen.getByRole('heading', { level: 1 }).textContent).toMatch(/Today/)
-  window.location.hash = '#/signin'
+  signUp()
+  expect(screen.getByRole('heading', { level: 1 }).textContent).toMatch(/Choose your insurance/)
 })
 
 test('the flagged pair sits above the medicine list, not below it', async () => {
   await connectAndOpenMedications()
+  openReviewerTools()
 
   fireEvent.click(
     await screen.findByText('Get the new prescription from MyHealth', {}, { timeout: 4000 }),
@@ -754,3 +823,166 @@ test('a planned reminder call never claims it will place itself', async () => {
   expect(screen.queryByText(/Reminder calls scheduled/)).toBe(null)
   expect(screen.queryByText('aetna-001')).toBe(null)
 }, 20000)
+
+function headingLevels() {
+  return Array.from(document.querySelectorAll('h1, h2, h3, h4, h5, h6')).map(
+    (node) => Number(node.tagName.slice(1)),
+  )
+}
+
+test('the flagged medicine is pinned into a shortened list', () => {
+  const list = [
+    { key: 'a', medication: 'Levothyroxine' },
+    { key: 'b', medication: 'Metformin' },
+    { key: 'c', medication: 'Aspirin' },
+    { key: 'd', medication: 'Coumadin' },
+  ]
+  const finding = {
+    ingredients: ['warfarin', 'aspirin'],
+    labels: ['Coumadin (warfarin)', 'Aspirin'],
+  }
+
+  const names = flaggedNames([finding])
+  expect(names.has('coumadin')).toBe(true)
+  expect(names.has('aspirin')).toBe(true)
+
+  const shown = pinFlagged(list, names, 3).map((med) => med.medication)
+  expect(shown).toContain('Coumadin')
+  expect(shown).toContain('Aspirin')
+  expect(shown.length).toBe(3)
+
+  expect(isFlagged({ medication: 'Coumadin' }, names)).toBe(true)
+  expect(isFlagged({ medication: 'Metformin' }, names)).toBe(false)
+  expect(pinFlagged(list, flaggedNames([]), 3).length).toBe(3)
+  expect(pairLabels(finding)).toEqual(['Coumadin (warfarin)', 'Aspirin'])
+})
+
+test('no heading level is skipped on Today or on Medications', async () => {
+  startAtFirstScreen()
+  render(<HashRouter><App /></HashRouter>)
+  signUp()
+  connect()
+  await screen.findByRole('heading', { level: 1, name: /Today/ }, { timeout: 15000 })
+
+  expect(document.querySelectorAll('h4').length).toBe(0)
+  let levels = headingLevels()
+  expect(levels[0]).toBe(1)
+  for (let i = 1; i < levels.length; i += 1) {
+    expect(levels[i]).toBeLessThanOrEqual(levels[i - 1] + 1)
+  }
+
+  const tabs = screen.getByRole('navigation', { name: 'Sections' })
+  fireEvent.click(within(tabs).getByText('Medications'))
+  await screen.findByRole('heading', { level: 1, name: 'Medications' }, { timeout: 15000 })
+
+  expect(document.querySelectorAll('h4').length).toBe(0)
+  levels = headingLevels()
+  for (let i = 1; i < levels.length; i += 1) {
+    expect(levels[i]).toBeLessThanOrEqual(levels[i - 1] + 1)
+  }
+}, 20000)
+
+test('the flagged pair is a heading a screen reader can jump to', async () => {
+  await connectAndOpenMedications()
+  openReviewerTools()
+  fireEvent.click(
+    await screen.findByText('Get the new prescription from MyHealth', {}, { timeout: 4000 }),
+  )
+  const pair = await screen.findByRole(
+    'heading',
+    { name: /warfarin and aspirin/i },
+    { timeout: 6000 },
+  )
+  expect(pair.tagName).toBe('H3')
+}, 20000)
+
+test('moving the clock on Today is announced to a live region', async () => {
+  startAtFirstScreen()
+  render(<HashRouter><App /></HashRouter>)
+  signUp()
+  connect()
+  await screen.findByRole('heading', { level: 1, name: /Today/ }, { timeout: 15000 })
+
+  const move = screen.getByRole('button', { name: 'Move the clock to the next dose' })
+  const region = move.closest('section').querySelector('[role="status"]')
+  expect(region).toBeTruthy()
+  expect(region.getAttribute('aria-live')).toBe('polite')
+  expect(region.textContent.trim()).toBe('')
+
+  fireEvent.click(move)
+  expect(region.textContent).toMatch(/The clock moved forward to/)
+  expect(region.textContent).toMatch(/The next call is at/)
+  expect(region.textContent).toMatch(/behind you/)
+
+  fireEvent.click(screen.getByRole('button', { name: 'Put the clock back' }))
+  expect(region.textContent).toMatch(/The clock is back to now/)
+}, 20000)
+
+test('a reload keeps the reviewer signed in and the records connected', async () => {
+  startAtFirstScreen()
+  render(<HashRouter><App /></HashRouter>)
+  signUp()
+  connect()
+  await screen.findByRole('heading', { level: 1, name: /Today/ }, { timeout: 15000 })
+
+  const saved = JSON.parse(window.sessionStorage.getItem('careloop.session.state'))
+  expect(saved).toMatchObject({ signedIn: true, connected: true, patientId: 'p1' })
+
+  cleanup()
+  window.location.hash = '#/'
+  render(<HashRouter><App /></HashRouter>)
+
+  expect(screen.queryByText(/Sign up for the CareLoop demonstration/)).toBe(null)
+  await screen.findByRole('heading', { level: 1, name: /Today/ }, { timeout: 15000 })
+  expect(screen.queryByText(/Choose your insurance to see your medicines/)).toBe(null)
+  await screen.findAllByText('Metformin', {}, { timeout: 6000 })
+}, 30000)
+
+test('the appointments section says New York time, not a timezone identifier', async () => {
+  startAtFirstScreen()
+  render(<HashRouter><App /></HashRouter>)
+  signUp()
+  connect()
+  await screen.findByRole('heading', { level: 1, name: /Today/ }, { timeout: 15000 })
+  const tabs = screen.getByRole('navigation', { name: 'Sections' })
+  fireEvent.click(within(tabs).getByText('Appointments'))
+  await screen.findByText('Dr. Elena Vance', {}, { timeout: 4000 })
+
+  expect(screen.getByText(/New York time/)).toBeTruthy()
+  expect(screen.queryByText(/America\/New_York/)).toBe(null)
+  expect(zoneLabel('America/New_York')).toBe('New York time')
+  expect(zoneLabel('')).toBe('local time')
+}, 20000)
+
+test('the check-in answer chips read as things a patient would say', () => {
+  const labels = SCENARIOS.map((scenario) => scenario.label)
+  expect(labels).not.toContain('Says no pain')
+  expect(labels).not.toContain('In Spanish')
+  for (const label of labels) {
+    expect(label).not.toMatch(/^Says /)
+    expect(label).not.toMatch(/^In (Spanish|English)$/)
+  }
+  expect(labels).toContain('No pain today')
+  expect(labels).toContain('Dolor en el pecho')
+})
+
+test('the medicines section keeps its reviewer panels collapsed', async () => {
+  await connectAndOpenMedications()
+
+  const disclosure = screen.getByRole('button', {
+    name: /Show where this list comes from/,
+  })
+  const panel = document.getElementById(disclosure.getAttribute('aria-controls'))
+  expect(disclosure.getAttribute('aria-expanded')).toBe('false')
+  expect(panel.hidden).toBe(true)
+  expect(
+    screen.queryByRole('button', { name: /Move the clock to the next dose/ }),
+  ).toBe(null)
+
+  fireEvent.click(disclosure)
+  expect(disclosure.getAttribute('aria-expanded')).toBe('true')
+  expect(panel.hidden).toBe(false)
+  expect(
+    screen.getByRole('button', { name: /Move the clock to the next dose/ }),
+  ).toBeTruthy()
+}, 15000)

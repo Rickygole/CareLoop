@@ -8,7 +8,7 @@ export default function MedicationCard({ med, index }) {
       style={{ '--i': index }}
     >
       <div className="flex flex-wrap items-baseline gap-x-5 gap-y-2">
-        <h4 className="display-tight text-xl text-ink">{med.medication}</h4>
+        <h3 className="display-tight text-xl text-ink">{med.medication}</h3>
         <p className="numeric text-lg font-semibold text-clay">{med.dosage}</p>
       </div>
 

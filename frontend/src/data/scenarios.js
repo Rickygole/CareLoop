@@ -26,12 +26,12 @@ export const SCENARIOS = [
   },
   {
     id: 'negation',
-    label: 'Says no pain',
+    label: 'No pain today',
     transcript: 'no chest pain today, I feel fine',
   },
   {
     id: 'spanish',
-    label: 'In Spanish',
+    label: 'Dolor en el pecho',
     transcript: 'tengo dolor en el pecho',
   },
 ]

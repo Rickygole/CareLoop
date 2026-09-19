@@ -57,13 +57,13 @@ export default function Masthead() {
                 </span>
               </p>
               <Link to="/connect" className={BTN_QUIET}>
-                MyHealth connection
+                Insurance and records
               </Link>
               <button
                 type="button"
                 onClick={() => {
                   signOut()
-                  navigate('/signin')
+                  navigate('/signup')
                 }}
                 className={BTN_QUIET}
               >

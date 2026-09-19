@@ -1,8 +1,46 @@
+import { useCallback, useState } from 'react'
+
 import { clockLabel } from '../lib/format.js'
-import { clockAfterShift, nextDoseShiftMs } from '../lib/clock.js'
+import { applyClockShift, clockAfterShift, nextDoseShiftMs } from '../lib/clock.js'
 import { BTN_SECONDARY, CARD } from '../lib/ui.js'
 
+function sentence(plan, ms) {
+  const moved = applyClockShift(plan, ms)
+  const at = clockAfterShift(plan.as_of, ms)
+  const dose = moved && moved.next_dose
+  const where = ms
+    ? 'The clock moved forward to ' + (at ? clockLabel(at) : 'a later hour') + '. '
+    : 'The clock is back to now. '
+  const taken = ((moved && moved.doses) || []).filter(
+    (item) => item.status === 'taken',
+  ).length
+  const next = dose
+    ? 'The next call is at ' +
+      clockLabel(dose.time) +
+      ', about ' +
+      dose.medication +
+      '. '
+    : 'No call is left today. '
+  return (
+    where +
+    next +
+    (taken === 1
+      ? '1 dose is behind you.'
+      : taken + ' doses are behind you.')
+  )
+}
+
 export default function TimeTravel({ plan, shiftMs, onShift }) {
+  const [note, setNote] = useState('')
+
+  const move = useCallback(
+    (ms) => {
+      onShift(ms)
+      setNote(plan ? sentence(plan, ms) : '')
+    },
+    [onShift, plan],
+  )
+
   if (!plan) return null
 
   const now = clockAfterShift(plan.as_of, shiftMs)
@@ -30,7 +68,7 @@ export default function TimeTravel({ plan, shiftMs, onShift }) {
       {shifted ? (
         <button
           type="button"
-          onClick={() => onShift(0)}
+          onClick={() => move(0)}
           className={BTN_SECONDARY + ' mt-6 w-full'}
         >
           Put the clock back
@@ -38,7 +76,7 @@ export default function TimeTravel({ plan, shiftMs, onShift }) {
       ) : (
         <button
           type="button"
-          onClick={() => onShift(jump)}
+          onClick={() => move(jump)}
           disabled={!jump}
           className={
             BTN_SECONDARY +
@@ -51,6 +89,9 @@ export default function TimeTravel({ plan, shiftMs, onShift }) {
         </button>
       )}
 
+      <div role="status" aria-live="polite" className="mt-5 empty:hidden">
+        {note ? <p className="measure text-sm text-ink-2">{note}</p> : null}
+      </div>
     </section>
   )
 }

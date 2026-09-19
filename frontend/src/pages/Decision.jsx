@@ -34,6 +34,9 @@ export default function DecisionPage() {
   const triage = run.triage || {}
   const rules = triage.matched_rules || []
   const history = (record && record.history) || []
+  const tier = String(triage.tier || '').trim().toLowerCase()
+  const simulatedBooking = Boolean(run.booking && run.booking.confirmed !== false)
+  const needsClinic = tier === 'moderate' || tier === 'severe' || simulatedBooking
 
   return (
     <Screen title="Check-in summary">
@@ -104,9 +107,14 @@ export default function DecisionPage() {
       {history.length ? (
         <section aria-labelledby="history-heading" className="mt-12">
           <h2 id="history-heading" className="display text-2xl text-ink">
-            Earlier check-ins
+            Earlier check-ins on this made up record
           </h2>
           <Rule tone="sand" />
+          <p className="measure mt-6 text-ink-2">
+            These rows arrived with the made up record. They are examples of
+            what a week of check-ins looks like. You did not take these calls,
+            and nothing here was said by you.
+          </p>
           <ul className="mt-8 flex flex-col gap-5">
             {history.map((item, index) => (
               <li
@@ -121,10 +129,12 @@ export default function DecisionPage() {
                     </p>
                     <p className="measure mt-3 text-ink">
                       {item.symptom_reported
-                        ? 'You said you had ' + item.symptom_reported + '.'
+                        ? 'Example: the patient reported ' +
+                          item.symptom_reported +
+                          '.'
                         : item.outcome === 'no_answer'
-                          ? 'You did not pick up.'
-                          : 'You said you were feeling fine.'}
+                          ? 'Example: the call was not answered.'
+                          : 'Example: the patient reported nothing wrong.'}
                     </p>
                     <p className="measure mt-2 text-sm text-ink-2">
                       {actionSentence(item.action_taken, item.outcome)}
@@ -144,9 +154,28 @@ export default function DecisionPage() {
         </h2>
         <Rule tone="sand" />
         <p className="measure mt-6 text-ink-2">
-          CareLoop has written this down on your record. There is nothing else
-          you need to do here.
+          CareLoop has written this check-in down on the made up record. It has
+          not told anyone, and nothing in this prototype runs on a timer.
         </p>
+        {tier === 'emergency' ? (
+          <p className="measure mt-4 text-ink-2">
+            No appointment exists and an appointment would be too slow anyway.
+            If you have not already, call 911 now.
+          </p>
+        ) : needsClinic ? (
+          <p className="measure mt-4 text-ink-2">
+            No appointment exists. Any booking call shown above was simulated,
+            and no real clinic was contacted. In a real deployment CareLoop
+            would book you in. Here it cannot, so please telephone your clinic
+            yourself and tell them what you told CareLoop. If this becomes an
+            emergency, call 911.
+          </p>
+        ) : (
+          <p className="measure mt-4 text-ink-2">
+            Nothing was booked, and on this answer nothing needed to be. If
+            anything changes, take another check-in or telephone your clinic.
+          </p>
+        )}
         <Link to="/" className={BTN_PRIMARY + ' mt-7'}>
           Back to Today
         </Link>

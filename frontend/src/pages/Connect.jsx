@@ -5,9 +5,9 @@ import ConsentModal, { SHARED_ITEMS } from '../components/ConsentModal.jsx'
 import Notice from '../components/Notice.jsx'
 import Screen from '../components/Screen.jsx'
 import { connectPatient, regimenState } from '../lib/api.js'
-import { BTN_HERO, BTN_QUIET } from '../lib/ui.js'
+import { BTN_HERO, BTN_QUIET, CARD } from '../lib/ui.js'
 import { useSession } from '../lib/session.jsx'
-import { PATIENTS, patientName } from '../data/patients.js'
+import { INSURERS, insurerFor, insurerName, patientName } from '../data/patients.js'
 
 const STEP_MS = 300
 const MED_MS = 340
@@ -80,20 +80,25 @@ export default function ConnectPage() {
   }, [applyPortal, navigate, patientId])
 
   const syncing = phase === 'syncing'
+  const chosen = insurerFor(patientId)
 
   return (
     <Screen
-      title="Connect MyHealth"
-      lead="CareLoop reads your medicines from MyHealth and works out when to call you. You never type a medicine in."
+      title={connected ? 'Your insurance and records' : 'Choose your insurance'}
+      lead={
+        connected
+          ? 'CareLoop reads your medicines from the records your insurer holds, and works out when to call you. You never type a medicine in.'
+          : 'CareLoop connects to your insurer and reads the health records held for you there. You never type a medicine in.'
+      }
     >
       {connected && !syncing ? (
         <div>
           <p className="measure text-lg leading-[1.45] text-ink">
-            MyHealth is connected for{' '}
+            {insurerName(patientId)} is connected, and the records for{' '}
             <strong className="font-semibold">
               {record ? record.name : patientName(patientId)}
-            </strong>
-            .
+            </strong>{' '}
+            have been loaded.
           </p>
           <div className="mt-9">
             <Link to="/" className={BTN_HERO}>
@@ -104,7 +109,7 @@ export default function ConnectPage() {
           <div className="mt-12 border-t border-line pt-8">
             <p className="measure text-ink-2">
               Disconnecting clears the medicine list from CareLoop. You would
-              have to connect MyHealth again to get it back.
+              have to choose your insurance again to get it back.
             </p>
             <button
               type="button"
@@ -124,59 +129,54 @@ export default function ConnectPage() {
         <div>
           <fieldset className="border-0 p-0">
             <legend className="display text-xl text-ink">
-              Who is this check-in for?
+              Who insures you?
             </legend>
             <p className="measure mt-2 text-ink-2">
-              Pick the record to read.
+              Every insurer, plan, patient and medicine in this demonstration
+              is made up. Picking one decides which made up record CareLoop
+              reads.
             </p>
 
             <div className="mt-6 grid gap-4 sm:grid-cols-2">
-              {PATIENTS.map((person) => {
-                const chosen = person.id === patientId
+              {INSURERS.map((payer) => {
+                const picked = payer.id === patientId
                 return (
                   <label
-                    key={person.id}
+                    key={payer.id}
                     className={
                       'pressable block cursor-pointer rounded-card border px-6 py-5 ' +
-                      (chosen
+                      (picked
                         ? 'ledge-strong border-brand bg-brand-wash'
                         : 'ledge border-line bg-surface hover:border-line-strong')
                     }
                   >
                     <span className="flex items-baseline justify-between gap-4">
                       <span className="display-tight text-lg text-ink">
-                        {person.name}
+                        {payer.insurer}
                       </span>
                       <input
                         type="radio"
-                        name="patient"
-                        value={person.id}
-                        checked={chosen}
-                        onChange={() => choosePatient(person.id)}
+                        name="insurer"
+                        value={payer.id}
+                        checked={picked}
+                        onChange={() => choosePatient(payer.id)}
                         className="h-6 w-6 shrink-0 accent-[var(--color-brand)]"
                       />
                     </span>
                     <span className="mt-3 block text-sm text-ink-2">
-                      Insured with {person.insurer}
+                      {payer.plan}
                     </span>
                     <span className="mt-1 block text-sm text-ink-2">
-                      {person.medicines === 1
-                        ? '1 medicine on the record'
-                        : person.medicines + ' medicines on the record'}
-                    </span>
-                    <span className="mt-1 block text-sm text-ink-2">
-                      {person.note}
+                      Records held in {payer.portal}
                     </span>
                     <span
                       className={
                         'smallcaps mt-4 flex items-center gap-2 text-micro ' +
-                        (chosen ? 'text-brand' : 'text-ink-2 opacity-0')
+                        (picked ? 'text-brand' : 'text-ink-2 opacity-0')
                       }
-                      aria-hidden={!chosen}
+                      aria-hidden={!picked}
                     >
-                      <span aria-hidden="true">
-                        {String.fromCharCode(10003)}
-                      </span>
+                      <span aria-hidden="true">{DONE}</span>
                       Chosen
                     </span>
                   </label>
@@ -185,12 +185,69 @@ export default function ConnectPage() {
             </div>
           </fieldset>
 
+          {chosen ? (
+            <section
+              aria-labelledby="plan-heading"
+              className={CARD + ' enter-fade measure mt-10 px-6 py-7 sm:px-8'}
+            >
+              <h2 id="plan-heading" className="display-tight text-xl text-ink">
+                What {chosen.insurer} means here
+              </h2>
+              <dl className="mt-6 flex flex-col gap-5">
+                <div>
+                  <dt className="smallcaps text-micro text-clay">Plan</dt>
+                  <dd className="mt-1 text-base text-ink">{chosen.plan}</dd>
+                </div>
+                <div>
+                  <dt className="smallcaps text-micro text-clay">Network</dt>
+                  <dd className="mt-1 text-base text-ink">{chosen.network}</dd>
+                </div>
+                <div>
+                  <dt className="smallcaps text-micro text-clay">
+                    Roughly what it covers
+                  </dt>
+                  <dd className="mt-2">
+                    <ul className="flex flex-col gap-2">
+                      {chosen.covers.map((line) => (
+                        <li key={line} className="flex items-baseline gap-3">
+                          <span aria-hidden="true" className="text-brand">
+                            {DONE}
+                          </span>
+                          <span className="measure text-sm text-ink">
+                            {line}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </dd>
+                </div>
+                <div>
+                  <dt className="smallcaps text-micro text-clay">
+                    Records CareLoop would read
+                  </dt>
+                  <dd className="mt-1 text-base text-ink">
+                    {chosen.medicines === 1
+                      ? '1 active medicine, with its dose times'
+                      : chosen.medicines +
+                        ' active medicines, with their dose times'}
+                  </dd>
+                </div>
+              </dl>
+              <p className="measure mt-6 border-t border-line pt-5 text-sm text-ink-2">
+                {chosen.insurer} is used here as a familiar name only. This
+                plan, its network and everything listed above were written for
+                the demonstration. No membership is checked and no insurer is
+                contacted.
+              </p>
+            </section>
+          ) : null}
+
           <button
             type="button"
             onClick={() => setConsentOpen(true)}
             className={BTN_HERO + ' mt-10 w-full sm:w-auto'}
           >
-            Connect MyHealth for {patientName(patientId)}
+            Connect {insurerName(patientId)} and load my records
           </button>
           <p className="measure mt-4 text-ink-2">
             Nothing is read until you press Allow.
@@ -215,9 +272,8 @@ export default function ConnectPage() {
               word="MyHealth did not answer"
               className="enter-fade measure mt-10"
             >
-              Nothing was shared and nothing was changed. Press Connect
-              MyHealth to try again, or call your clinic directly if this is
-              urgent.
+              Nothing was shared and nothing was changed. Press Connect to try
+              again, or call your clinic directly if this is urgent.
             </Notice>
           ) : null}
 
@@ -308,7 +364,7 @@ export default function ConnectPage() {
 
       <ConsentModal
         open={consentOpen}
-        patientName={patientName(patientId)}
+        insurerName={insurerName(patientId)}
         busy={syncing}
         onAllow={allow}
         onDeny={() => {

@@ -1,12 +1,51 @@
-import { createContext, useCallback, useContext, useMemo, useState } from 'react'
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react'
 
+import { connectPatient, regimenState } from './api.js'
 import { DEFAULT_PATIENT_ID } from '../data/patients.js'
 
 const SessionContext = createContext(null)
 
+export const STATE_KEY = 'careloop.session.state'
+
+function readSaved() {
+  try {
+    const raw = window.sessionStorage.getItem(STATE_KEY)
+    if (!raw) return null
+    const parsed = JSON.parse(raw)
+    return parsed && typeof parsed === 'object' ? parsed : null
+  } catch {
+    return null
+  }
+}
+
+function writeSaved(state) {
+  try {
+    window.sessionStorage.setItem(STATE_KEY, JSON.stringify(state))
+  } catch {
+    return
+  }
+}
+
 export function SessionProvider({ children }) {
-  const [signedIn, setSignedIn] = useState(false)
-  const [patientId, setPatientId] = useState(DEFAULT_PATIENT_ID)
+  const saved = useMemo(readSaved, [])
+
+  const [signedIn, setSignedIn] = useState(Boolean(saved && saved.signedIn))
+  const [patientId, setPatientId] = useState(
+    (saved && saved.patientId) || DEFAULT_PATIENT_ID,
+  )
+  const [connected, setConnected] = useState(Boolean(saved && saved.connected))
+  const [restoring, setRestoring] = useState(
+    Boolean(saved && saved.signedIn && saved.connected),
+  )
+  const [restoreFailed, setRestoreFailed] = useState(false)
+
   const [record, setRecord] = useState(null)
   const [medications, setMedications] = useState([])
   const [schedule, setSchedule] = useState(null)
@@ -14,8 +53,38 @@ export function SessionProvider({ children }) {
   const [run, setRun] = useState(null)
   const [clockShiftMs, setClockShiftMs] = useState(0)
 
+  useEffect(() => {
+    writeSaved({ signedIn, patientId, connected })
+  }, [connected, patientId, signedIn])
+
+  useEffect(() => {
+    if (!restoring) return undefined
+    let live = true
+
+    Promise.all([connectPatient(patientId), regimenState(patientId)])
+      .then(([portal, state]) => {
+        if (!live) return
+        setRecord((portal && portal.patient) || null)
+        setMedications((state && state.medications) || [])
+        setSchedule((state && state.schedule) || null)
+        setRegimen((state && state.regimen) || null)
+        setRestoring(false)
+      })
+      .catch(() => {
+        if (!live) return
+        setConnected(false)
+        setRestoreFailed(true)
+        setRestoring(false)
+      })
+
+    return () => {
+      live = false
+    }
+  }, [patientId, restoring])
+
   const clearEverything = useCallback(() => {
     setPatientId(DEFAULT_PATIENT_ID)
+    setConnected(false)
     setRecord(null)
     setMedications([])
     setSchedule(null)
@@ -30,11 +99,15 @@ export function SessionProvider({ children }) {
 
   const signOut = useCallback(() => {
     setSignedIn(false)
+    setRestoring(false)
+    setRestoreFailed(false)
     clearEverything()
   }, [clearEverything])
 
   const choosePatient = useCallback((id) => {
     setPatientId(id)
+    setConnected(false)
+    setRestoreFailed(false)
     setRecord(null)
     setMedications([])
     setSchedule(null)
@@ -48,6 +121,8 @@ export function SessionProvider({ children }) {
     setMedications((state && state.medications) || [])
     setSchedule((state && state.schedule) || null)
     setRegimen((state && state.regimen) || null)
+    setConnected(Boolean(patient))
+    setRestoreFailed(false)
     setClockShiftMs(0)
   }, [])
 
@@ -74,7 +149,9 @@ export function SessionProvider({ children }) {
       patientId,
       choosePatient,
       record,
-      connected: Boolean(record),
+      connected,
+      restoring,
+      restoreFailed,
       medications,
       schedule,
       regimen,
@@ -92,6 +169,9 @@ export function SessionProvider({ children }) {
       patientId,
       choosePatient,
       record,
+      connected,
+      restoring,
+      restoreFailed,
       medications,
       schedule,
       regimen,

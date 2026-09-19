@@ -42,6 +42,7 @@ export default function MedsPage() {
     schedule,
     regimen,
     connected,
+    restoring,
     clockShiftMs,
     setClockShiftMs,
   } = useSession()
@@ -49,6 +50,7 @@ export default function MedsPage() {
   const { portal, loading, loadFailed, refreshFailed, failure, reload, sync } =
     usePortal(connected)
 
+  const [toolsOpen, setToolsOpen] = useState(false)
   const [checking, setChecking] = useState(false)
   const [pulling, setPulling] = useState(false)
   const [syncFailed, setSyncFailed] = useState(false)
@@ -152,18 +154,27 @@ export default function MedsPage() {
     }))
   }, [plan, shownRequests])
 
+  if (restoring) {
+    return (
+      <Screen title="Medications">
+        <Loading what="Reading your records again after the page reloaded." />
+      </Screen>
+    )
+  }
+
   if (!connected) {
     return (
       <Screen title="Medications">
         <div className={CARD + ' measure px-7 py-8'}>
           <h2 className="display-tight text-xl text-ink">
-            Connect MyHealth to see your medicines
+            Choose your insurance to see your medicines
           </h2>
           <p className="mt-3 text-ink-2">
-            The list comes from MyHealth. You never type a medicine in.
+            The list comes from the records your insurer holds. You never type
+            a medicine in.
           </p>
           <Link to="/connect" className={BTN_PRIMARY + ' mt-7'}>
-            Connect MyHealth
+            Choose your insurance
           </Link>
         </div>
       </Screen>
@@ -232,85 +243,110 @@ export default function MedsPage() {
 
           <InteractionLimits regimen={shownRegimen} />
 
-          <section aria-labelledby="change-heading" className="mt-12">
-            <h2 id="change-heading" className="display text-2xl text-ink">
-              Where this list comes from
-              {syncedAt ? ', last read ' + dateTimeLabel(syncedAt) : ''}
-            </h2>
-            <Rule />
+          <div className="ledge mt-12 overflow-hidden rounded-card border border-line bg-sunken">
+            <button
+              type="button"
+              onClick={() => setToolsOpen((open) => !open)}
+              aria-expanded={toolsOpen}
+              aria-controls="reviewer-panel"
+              className="block w-full cursor-pointer px-6 py-6 text-left sm:px-8"
+            >
+              <span className="smallcaps text-micro text-clay">
+                For a reviewer, not part of the patient product
+              </span>
+              <span className="mt-2 block text-sm font-semibold text-ink">
+                {toolsOpen
+                  ? 'Hide where this list comes from, and the clock'
+                  : 'Show where this list comes from, and the clock'}
+              </span>
+            </button>
 
-            <PortalUpdate
-              syncedAt={syncedAt}
-              summary={portal && portal.diff_summary}
-              pending={Boolean(portal && portal.portal_has_pending_change)}
-              checking={checking}
-              pulling={pulling}
-              failed={syncFailed}
-              onCheck={check}
-              onPull={pull}
-            />
+            <div
+              id="reviewer-panel"
+              hidden={!toolsOpen}
+              className="border-t border-line bg-surface px-6 py-8 sm:px-8"
+            >
+              <section aria-labelledby="change-heading">
+                <h2 id="change-heading" className="display text-2xl text-ink">
+                  Where this list comes from
+                  {syncedAt ? ', last read ' + dateTimeLabel(syncedAt) : ''}
+                </h2>
+                <Rule />
 
-            <div role="status" aria-live="polite" className="mt-9 empty:hidden">
-              {cascading ? (
-                <div className={'enter-fade ' + CARD + ' px-7 py-7'}>
-                  <p className="smallcaps text-micro text-clay">
-                    What that change set off
-                  </p>
-                  <ol className="mt-5 flex flex-col gap-3">
-                    {CASCADE_STEPS.map((label, index) => {
-                      const done = stage > index
-                      return (
-                        <li
-                          key={label}
-                          className={
-                            'flex items-baseline gap-4 rounded-card border px-5 py-3 ' +
-                            (done
-                              ? 'border-mild bg-mild-tint'
-                              : 'border-line bg-sunken')
-                          }
-                        >
-                          <span
-                            aria-hidden="true"
-                            className={done ? 'text-mild' : 'text-ink-2'}
-                          >
-                            {done
-                              ? String.fromCharCode(10003)
-                              : String.fromCharCode(9675)}
-                          </span>
-                          <span
-                            className={
-                              'text-sm ' +
-                              (done ? 'font-semibold text-ink' : 'text-ink-2')
-                            }
-                          >
-                            {label}
-                          </span>
-                        </li>
-                      )
-                    })}
-                  </ol>
-                  <p className="measure mt-5 text-sm text-ink-2">
-                    {announcement}
-                  </p>
+                <PortalUpdate
+                  syncedAt={syncedAt}
+                  summary={portal && portal.diff_summary}
+                  pending={Boolean(portal && portal.portal_has_pending_change)}
+                  checking={checking}
+                  pulling={pulling}
+                  failed={syncFailed}
+                  onCheck={check}
+                  onPull={pull}
+                />
+
+                <div role="status" aria-live="polite" className="mt-9 empty:hidden">
+                  {cascading ? (
+                    <div className={'enter-fade ' + CARD + ' px-7 py-7'}>
+                      <p className="smallcaps text-micro text-clay">
+                        What that change set off
+                      </p>
+                      <ol className="mt-5 flex flex-col gap-3">
+                        {CASCADE_STEPS.map((label, index) => {
+                          const done = stage > index
+                          return (
+                            <li
+                              key={label}
+                              className={
+                                'flex items-baseline gap-4 rounded-card border px-5 py-3 ' +
+                                (done
+                                  ? 'border-mild bg-mild-tint'
+                                  : 'border-line bg-sunken')
+                              }
+                            >
+                              <span
+                                aria-hidden="true"
+                                className={done ? 'text-mild' : 'text-ink-2'}
+                              >
+                                {done
+                                  ? String.fromCharCode(10003)
+                                  : String.fromCharCode(9675)}
+                              </span>
+                              <span
+                                className={
+                                  'text-sm ' +
+                                  (done ? 'font-semibold text-ink' : 'text-ink-2')
+                                }
+                              >
+                                {label}
+                              </span>
+                            </li>
+                          )
+                        })}
+                      </ol>
+                      <p className="measure mt-5 text-sm text-ink-2">
+                        {announcement}
+                      </p>
+                    </div>
+                  ) : null}
                 </div>
-              ) : null}
+
+                <RegimenSnapshot
+                  hash={shownHash}
+                  previousHash={cascading ? prior.regimen.content_hash : null}
+                  count={(shownRequests || []).length}
+                  flash={cascading && stage >= 1}
+                />
+              </section>
+
+              <DemoControls>
+                <TimeTravel
+                  plan={shownPlanRaw}
+                  shiftMs={clockShiftMs}
+                  onShift={setClockShiftMs}
+                />
+              </DemoControls>
             </div>
-
-            <RegimenSnapshot
-              hash={shownHash}
-              previousHash={cascading ? prior.regimen.content_hash : null}
-              count={(shownRequests || []).length}
-              flash={cascading && stage >= 1}
-            />
-          </section>
-
-          <DemoControls>
-            <TimeTravel
-              plan={shownPlanRaw}
-              shiftMs={clockShiftMs}
-              onShift={setClockShiftMs}
-            />
-          </DemoControls>
+          </div>
         </div>
       ) : null}
     </Screen>

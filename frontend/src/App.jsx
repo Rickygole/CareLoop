@@ -8,6 +8,7 @@ import DecisionPage from './pages/Decision.jsx'
 import MedsPage from './pages/Meds.jsx'
 import SafetyPage from './pages/Safety.jsx'
 import SignInPage from './pages/SignIn.jsx'
+import SignUpPage from './pages/SignUp.jsx'
 import TodayPage from './pages/Today.jsx'
 import { SessionProvider } from './lib/session.jsx'
 
@@ -15,6 +16,7 @@ export default function App() {
   return (
     <SessionProvider>
       <Routes>
+        <Route path="/signup" element={<SignUpPage />} />
         <Route path="/signin" element={<SignInPage />} />
         <Route element={<Layout />}>
           <Route path="/" element={<TodayPage />} />

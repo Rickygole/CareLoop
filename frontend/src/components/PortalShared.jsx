@@ -1,7 +1,7 @@
 import { clockLabel } from '../lib/format.js'
 import { CARD } from '../lib/ui.js'
 
-function zoneLabel(zone) {
+export function zoneLabel(zone) {
   const name = String(zone || '').split('/').pop()
   return name ? name.replace(/_/g, ' ') + ' time' : 'local time'
 }

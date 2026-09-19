@@ -2,40 +2,49 @@ import { useCallback, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 
 import Masthead from '../components/Masthead.jsx'
+import Notice from '../components/Notice.jsx'
 import { DashboardFooter } from '../components/Disclaimers.jsx'
 import { BTN_HERO, FIELD } from '../lib/ui.js'
 import { useSession } from '../lib/session.jsx'
-import { DEMO_ACCOUNT, matchesDemoAccount } from '../data/demoAccount.js'
+import { DEMO_ACCOUNT, matchesDemoSignUp } from '../data/demoAccount.js'
 
-const WRONG =
-  'That is not the demo account. The fields arrive filled in with the only account this demonstration has.'
+const CHANGED =
+  'Nothing you type is sent anywhere, and nothing is stored, so there is no account to make out of it. This demonstration has one set of details and they arrive filled in.'
 
-export default function SignInPage() {
+export default function SignUpPage() {
   const navigate = useNavigate()
-  const { signIn, connected } = useSession()
+  const { signIn } = useSession()
 
+  const [fullName, setFullName] = useState(DEMO_ACCOUNT.fullName)
   const [email, setEmail] = useState(DEMO_ACCOUNT.email)
   const [password, setPassword] = useState(DEMO_ACCOUNT.password)
   const [error, setError] = useState('')
 
   const restore = useCallback(() => {
+    setFullName(DEMO_ACCOUNT.fullName)
     setEmail(DEMO_ACCOUNT.email)
     setPassword(DEMO_ACCOUNT.password)
     setError('')
   }, [])
 
+  const restoreAndGo = useCallback(() => {
+    restore()
+    signIn()
+    navigate('/connect')
+  }, [navigate, restore, signIn])
+
   const submit = useCallback(
     (event) => {
       event.preventDefault()
-      if (!matchesDemoAccount(email, password)) {
-        setError(WRONG)
+      if (!matchesDemoSignUp(fullName, email, password)) {
+        setError(CHANGED)
         return
       }
       setError('')
       signIn()
-      navigate(connected ? '/' : '/connect')
+      navigate('/connect')
     },
-    [connected, email, navigate, password, signIn],
+    [email, fullName, navigate, password, signIn],
   )
 
   return (
@@ -44,53 +53,85 @@ export default function SignInPage() {
 
       <main id="main" className="hold pb-10 pt-8">
         <div className="max-w-[34rem]">
-          <h1 className="display text-3xl text-ink">Sign in to CareLoop</h1>
+          <h1 className="display text-3xl text-ink">
+            Sign up for the CareLoop demonstration
+          </h1>
           <p className="measure mt-3 text-ink-2">
-            Demonstration sign-in. The only account this demonstration has is
-            already filled in below, so there is nothing to type.
+            Three steps. You sign up, you pick your insurance, and CareLoop
+            reads the health records that insurer holds for you. The details
+            below are already filled in, so there is nothing to type.
           </p>
 
-          <form onSubmit={submit} noValidate className="mt-6 max-w-[30rem]">
+          <Notice tone="caution" word="This is a demonstration" className="mt-7">
+            <p>
+              No account is created here. CareLoop has no sign-up server, keeps
+              no record of anything typed on this page, and will never ask you
+              for a date of birth, an address, a member number or a social
+              security number.
+            </p>
+          </Notice>
+
+          <form onSubmit={submit} noValidate className="mt-8 max-w-[30rem]">
             <div>
               <label
-                htmlFor="signin-email"
+                htmlFor="signup-name"
                 className="block text-base font-semibold text-ink"
               >
-                Email address
+                Full name
               </label>
               <input
-                id="signin-email"
-                type="email"
-                name="demo-email"
+                id="signup-name"
+                type="text"
+                name="demo-name"
                 autoComplete="off"
                 spellCheck="false"
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
-                aria-describedby="signin-note"
+                value={fullName}
+                onChange={(event) => setFullName(event.target.value)}
+                aria-describedby="signup-note"
                 className={FIELD + ' mt-2'}
               />
             </div>
 
             <div className="mt-4">
               <label
-                htmlFor="signin-password"
+                htmlFor="signup-email"
+                className="block text-base font-semibold text-ink"
+              >
+                Email address
+              </label>
+              <input
+                id="signup-email"
+                type="email"
+                name="demo-email"
+                autoComplete="off"
+                spellCheck="false"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                aria-describedby="signup-note"
+                className={FIELD + ' mt-2'}
+              />
+            </div>
+
+            <div className="mt-4">
+              <label
+                htmlFor="signup-password"
                 className="block text-base font-semibold text-ink"
               >
                 Password
               </label>
               <input
-                id="signin-password"
+                id="signup-password"
                 type="password"
                 name="demo-password"
                 autoComplete="off"
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
-                aria-describedby="signin-note"
+                aria-describedby="signup-note"
                 className={FIELD + ' mt-2'}
               />
             </div>
 
-            <p id="signin-note" className="measure mt-3 text-base text-ink-2">
+            <p id="signup-note" className="measure mt-3 text-base text-ink-2">
               Never type a real password into a demonstration, including this
               one. CareLoop stores no password and has no sign-in server.
             </p>
@@ -102,14 +143,16 @@ export default function SignInPage() {
                     {String.fromCharCode(9670)}
                   </span>
                   <span>
-                    <strong className="font-semibold">Cannot sign in.</strong>{' '}
+                    <strong className="font-semibold">
+                      Those are not the demonstration details.
+                    </strong>{' '}
                     {error}{' '}
                     <button
                       type="button"
-                      onClick={restore}
+                      onClick={restoreAndGo}
                       className="inline-flex min-h-[44px] items-center align-middle font-semibold underline"
                     >
-                      Put the demo account back
+                      Put the demonstration details back and carry on
                     </button>
                   </span>
                 </p>
@@ -118,24 +161,17 @@ export default function SignInPage() {
 
             <div className="mt-6">
               <button type="submit" className={BTN_HERO}>
-                Sign in
+                Sign up and choose my insurance
               </button>
             </div>
           </form>
 
           <div className="mt-12 border-t border-line pt-8">
-            <h2 className="text-base font-semibold text-ink">
-              Have not signed up yet?
-            </h2>
-            <p className="measure mt-2 text-ink-2">
-              The sign up is where this demonstration starts. It creates no
-              account and collects nothing.
+            <p className="measure text-ink-2">
+              Already have the demonstration account?
             </p>
-            <Link
-              to="/signup"
-              className="mt-3 inline-flex min-h-[44px] items-center font-semibold text-brand underline"
-            >
-              Sign up instead
+            <Link to="/signin" className="mt-3 inline-flex min-h-[44px] items-center font-semibold text-brand underline">
+              Sign in instead
             </Link>
           </div>
         </div>

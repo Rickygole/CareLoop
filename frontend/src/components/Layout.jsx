@@ -26,7 +26,7 @@ export default function Layout() {
     if (main.current) main.current.focus()
   }, [location.pathname])
 
-  if (!signedIn) return <Navigate to="/signin" replace />
+  if (!signedIn) return <Navigate to="/signup" replace />
 
   return (
     <div>

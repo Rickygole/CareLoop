@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import Notice from '../components/Notice.jsx'
 import { LoadFailed, Loading } from '../components/LoadState.jsx'
 import Screen from '../components/Screen.jsx'
+import { zoneLabel } from '../components/PortalShared.jsx'
 import { Rule } from '../components/Block.jsx'
 import { clockLabel, dateTimeLabel } from '../lib/format.js'
 import { BTN_PRIMARY, CARD } from '../lib/ui.js'
@@ -112,21 +113,29 @@ function NotBooked({ visit }) {
 }
 
 export default function AppointmentsPage() {
-  const { patientId, connected } = useSession()
+  const { patientId, connected, restoring } = useSession()
   const { data, loading, failed, failure, reload } = useFollowups(
     patientId,
     connected,
   )
 
+  if (restoring) {
+    return (
+      <Screen title="Appointments">
+        <Loading what="Reading your records again after the page reloaded." />
+      </Screen>
+    )
+  }
+
   if (!connected) {
     return (
       <Screen title="Appointments">
         <p className="measure text-ink-2">
-          Connect MyHealth to see the follow-up visits your prescriber asked
-          for.
+          Choose your insurance to see the follow-up visits your prescriber
+          asked for.
         </p>
         <Link to="/connect" className={BTN_PRIMARY + ' mt-7'}>
-          Connect MyHealth
+          Choose your insurance
         </Link>
       </Screen>
     )
@@ -167,7 +176,8 @@ export default function AppointmentsPage() {
             {contactWindow ? (
               <p className="measure mt-4 text-sm text-ink-2">
                 Calls only between {clockLabel(contactWindow.start)} and{' '}
-                {clockLabel(contactWindow.end)}, {contactWindow.timezone}.
+                {clockLabel(contactWindow.end)},{' '}
+                {zoneLabel(contactWindow.timezone)}.
               </p>
             ) : null}
           </section>

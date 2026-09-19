@@ -8,24 +8,28 @@ const SEVERITY = {
     glyph: String.fromCharCode(9679),
     text: 'text-emergency',
     skin: 'border-emergency bg-emergency-tint',
+    rail: 'border-l-8 border-l-emergency',
   },
   major: {
     word: 'Major interaction',
     glyph: String.fromCharCode(9670),
     text: 'text-severe',
     skin: 'border-severe bg-severe-tint',
+    rail: 'border-l-8 border-l-severe',
   },
   moderate: {
     word: 'Moderate interaction',
     glyph: String.fromCharCode(9651),
     text: 'text-moderate',
     skin: 'border-moderate bg-moderate-tint',
+    rail: 'border-l-4 border-l-moderate',
   },
   minor: {
     word: 'Minor interaction',
     glyph: String.fromCharCode(9675),
     text: 'text-ink-2',
     skin: 'border-line bg-sunken',
+    rail: 'border-l-4 border-l-line-strong',
   },
 }
 
@@ -97,7 +101,7 @@ export function InteractionLimits({ regimen }) {
                       {severityMeta(finding.severity).word}
                     </span>
                     <span className="inline-block text-sm font-semibold text-ink first-letter:uppercase">
-                      {pairLabel(finding.ingredients)}
+                      {pairLabel(finding.labels || finding.ingredients)}
                     </span>
                   </p>
                   <p className="measure mt-2 text-sm text-ink-2">
@@ -146,20 +150,22 @@ export default function InteractionFlags({ regimen, flash }) {
                 <li
                   key={finding.ingredients.join('-')}
                   className={
-                    'enter-script ledge ledge-strong rounded-card border px-7 py-7 ' +
-                    meta.skin
+                    'enter-script ledge-strong rounded-card border px-7 py-7 ' +
+                    meta.skin +
+                    ' ' +
+                    meta.rail
                   }
                   style={{ '--i': index }}
                 >
                   <p className={'flex items-center gap-3 ' + meta.text}>
-                    <span aria-hidden="true" className="text-[1.15em] leading-none">
+                    <span aria-hidden="true" className="text-[1.3em] leading-none">
                       {meta.glyph}
                     </span>
-                    <span className="smallcaps text-micro">{meta.word}</span>
+                    <span className="smallcaps text-sm">{meta.word}</span>
                   </p>
-                  <p className="display-tight mt-4 text-xl text-ink first-letter:uppercase">
-                    {pairLabel(finding.ingredients)}
-                  </p>
+                  <h3 className="display mt-4 text-2xl text-ink first-letter:uppercase">
+                    {pairLabel(finding.labels || finding.ingredients)}
+                  </h3>
                   <p className="measure mt-3 text-ink">
                     Taken together these two carry {finding.concern}.
                   </p>

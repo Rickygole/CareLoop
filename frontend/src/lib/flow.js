@@ -12,7 +12,7 @@ const TITLES = {
   '/call': 'Check-in',
   '/appointments': 'Appointments',
   '/safety': 'Safety',
-  '/connect': 'Connect MyHealth',
+  '/connect': 'Insurance and records',
   '/decision': 'Check-in summary',
 }
 
