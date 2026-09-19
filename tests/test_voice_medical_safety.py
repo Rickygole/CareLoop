@@ -47,10 +47,17 @@ def flag_the_next_dose(session_name):
     return patient
 
 
-@pytest.mark.parametrize("patient_id", ["p1", "p2"])
-def test_the_check_in_reminds_the_patient_to_take_the_medicine(patient_id):
-    spoken = greeting(patient_id, f"med-safety-{patient_id}")
-    assert REMINDER in spoken, f"{patient_id} was not reminded to take anything"
+def test_the_check_in_reminds_the_patient_to_take_an_unflagged_medicine():
+    spoken = greeting("p2", "med-safety-p2")
+    assert REMINDER in spoken, "p2 carries no flagged pair and must be reminded"
+
+
+def test_the_check_in_withholds_the_reminder_for_a_flagged_medicine():
+    spoken = greeting("p1", "med-safety-p1")
+    assert REMINDER not in spoken, (
+        "p1 carries a major warfarin and aspirin pair, so the reminder must be withheld"
+    )
+    assert "i am not going to ask you to take it" in spoken
 
 
 @pytest.mark.parametrize("patient_id", ["p1", "p2"])
@@ -92,7 +99,7 @@ def test_withholding_the_prompt_is_recorded_on_the_trace():
 
 
 def test_an_unflagged_regimen_is_reminded_normally():
-    spoken = greeting("p1", "med-unflagged")
+    spoken = greeting("p2", "med-unflagged")
     assert "i am not going to ask you to take it" not in spoken
     assert REMINDER in spoken
 

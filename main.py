@@ -31,7 +31,13 @@ load_dotenv()
 
 import telephony
 from clinic import FRONT_DESK_DISCLOSURE, plan_clinic_call
-from contradiction import LIMITATIONS, check_cross_call, check_regimen, patient_message
+from contradiction import (
+    LIMITATIONS,
+    active_ingredients,
+    check_cross_call,
+    check_regimen,
+    patient_message,
+)
 from escalation import (
     ESCALATION_IS_A_RECORD_ONLY,
     NEVER_CONTACTS_EMERGENCY_SERVICES,
@@ -1006,9 +1012,9 @@ def _next_dose_is_flagged(patient: Optional[dict]) -> Optional[List[str]]:
     plan = build_day_plan(patient)
     dose = plan["next_dose"]
     name = (dose or {}).get("medication") or _demo_medication_name(patient)
-    name = (name or "").strip().lower()
+    resolved = set(active_ingredients([{"medication": name, "status": "active"}]))
     for finding in surfaced:
-        if any(ingredient in name for ingredient in finding["ingredients"]):
+        if resolved & set(finding["ingredients"]):
             return finding["ingredients"]
     return None
 

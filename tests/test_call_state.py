@@ -93,7 +93,7 @@ def test_declining_the_call_sends_one_text_and_never_redials(configured, monkeyp
     assert len(texts) == 1, "declining must send exactly one text"
     assert len(dials) == before, "declining must not place another call"
     assert texts[0][0] == "+15550002222"
-    assert "reminder to take your" in texts[0][1]
+    assert "Maria" in texts[0][1]
     assert state(client, session)["phase"] == main.CALL_PHASE_TEXTED
 
 

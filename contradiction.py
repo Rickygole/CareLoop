@@ -53,6 +53,14 @@ INTERACTION_PAIRS = [
 ]
 
 
+NEGATION_BEFORE = re.compile(r"\b(?:non|free\s+of|without|no)\s*-?\s*$", re.IGNORECASE)
+NEGATION_AFTER = re.compile(r"^\s*-?\s*free\b", re.IGNORECASE)
+
+
+def _is_negated(text: str, start: int, end: int) -> bool:
+    return bool(NEGATION_BEFORE.search(text[:start]) or NEGATION_AFTER.match(text[end:]))
+
+
 def normalize_ingredient(name: str) -> str:
     return (name or "").strip().lower()
 
@@ -111,7 +119,8 @@ _COMPILED_BRANDS = [
 
 def resolve_brand(text: str) -> Optional[str]:
     for pattern, ingredient in _COMPILED_BRANDS:
-        if pattern.search(text):
+        match = pattern.search(text)
+        if match and not _is_negated(text, match.start(), match.end()):
             return ingredient
     return None
 
@@ -131,11 +140,22 @@ def active_ingredients(medication_requests: List[dict]) -> List[str]:
         text = normalize_ingredient(request.get("medication", ""))
         if not text:
             continue
-        match = next(
-            (known for known in KNOWN_INGREDIENTS if _token_pattern(known).search(text)),
-            None,
-        )
-        out.append(match or resolve_brand(text) or text.split()[0])
+        match = None
+        negated = False
+        for known in KNOWN_INGREDIENTS:
+            hit = _token_pattern(known).search(text)
+            if not hit:
+                continue
+            if _is_negated(text, hit.start(), hit.end()):
+                negated = True
+                continue
+            match = known
+            break
+        if match is None:
+            match = resolve_brand(text)
+        if match is None:
+            match = text.replace(" ", "-") if negated else text.split()[0]
+        out.append(match)
     return [i for i in out if i]
 
 

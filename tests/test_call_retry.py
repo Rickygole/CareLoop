@@ -28,11 +28,11 @@ def wires(monkeypatch):
     return {"placed": placed, "texted": texted}
 
 
-def report(client, session, status, call_sid, attempt=1, sign=True):
+def report(client, session, status, call_sid, attempt=1, sign=True, patient_id="p1"):
     nonce = main._issue_callback_nonce(main.SESSIONS.get(session), attempt)
-    query = f"/voice/checkin/status?patient_id=p1&attempt={attempt}&nonce={nonce}"
+    query = f"/voice/checkin/status?patient_id={patient_id}&attempt={attempt}&nonce={nonce}"
     if sign:
-        query += "&sig=" + main._callback_signature("p1", session, attempt, nonce)
+        query += "&sig=" + main._callback_signature(patient_id, session, attempt, nonce)
     return client.post(
         query,
         data={"CallStatus": status, "CallDuration": "4", "CallSid": call_sid},
@@ -58,10 +58,10 @@ def test_a_call_the_patient_does_not_take_is_answered_with_a_text(configured, wi
 
 def test_the_text_reminds_them_of_the_medicine_by_name(configured, wires):
     client = TestClient(main.app)
-    report(client, "retry-body", "busy", "CA1")
+    report(client, "retry-body", "busy", "CA1", patient_id="p2")
     body = wires["texted"][0]["body"]
     assert "reminder to take your" in body
-    assert "Maria" in body
+    assert "Dorothy" in body
     assert "911" in body
     assert "not medical advice" in body
 
