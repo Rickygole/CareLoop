@@ -39,6 +39,15 @@ function Row({ arm, entry, grown, placeholder }) {
   )
 }
 
+function runLabel(stamp) {
+  const at = new Date(stamp)
+  if (Number.isNaN(at.getTime())) return String(stamp)
+  return at.toLocaleString('en-US', {
+    day: 'numeric', month: 'long', hour: 'numeric', minute: '2-digit',
+    timeZone: 'UTC',
+  }) + ' UTC'
+}
+
 export default function FairnessChart() {
   const [grown, setGrown] = useState(false)
   const placeholder = Boolean(evalResults.placeholder)
@@ -79,7 +88,7 @@ export default function FairnessChart() {
 
       <section aria-labelledby="conditions-heading" className="mt-12">
         <h2 id="conditions-heading" className="display text-2xl text-ink">
-          How often each one agreed with itself
+          How often a moderate case was raised above moderate
         </h2>
         <Rule tone="sand" />
 
@@ -92,9 +101,7 @@ export default function FairnessChart() {
           <p className="numeric mt-4 text-sm text-ink-2">
             {evalResults.cases} cases, {evalResults.repeats_per_case} repeats
             each, {evalResults.model}
-            {evalResults.generated_at
-              ? ', run ' + evalResults.generated_at
-              : ''}
+            {evalResults.generated_at ? ', run ' + runLabel(evalResults.generated_at) : ''}
             .
           </p>
         )}
