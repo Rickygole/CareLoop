@@ -206,6 +206,7 @@ export default function SimulatedCall({
   const [ringMissing, setRingMissing] = useState([])
   const [live, setLive] = useState(null)
   const [stateUnread, setStateUnread] = useState(false)
+  const [confirming, setConfirming] = useState(false)
   const alive = useRef(true)
   const seq = useRef(0)
   const poll = useRef(null)
@@ -316,6 +317,7 @@ export default function SimulatedCall({
   const phoneLive = phoneConfigured() && typeof onRing === 'function'
 
   const ring = useCallback(async () => {
+    setConfirming(false)
     setRingState(CALL_STATUS.DIALLING)
     setRingMissing([])
     setLive(null)
@@ -386,15 +388,15 @@ export default function SimulatedCall({
             heading="Take the real phone call"
             body={
               phoneLive
-                ? 'This is the real thing. CareLoop dials the number on the record and talks to you on an ordinary phone call. No app and no screen.'
-                : 'Outbound calling needs telephony credentials that are not set here, so no phone will ring. Nothing is faked to cover for it.'
+                ? 'This is the real thing. Press the button and your telephone rings, like any other call. CareLoop dials the number on this record and speaks to you. No app and no screen.'
+                : 'Calling out needs telephone settings that are not filled in here, so no phone will ring. Nothing is faked to cover for it.'
             }
           >
             {phoneLive ? (
               <div className="mt-6">
                 <button
                   type="button"
-                  onClick={ring}
+                  onClick={() => setConfirming(true)}
                   disabled={phoneWorking || writtenRunning}
                   className={BTN_HERO}
                 >
@@ -403,13 +405,38 @@ export default function SimulatedCall({
                     : 'Call my phone now'}
                 </button>
 
+                {confirming ? (
+                  <div className="enter-fade mt-7 rounded-card border border-line-strong bg-sand px-6 py-6">
+                    <h4 className="display-tight text-lg text-ink">
+                      This will ring your telephone
+                    </h4>
+                    <p className="measure mt-3 text-ink">
+                      CareLoop is about to dial the phone number on this record.
+                      Your telephone will ring in a moment, like any other call.
+                      Have it next to you before you press Yes.
+                    </p>
+                    <div className="mt-8 flex flex-col gap-y-6 sm:flex-row sm:items-center sm:gap-x-12">
+                      <button type="button" onClick={ring} className={BTN_HERO}>
+                        Yes, call my phone
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setConfirming(false)}
+                        className={BTN_QUIET}
+                      >
+                        Not now
+                      </button>
+                    </div>
+                  </div>
+                ) : null}
+
                 <div role="status" aria-live="polite" className="empty:hidden">
                   {RING_WORDING[ringState] && !phaseWord ? (
                     <p className="measure mt-6 text-sm font-semibold text-ink">
                       {RING_WORDING[ringState]}
                       {ringSid ? (
-                        <span className="numeric ml-3 font-mono text-xs font-normal text-ink-2">
-                          {ringSid}
+                        <span className="numeric ml-3 text-sm font-normal text-ink-2">
+                          Call reference {ringSid}
                         </span>
                       ) : null}
                     </p>
@@ -430,12 +457,13 @@ export default function SimulatedCall({
                       </p>
                       {live.retrying && live.attempt ? (
                         <p className="numeric mt-2 text-sm text-ink-2">
-                          Attempt {live.attempt} of {live.max_attempts}
+                          This is try {live.attempt} of {live.max_attempts}.
+                          CareLoop stops after that.
                         </p>
                       ) : null}
                       {live.call_sid ? (
-                        <p className="numeric mt-2 font-mono text-xs text-ink-2">
-                          {live.call_sid}
+                        <p className="numeric mt-2 text-sm text-ink-2">
+                          Call reference {live.call_sid}
                         </p>
                       ) : null}
                     </div>
@@ -443,9 +471,8 @@ export default function SimulatedCall({
 
                   {stateUnread ? (
                     <p className="measure mt-4 text-sm text-ink-2">
-                      CareLoop could not read the state of the call just now,
-                      so nothing here has moved on. The call itself is
-                      unaffected.
+                      CareLoop could not check on the call just now, so nothing
+                      on this page has moved on. The call itself carries on.
                     </p>
                   ) : null}
 
@@ -454,10 +481,14 @@ export default function SimulatedCall({
                       <span aria-hidden="true" className="mr-3">
                         {DIAMOND}
                       </span>
-                      The call was not placed.
+                      Your phone was not called. Nothing was dialled and
+                      nothing was recorded.
                       {ringMissing.length
-                        ? ' Missing settings: ' + ringMissing.join(', ') + '.'
-                        : ' Nothing was dialled and nothing was recorded.'}
+                        ? ' These telephone settings are missing: ' +
+                          ringMissing.join(', ') + '.'
+                        : ''}{' '}
+                      Read the check-in in writing instead, or call your clinic
+                      directly if this is urgent.
                     </p>
                   ) : null}
                 </div>
@@ -529,7 +560,7 @@ export default function SimulatedCall({
         </div>
 
         {phase === 'ended' ? (
-          <div className="mt-9 flex flex-wrap items-center gap-x-6 gap-y-4">
+          <div className="mt-9 flex flex-col gap-y-6 sm:flex-row sm:items-center sm:gap-x-12">
             <Link to="/decision" className={BTN_PRIMARY}>
               See what CareLoop decided
             </Link>

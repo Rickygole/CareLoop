@@ -25,7 +25,8 @@ export function LoadFailed({ what, detail, onRetry }) {
       {detail ? <p className="mt-3 text-sm text-ink-2">{detail}</p> : null}
       <p className="mt-3 text-sm">
         Nothing is shown below, because nothing was read. This is not a
-        statement that your record is empty.
+        statement that your record is empty. Press Try again, or call your
+        clinic directly if this is urgent.
       </p>
       <button type="button" onClick={onRetry} className={BTN_SECONDARY + ' mt-6'}>
         Try again
@@ -46,7 +47,8 @@ export function RefreshFailed({ what, detail, onRetry }) {
       {detail ? <p className="mt-3 text-sm text-ink-2">{detail}</p> : null}
       <p className="mt-3 text-sm">
         What is below is the last thing CareLoop read, not what MyHealth holds
-        right now.
+        right now. Press Try again, or call your clinic directly if this is
+        urgent.
       </p>
       <button type="button" onClick={onRetry} className={BTN_SECONDARY + ' mt-6'}>
         Try again

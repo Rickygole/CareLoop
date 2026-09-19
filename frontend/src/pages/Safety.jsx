@@ -5,7 +5,7 @@ export default function SafetyPage() {
   return (
     <Screen
       title="Safety"
-      lead="How the triage behaves when the same symptom is described in different ways, and what that test does not prove."
+      lead="This page is the test record. It shows how CareLoop rates the same symptom when it is described in different ways, and what that test does not prove."
     >
       <FairnessChart />
     </Screen>

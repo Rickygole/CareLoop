@@ -5,7 +5,7 @@ import { LoadFailed, Loading } from '../components/LoadState.jsx'
 import Screen from '../components/Screen.jsx'
 import { Rule } from '../components/Block.jsx'
 import { clockLabel, dateTimeLabel } from '../lib/format.js'
-import { BTN_PRIMARY, BTN_SECONDARY, CARD } from '../lib/ui.js'
+import { BTN_PRIMARY, CARD } from '../lib/ui.js'
 import { bookedVisits, unbookedVisits, useFollowups } from '../lib/useFollowups.js'
 import { useSession } from '../lib/session.jsx'
 
@@ -47,7 +47,7 @@ function Visit({ visit }) {
           <dd className="measure mt-1 text-sm text-ink">{visit.reason}</dd>
         </div>
         <div>
-          <dt className="smallcaps text-micro text-clay">Network</dt>
+          <dt className="smallcaps text-micro text-clay">Insurance</dt>
           <dd className="mt-1 text-sm text-ink">
             {visit.in_network ? 'In network with ' : 'Out of network with '}
             {visit.payer_display}
@@ -57,7 +57,9 @@ function Visit({ visit }) {
 
       {reminders.length ? (
         <div className="mt-6 rounded-card border border-line bg-sunken px-5 py-4">
-          <p className="smallcaps text-micro text-clay">Reminder calls scheduled</p>
+          <p className="smallcaps text-micro text-clay">
+            Reminder calls CareLoop would make
+          </p>
           <ul className="mt-3 flex flex-col gap-3">
             {reminders.map((reminder) => (
               <li key={reminder.kind} className="flex items-baseline gap-3">
@@ -68,16 +70,20 @@ function Visit({ visit }) {
                   <span className="font-semibold">
                     {reminderLabel(reminder.kind)}
                   </span>
-                  , scheduled for {dateTimeLabel(reminder.fire_at)} about{' '}
+                  , planned for {dateTimeLabel(reminder.fire_at)} about{' '}
                   {reminder.provider_name}.
                 </span>
               </li>
             ))}
           </ul>
+          <p className="measure mt-4 text-sm text-ink-2">
+            Nothing in this prototype runs on a timer, so neither of these
+            calls will place itself. Please keep your own note of the visit.
+          </p>
         </div>
       ) : (
-        <p className="mt-6 text-sm text-ink-2">
-          No reminder call is scheduled for this visit.
+        <p className="measure mt-6 text-sm text-ink-2">
+          CareLoop has no reminder call planned for this visit.
         </p>
       )}
     </li>
@@ -146,12 +152,11 @@ export default function AppointmentsPage() {
         <div>
           <section aria-labelledby="coverage-heading" className={CARD + ' px-6 py-6 sm:px-8'}>
             <h2 id="coverage-heading" className="smallcaps text-micro text-clay">
-              Coverage
+              Your insurance
             </h2>
             <p className="mt-3 text-xl font-semibold text-ink">
-              {data.payer_display || 'No payer on file'}
+              {data.payer_display || 'No insurance on file'}
             </p>
-            <p className="numeric mt-1 text-sm text-ink-2">{data.payer_id}</p>
             <p className="measure mt-4 text-sm text-ink">
               {booked.length
                 ? booked.every((visit) => visit.in_network)
@@ -209,7 +214,7 @@ export default function AppointmentsPage() {
             </h2>
             <Rule />
             <p className="measure mt-6 text-sm text-ink-2">{data.disclosure}</p>
-            <Link to="/call" className={BTN_SECONDARY + ' mt-7'}>
+            <Link to="/call" className={BTN_PRIMARY + ' mt-7'}>
               Go to the check-in
             </Link>
           </section>

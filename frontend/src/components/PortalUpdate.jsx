@@ -16,14 +16,14 @@ export default function PortalUpdate({
     <div className="mt-9">
       <div className={CARD + ' px-7 py-7'}>
         <p className="smallcaps text-micro text-clay">
-          MyHealth stays the source of truth
+          MyHealth decides what is on your list
         </p>
         <p className="measure mt-4 text-ink">
           {syncedAt
-            ? 'CareLoop read the portal when this page opened at ' +
+            ? 'CareLoop read MyHealth when this page opened at ' +
               dateTimeLabel(syncedAt) +
               '. You can ask it to read again.'
-            : 'CareLoop has not read the portal on this visit. You can ask it to read now.'}
+            : 'CareLoop has not read MyHealth on this visit. You can ask it to read now.'}
         </p>
 
         <div className="mt-6">
@@ -53,7 +53,7 @@ export default function PortalUpdate({
           className="enter-fade mt-8"
         >
           Your prescriber has sent a new prescription to MyHealth. It arrives
-          from the portal, so nobody types it in here and nobody edits a call
+          from MyHealth, so nobody types it in here and nobody edits a call
           time by hand.
           <span className="mt-6 block">
             <button
@@ -63,8 +63,8 @@ export default function PortalUpdate({
               className={BTN_PRIMARY}
             >
               {pulling
-                ? 'Pulling it across...'
-                : 'Pull the new prescription from MyHealth'}
+                ? 'Getting it now...'
+                : 'Get the new prescription from MyHealth'}
             </button>
           </span>
         </Notice>
@@ -78,8 +78,9 @@ export default function PortalUpdate({
           className="enter-fade measure mt-8"
           size="sm"
         >
-          CareLoop could not read the portal just now. Your list is unchanged
-          and still shows the last thing MyHealth sent. Try the button again.
+          CareLoop could not reach MyHealth just now. Your list is unchanged
+          and still shows the last thing MyHealth sent. Press the button again
+          in a moment, or call your clinic directly if this is urgent.
         </Notice>
       ) : null}
     </div>

@@ -38,78 +38,20 @@ function pairLabel(ingredients) {
   return String(a || '') + ' and ' + String(b || '')
 }
 
-export default function InteractionFlags({ regimen, flash }) {
+export function InteractionLimits({ regimen }) {
   const [heldOpen, setHeldOpen] = useState(false)
 
   if (!regimen) return null
 
-  const surfaced = regimen.surfaced || []
   const held = (regimen.findings || []).filter((f) => !f.surfaced)
 
   return (
-    <section
-      aria-labelledby="flags-heading"
-      className={'mt-12 ' + (flash ? 'trace-flash' : '')}
-    >
-      <h2 id="flags-heading" className="display text-2xl text-ink">
-        {surfaced.length
-          ? 'Something on this list is worth checking'
-          : 'Nothing on this list conflicts'}
+    <section aria-labelledby="limits-heading" className="mt-12">
+      <h2 id="limits-heading" className="display text-2xl text-ink">
+        What this check does not do
       </h2>
-      <Rule tone={surfaced.length ? 'clay' : 'sand'} />
-
-      {surfaced.length ? (
-        <div className="mt-8">
-          <p className="measure text-lg leading-[1.45] text-ink">
-            {regimen.patient_message}
-          </p>
-
-          <ul className="mt-8 flex flex-col gap-6">
-            {surfaced.map((finding, index) => {
-              const meta = severityMeta(finding.severity)
-              return (
-                <li
-                  key={finding.ingredients.join('-')}
-                  className={
-                    'enter-script ledge ledge-strong rounded-card border px-7 py-7 ' +
-                    meta.skin
-                  }
-                  style={{ '--i': index }}
-                >
-                  <p className={'flex items-center gap-3 ' + meta.text}>
-                    <span aria-hidden="true" className="text-[1.15em] leading-none">
-                      {meta.glyph}
-                    </span>
-                    <span className="smallcaps text-micro">{meta.word}</span>
-                  </p>
-                  <p className="display-tight mt-4 text-xl capitalize text-ink">
-                    {pairLabel(finding.ingredients)}
-                  </p>
-                  <p className="measure mt-3 text-ink">
-                    Taken together these two carry {finding.concern}.
-                  </p>
-                  <p className="measure mt-4 text-sm text-ink-2">
-                    Source: {finding.source}.
-                  </p>
-                </li>
-              )
-            })}
-          </ul>
-        </div>
-      ) : (
-        <p className="measure mt-8 text-ink-2">
-          CareLoop compared every pair of medicines on this list and found
-          nothing that it checks for. That is not the same as nothing being
-          wrong, which is what the next paragraph is about.
-        </p>
-      )}
-
-      <div className="mt-10">
-        <h3 className="smallcaps text-micro text-clay">
-          What this check does not do
-        </h3>
-        <p className="measure mt-3 text-sm text-ink-2">{regimen.limitations}</p>
-      </div>
+      <Rule tone="sand" />
+      <p className="measure mt-6 text-ink-2">{regimen.limitations}</p>
 
       <div className="ledge mt-10 overflow-hidden rounded-card border border-line bg-sunken text-ink">
         <button
@@ -170,6 +112,77 @@ export default function InteractionFlags({ regimen, flash }) {
           ) : null}
         </div>
       </div>
+    </section>
+  )
+}
+
+export default function InteractionFlags({ regimen, flash }) {
+  if (!regimen) return null
+
+  const surfaced = regimen.surfaced || []
+
+  return (
+    <section
+      aria-labelledby="flags-heading"
+      className={flash ? 'trace-flash' : ''}
+    >
+      <h2 id="flags-heading" className="display text-2xl text-ink">
+        {surfaced.length
+          ? 'Something on this list is worth checking'
+          : 'Nothing on this list conflicts'}
+      </h2>
+      <Rule tone={surfaced.length ? 'clay' : 'sand'} />
+
+      {surfaced.length ? (
+        <div className="mt-8">
+          <p className="measure text-lg leading-[1.45] text-ink">
+            {regimen.patient_message}
+          </p>
+
+          <ul className="mt-8 flex flex-col gap-6">
+            {surfaced.map((finding, index) => {
+              const meta = severityMeta(finding.severity)
+              return (
+                <li
+                  key={finding.ingredients.join('-')}
+                  className={
+                    'enter-script ledge ledge-strong rounded-card border px-7 py-7 ' +
+                    meta.skin
+                  }
+                  style={{ '--i': index }}
+                >
+                  <p className={'flex items-center gap-3 ' + meta.text}>
+                    <span aria-hidden="true" className="text-[1.15em] leading-none">
+                      {meta.glyph}
+                    </span>
+                    <span className="smallcaps text-micro">{meta.word}</span>
+                  </p>
+                  <p className="display-tight mt-4 text-xl capitalize text-ink">
+                    {pairLabel(finding.ingredients)}
+                  </p>
+                  <p className="measure mt-3 text-ink">
+                    Taken together these two carry {finding.concern}.
+                  </p>
+                  <p className="measure mt-4 text-sm text-ink-2">
+                    Source: {finding.source}.
+                  </p>
+                </li>
+              )
+            })}
+          </ul>
+
+          <p className="measure mt-7 text-lg leading-[1.45] text-ink">
+            Ask your prescriber or pharmacist about this. CareLoop has not told
+            anyone and cannot change what you were prescribed.
+          </p>
+        </div>
+      ) : (
+        <p className="measure mt-8 text-ink-2">
+          CareLoop compared every pair of medicines on this list and found
+          nothing that it checks for. That is not the same as nothing being
+          wrong, which is what the section at the foot of this page is about.
+        </p>
+      )}
     </section>
   )
 }

@@ -6,13 +6,14 @@ import DemoControls from '../components/DemoControls.jsx'
 import MedicationCard from '../components/MedicationCard.jsx'
 import { LoadFailed, Loading, RefreshFailed } from '../components/LoadState.jsx'
 import NextUpCard from '../components/NextUpCard.jsx'
+import Notice from '../components/Notice.jsx'
 import PortalShared from '../components/PortalShared.jsx'
 import Screen from '../components/Screen.jsx'
 import TimeTravel from '../components/TimeTravel.jsx'
 import { Rule } from '../components/Block.jsx'
 import { applyClockShift } from '../lib/clock.js'
 import { dateTimeLabel, groupSchedule } from '../lib/format.js'
-import { BTN_PRIMARY, BTN_SECONDARY, CARD } from '../lib/ui.js'
+import { BTN_HERO, BTN_PRIMARY, BTN_SECONDARY, CARD } from '../lib/ui.js'
 import { bookedVisits, useFollowups } from '../lib/useFollowups.js'
 import { usePortal } from '../lib/usePortal.js'
 import { useSession } from '../lib/session.jsx'
@@ -36,6 +37,7 @@ export default function TodayPage() {
     schedule,
     clockShiftMs,
     setClockShiftMs,
+    regimen,
   } = useSession()
 
   const { portal, loading, loadFailed, refreshFailed, failure, reload } =
@@ -70,7 +72,7 @@ export default function TodayPage() {
             Connect MyHealth to see your medicines
           </h2>
           <p className="mt-3 text-ink-2">
-            CareLoop reads the medicine list from the portal and works out when
+            CareLoop reads the medicine list from MyHealth and works out when
             to call. You never type a medicine in.
           </p>
           <Link to="/connect" className={BTN_PRIMARY + ' mt-7'}>
@@ -83,6 +85,7 @@ export default function TodayPage() {
 
   const next = bookedVisits(visits)[0]
   const who = record ? record.name.split(' ')[0] : ''
+  const flagged = (regimen && regimen.surfaced) || []
 
   return (
     <Screen title={who ? 'Today, ' + who : 'Today'} lead={today()}>
@@ -106,7 +109,36 @@ export default function TodayPage() {
 
       {!loading && !loadFailed && plan ? (
         <div>
+          {flagged.length ? (
+            <Notice
+              tone="caution"
+              word="Worth checking"
+              className="measure mb-10"
+            >
+              <p className="text-lg leading-[1.45] text-ink">
+                Two of your medicines are worth asking about:{' '}
+                <strong className="font-semibold capitalize">
+                  {flagged[0].ingredients.join(' and ')}
+                </strong>
+                .
+              </p>
+              <Link to="/meds" className={BTN_SECONDARY + ' mt-6'}>
+                See what to ask about
+              </Link>
+            </Notice>
+          ) : null}
+
           <NextUpCard dose={plan.next_dose} />
+
+          <div className="mt-9">
+            <Link to="/call" className={BTN_HERO}>
+              Start my check-in
+            </Link>
+            <p className="measure mt-4 text-ink-2">
+              You do not have to wait for the call. You can take the check-in
+              whenever you like.
+            </p>
+          </div>
 
           <div className="mt-12 grid gap-x-12 gap-y-14 lg:grid-cols-[minmax(0,1fr)_21rem]">
             <div className="min-w-0">
@@ -160,14 +192,15 @@ export default function TodayPage() {
                   </p>
                 ) : visitsFailed ? (
                   <div className="mt-4">
-                    <p className="text-sm font-semibold text-severe">
-                      CareLoop could not read your appointments just now, so
-                      this is not a statement that you have none.
-                    </p>
+                    <Notice role="alert" tone="alarm" word="Not loaded" size="sm">
+                      CareLoop could not read your appointments just now. This
+                      is not a statement that you have none. Press Try again,
+                      or call your clinic directly if this is urgent.
+                    </Notice>
                     <button
                       type="button"
                       onClick={reloadVisits}
-                      className={BTN_SECONDARY + ' mt-4 w-full'}
+                      className={BTN_SECONDARY + ' mt-6 w-full'}
                     >
                       Try again
                     </button>

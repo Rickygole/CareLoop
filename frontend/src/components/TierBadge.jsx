@@ -63,7 +63,7 @@ const TIERS = {
     darkBorder: 'border-dark-emergency/50',
     darkRail: '#ff968c',
     meaning:
-      'CareLoop never books an appointment for an emergency, because an appointment is too slow. It tells you to get help now and writes down the escalation it would send. It notifies nobody.',
+      'CareLoop never books an appointment for an emergency, because an appointment is too slow. It tells you to get help now and writes down the alert it would send. It has told nobody.',
   },
 }
 

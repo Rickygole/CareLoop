@@ -124,7 +124,7 @@ export default function SignInPage() {
             </div>
           </form>
 
-          <div className="mt-6 border-t border-line pt-5">
+          <div className="mt-12 border-t border-line pt-8">
             <button
               type="button"
               onClick={() => setShowSignUp((open) => !open)}

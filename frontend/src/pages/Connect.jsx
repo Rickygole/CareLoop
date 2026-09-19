@@ -5,7 +5,7 @@ import ConsentModal, { SHARED_ITEMS } from '../components/ConsentModal.jsx'
 import Notice from '../components/Notice.jsx'
 import Screen from '../components/Screen.jsx'
 import { connectPatient, regimenState } from '../lib/api.js'
-import { BTN_HERO, BTN_PRIMARY, BTN_QUIET } from '../lib/ui.js'
+import { BTN_HERO, BTN_QUIET } from '../lib/ui.js'
 import { useSession } from '../lib/session.jsx'
 import { PATIENTS, patientName } from '../data/patients.js'
 
@@ -84,7 +84,7 @@ export default function ConnectPage() {
   return (
     <Screen
       title="Connect MyHealth"
-      lead="CareLoop reads your medicines from the portal and works out when to call you. You never type a medicine in."
+      lead="CareLoop reads your medicines from MyHealth and works out when to call you. You never type a medicine in."
     >
       {connected && !syncing ? (
         <div>
@@ -95,17 +95,24 @@ export default function ConnectPage() {
             </strong>
             .
           </p>
-          <div className="mt-9 flex flex-wrap items-center gap-6">
-            <Link to="/" className={BTN_PRIMARY}>
+          <div className="mt-9">
+            <Link to="/" className={BTN_HERO}>
               Go to Today
             </Link>
+          </div>
+
+          <div className="mt-12 border-t border-line pt-8">
+            <p className="measure text-ink-2">
+              Disconnecting clears the medicine list from CareLoop. You would
+              have to connect MyHealth again to get it back.
+            </p>
             <button
               type="button"
               onClick={() => {
                 choosePatient(patientId)
                 setPhase('idle')
               }}
-              className={BTN_QUIET}
+              className={BTN_QUIET + ' mt-6'}
             >
               Disconnect and start again
             </button>
@@ -208,8 +215,9 @@ export default function ConnectPage() {
               word="MyHealth did not answer"
               className="enter-fade measure mt-10"
             >
-              Nothing was shared and nothing was changed. Press Connect MyHealth
-              to try again.
+              Nothing was shared and nothing was changed. Press Connect
+              MyHealth to try again, or call your clinic directly if this is
+              urgent.
             </Notice>
           ) : null}
 

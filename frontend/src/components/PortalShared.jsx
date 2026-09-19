@@ -24,7 +24,8 @@ export default function PortalShared({ allergies, window: contactWindow }) {
             >
               <p className="text-sm font-semibold text-ink">{item.substance}</p>
               <p className="mt-1 text-sm text-ink-2">
-                Reaction: {item.reaction}. Criticality {item.criticality}.
+                Reaction: {item.reaction}. Recorded as {item.criticality}{' '}
+                importance.
               </p>
             </li>
           ))}

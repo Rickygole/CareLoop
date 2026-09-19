@@ -20,7 +20,7 @@ export default function ClinicCall({ events, booking, tier }) {
         <Rule tone="sand" width="w-14" />
         <p className="measure mt-6 text-ink-2">
           {level === 'emergency'
-            ? 'CareLoop never books an appointment for an emergency. An appointment is too slow, so it tells you to get help now and records the escalation it would send. Nobody is notified by this prototype.'
+            ? 'CareLoop never books an appointment for an emergency. An appointment is too slow, so it tells you to get help now and writes down the alert it would send. Nobody is notified by this prototype.'
             : known
               ? 'CareLoop only rings the clinic when what you said means you should be seen. Nothing you said today needed that, so it did not take up an appointment.'
               : 'CareLoop did not ring the clinic, because it did not reach a decision it was willing to act on. No appointment exists. If you think you should be seen, please phone your clinic yourself.'}

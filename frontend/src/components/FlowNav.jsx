@@ -11,7 +11,7 @@ export default function FlowNav() {
 
   return (
     <nav aria-label="Sections" className="border-b border-line bg-surface">
-      <ul className="hold flex flex-wrap items-center gap-x-2 gap-y-2 py-2">
+      <ul className="hold flex flex-wrap items-center gap-x-5 gap-y-3 py-3">
         {TABS.map((tab) => {
           const current = tab.path === here
 

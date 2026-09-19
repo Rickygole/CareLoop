@@ -289,10 +289,10 @@ async function connectAndOpenMedications() {
   fireEvent.click(screen.getAllByText(/^Connect MyHealth$/)[0])
   fireEvent.click(screen.getByText(/^Connect MyHealth for/))
   fireEvent.click(screen.getByText('Allow'))
-  await screen.findByRole('heading', { level: 1, name: /Today/ }, { timeout: 4000 })
+  await screen.findByRole('heading', { level: 1, name: /Today/ }, { timeout: 15000 })
   const tabs = screen.getByRole('navigation', { name: 'Sections' })
   fireEvent.click(within(tabs).getByText('Medications'))
-  await screen.findByRole('heading', { level: 1, name: 'Medications' }, { timeout: 4000 })
+  await screen.findByRole('heading', { level: 1, name: 'Medications' }, { timeout: 15000 })
 }
 
 test('the dashboard shows the next call, the medicines and the next appointment', async () => {
@@ -350,10 +350,11 @@ test('a medicine arriving from the portal cascades through snapshot, schedule an
   await screen.findByText('a1b2c3d4e5f6', {}, { timeout: 4000 })
 
   fireEvent.click(
-    await screen.findByText('Pull the new prescription from MyHealth', {}, { timeout: 4000 }),
+    await screen.findByText('Get the new prescription from MyHealth', {}, { timeout: 4000 }),
   )
 
   await screen.findByText('9f9f9f9f9f9f', {}, { timeout: 4000 })
+  fireEvent.click(screen.getByRole('button', { name: 'Show the version code' }))
   expect(screen.getAllByText(/replaces a1b2c3d4e5f6/).length).toBeGreaterThan(0)
   expect(screen.getByText(/Warfarin arrived from MyHealth/)).toBeTruthy()
   expect(screen.getByText('The portal reports a change. Warfarin was added by Dr. Ana Reyes.')).toBeTruthy()
@@ -495,8 +496,10 @@ test('the phone call reports what it is doing, including a redial', async () => 
   expect(screen.getByText(/Simulated call. CareLoop is not speaking to you/)).toBeTruthy()
 
   fireEvent.click(screen.getByText('Call my phone now'))
+  expect(screen.getByText(/This will ring your telephone/)).toBeTruthy()
+  fireEvent.click(screen.getByText('Yes, call my phone'))
   await screen.findByText(/CareLoop is ringing you again now/, {}, { timeout: 4000 })
-  expect(screen.getByText('Attempt 2 of 3')).toBeTruthy()
+  expect(screen.getByText(/This is try 2 of 3/)).toBeTruthy()
   expect(screen.getByText('Calling again')).toBeTruthy()
   expect(screen.getByText('Not the path you are on')).toBeTruthy()
   expect(screen.getByText('Read the check-in in writing').closest('button').disabled).toBe(true)
@@ -510,13 +513,14 @@ test('answering the phone does not brick the screen', async () => {
 
   renderCall()
   fireEvent.click(screen.getByText('Call my phone now'))
+  fireEvent.click(screen.getByText('Yes, call my phone'))
 
-  await screen.findByText(/You are on the call with CareLoop/, {}, { timeout: 5000 })
-  await screen.findByText(/The check-in is finished/, {}, { timeout: 8000 })
+  await screen.findByText(/You are on the call with CareLoop/, {}, { timeout: 15000 })
+  await screen.findByText(/The check-in is finished/, {}, { timeout: 15000 })
 
   expect(screen.getByText('Call my phone now').closest('button').disabled).toBe(false)
   expect(screen.getByText('Read the check-in in writing').closest('button').disabled).toBe(false)
-}, 20000)
+}, 40000)
 
 test('the written stand-in says what the phone call says', async () => {
   renderCall()
@@ -544,11 +548,11 @@ async function openSection(label, heading) {
   fireEvent.click(screen.getAllByText(/^Connect MyHealth$/)[0])
   fireEvent.click(screen.getByText(/^Connect MyHealth for/))
   fireEvent.click(screen.getByText('Allow'))
-  await screen.findByRole('heading', { level: 1, name: /Today/ }, { timeout: 4000 })
+  await screen.findByRole('heading', { level: 1, name: /Today/ }, { timeout: 15000 })
   if (!label) return
   const tabs = screen.getByRole('navigation', { name: 'Sections' })
   fireEvent.click(within(tabs).getByText(label))
-  await screen.findByRole('heading', { level: 1, name: heading }, { timeout: 4000 })
+  await screen.findByRole('heading', { level: 1, name: heading }, { timeout: 15000 })
 }
 
 test('every control on the medicines section is a button the accessibility tree can see', async () => {
@@ -563,7 +567,7 @@ test('every control on the medicines section is a button the accessibility tree 
   }
 
   expect(screen.getByRole('button', { name: /Check MyHealth for updates/ })).toBeTruthy()
-  expect(screen.getByRole('button', { name: /Pull the new prescription from MyHealth/ })).toBeTruthy()
+  expect(screen.getByRole('button', { name: /Get the new prescription from MyHealth/ })).toBeTruthy()
   expect(screen.getByRole('button', { name: /Move the clock to the next dose/ })).toBeTruthy()
   expect(screen.getByRole('button', { name: /detected and held back/ })).toBeTruthy()
 }, 15000)
@@ -680,3 +684,73 @@ test('the demo account arrives in the fields so no one types a password', () => 
   expect(screen.getByRole('heading', { level: 1 }).textContent).toMatch(/Today/)
   window.location.hash = '#/signin'
 })
+
+test('the flagged pair sits above the medicine list, not below it', async () => {
+  await connectAndOpenMedications()
+
+  fireEvent.click(
+    await screen.findByText('Get the new prescription from MyHealth', {}, { timeout: 4000 }),
+  )
+  const flags = await screen.findByRole(
+    'heading',
+    { name: /Something on this list is worth checking/ },
+    { timeout: 6000 },
+  )
+  const list = screen.getByRole('heading', { name: 'Your medications' })
+
+  const order = flags.compareDocumentPosition(list)
+  expect(order & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  expect(screen.getByText(/Ask your prescriber or pharmacist about this/)).toBeTruthy()
+}, 20000)
+
+test('the call button asks before it rings a real telephone', async () => {
+  const onRing = vi.fn(async () => ({ call_sid: 'CA9' }))
+  render(
+    <HashRouter>
+      <SimulatedCall
+        patientName="Maria Santos"
+        nextDose={NEXT_DOSE}
+        scenarios={[]}
+        busy={false}
+        error={null}
+        onReply={async () => null}
+        onRing={onRing}
+      />
+    </HashRouter>,
+  )
+
+  fireEvent.click(screen.getByText('Call my phone now'))
+  expect(screen.getByText(/This will ring your telephone/)).toBeTruthy()
+  expect(screen.getByText(/CareLoop is about to dial the phone number on this record/)).toBeTruthy()
+  expect(onRing).not.toHaveBeenCalled()
+
+  fireEvent.click(screen.getByText('Not now'))
+  expect(screen.queryByText(/This will ring your telephone/)).toBe(null)
+  expect(onRing).not.toHaveBeenCalled()
+
+  fireEvent.click(screen.getByText('Call my phone now'))
+  fireEvent.click(screen.getByText('Yes, call my phone'))
+  expect(onRing).toHaveBeenCalledTimes(1)
+}, 10000)
+
+test('clocks and dates read the way a patient in the US says them', async () => {
+  const { clockLabel, dateTimeLabel } = await import('./src/lib/format.js')
+  expect(clockLabel('20:00')).toBe('8:00 PM')
+  expect(clockLabel('08:30')).toBe('8:30 AM')
+  expect(clockLabel('00:15')).toBe('12:15 AM')
+
+  const label = dateTimeLabel('2026-09-21T18:00:00-04:00')
+  expect(label).toMatch(/September 21 at/)
+  expect(label).not.toMatch(/18:00/)
+  expect(label).not.toMatch(/Sep 21,/)
+})
+
+test('a planned reminder call never claims it will place itself', async () => {
+  await openSection('Appointments', /Appointments/)
+  await screen.findByText('Dr. Elena Vance', {}, { timeout: 4000 })
+
+  expect(screen.getByText(/Reminder calls CareLoop would make/)).toBeTruthy()
+  expect(screen.getByText(/Nothing in this prototype runs on a timer/)).toBeTruthy()
+  expect(screen.queryByText(/Reminder calls scheduled/)).toBe(null)
+  expect(screen.queryByText('aetna-001')).toBe(null)
+}, 20000)

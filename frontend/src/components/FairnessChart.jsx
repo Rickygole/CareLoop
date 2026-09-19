@@ -59,7 +59,7 @@ export default function FairnessChart() {
     <div>
       <section aria-labelledby="arms-heading">
         <h2 id="arms-heading" className="display text-2xl text-ink">
-          The three arms
+          The three ways of deciding
         </h2>
         <Rule tone="sand" />
         <dl className="mt-8 flex flex-col gap-4">
@@ -79,7 +79,7 @@ export default function FairnessChart() {
 
       <section aria-labelledby="conditions-heading" className="mt-12">
         <h2 id="conditions-heading" className="display text-2xl text-ink">
-          The conditions
+          How often each one agreed with itself
         </h2>
         <Rule tone="sand" />
 

@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 
 import CallSchedule from '../components/CallSchedule.jsx'
 import DemoControls from '../components/DemoControls.jsx'
-import InteractionFlags from '../components/InteractionFlags.jsx'
+import InteractionFlags, { InteractionLimits } from '../components/InteractionFlags.jsx'
 import { LoadFailed, Loading, RefreshFailed } from '../components/LoadState.jsx'
 import MedicationCard from '../components/MedicationCard.jsx'
 import NextUpCard from '../components/NextUpCard.jsx'
@@ -20,8 +20,8 @@ import { usePortal } from '../lib/usePortal.js'
 import { useSession } from '../lib/session.jsx'
 
 const CASCADE_STEPS = [
-  'A new regimen snapshot is written',
-  'The call schedule is worked out again',
+  'Your list is saved as a new version',
+  'The call times are worked out again',
   'Every pair of medicines is checked',
 ]
 
@@ -90,8 +90,7 @@ export default function MedsPage() {
       setStage(1)
       setAnnouncement(
         arrivalSentence(result.applied) +
-          'Snapshot ' + result.regimen.content_hash + ' replaces ' +
-          (before.regimen ? before.regimen.content_hash : 'the last one') + '.',
+          'Your list has been saved as a new version.',
       )
 
       const nextPlan = applyClockShift(result.schedule, clockShiftMs)
@@ -102,19 +101,19 @@ export default function MedsPage() {
           setStage(2)
           setAnnouncement(
             nextPlan && nextPlan.next_dose
-              ? 'Schedule worked out again. The next call is at ' +
+              ? 'Call times worked out again. The next call is at ' +
                   clockLabel(nextPlan.next_dose.time) + '.'
-              : 'Schedule worked out again. No call is left today.',
+              : 'Call times worked out again. No call is left today.',
           )
         }, gap),
         setTimeout(() => {
           setStage(3)
           setAnnouncement(
             flagged
-              ? 'Interaction flagged, ' +
-                  flagged.ingredients.join(' and ') + ', ' +
-                  flagged.severity + '.'
-              : 'Checked every pair. Nothing to raise with the patient.',
+              ? 'Worth checking, ' +
+                  flagged.ingredients.join(' and ') +
+                  '. Shown at the top of this page.'
+              : 'Checked every pair. Nothing worth raising with you.',
           )
         }, gap * 2),
         setTimeout(() => {
@@ -161,7 +160,7 @@ export default function MedsPage() {
             Connect MyHealth to see your medicines
           </h2>
           <p className="mt-3 text-ink-2">
-            The list comes from the portal. You never type a medicine in.
+            The list comes from MyHealth. You never type a medicine in.
           </p>
           <Link to="/connect" className={BTN_PRIMARY + ' mt-7'}>
             Connect MyHealth
@@ -195,7 +194,14 @@ export default function MedsPage() {
 
       {!loading && !loadFailed && plan ? (
         <div>
-          <NextUpCard dose={plan.next_dose} />
+          <InteractionFlags
+            regimen={shownRegimen}
+            flash={cascading && stage >= 3}
+          />
+
+          <div className="mt-12">
+            <NextUpCard dose={plan.next_dose} />
+          </div>
 
           <div className="mt-12 grid gap-x-12 gap-y-14 lg:grid-cols-[minmax(0,1fr)_21rem]">
             <div className="min-w-0">
@@ -224,15 +230,12 @@ export default function MedsPage() {
             </aside>
           </div>
 
-          <InteractionFlags
-            regimen={shownRegimen}
-            flash={cascading && stage >= 3}
-          />
+          <InteractionLimits regimen={shownRegimen} />
 
           <section aria-labelledby="change-heading" className="mt-12">
             <h2 id="change-heading" className="display text-2xl text-ink">
-              Connected to MyHealth
-              {syncedAt ? ', last synced ' + dateTimeLabel(syncedAt) : ''}
+              Where this list comes from
+              {syncedAt ? ', last read ' + dateTimeLabel(syncedAt) : ''}
             </h2>
             <Rule />
 
@@ -251,7 +254,7 @@ export default function MedsPage() {
               {cascading ? (
                 <div className={'enter-fade ' + CARD + ' px-7 py-7'}>
                   <p className="smallcaps text-micro text-clay">
-                    What the portal just set off
+                    What that change set off
                   </p>
                   <ol className="mt-5 flex flex-col gap-3">
                     {CASCADE_STEPS.map((label, index) => {

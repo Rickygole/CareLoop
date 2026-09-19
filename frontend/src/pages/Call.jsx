@@ -15,12 +15,12 @@ import { SCENARIOS } from '../data/scenarios.js'
 import { patientName } from '../data/patients.js'
 
 const FAILED =
-  'CareLoop could not reach the line just now. Nothing was recorded. Send your answer again to retry.'
+  'CareLoop could not reach its own service just now. Nothing was recorded. Press Send again to retry, or call your clinic directly if this is urgent.'
 
 const TIMED_OUT =
   'CareLoop waited ' +
   Math.round(RUN_TIMEOUT_MS / 1000) +
-  ' seconds for an answer from its own service and stopped. Nothing was recorded. Send your answer again to retry.'
+  ' seconds for an answer from its own service and stopped. Nothing was recorded. Press Send again to retry, or call your clinic directly if this is urgent.'
 
 export default function CallPage() {
   const navigate = useNavigate()
@@ -83,7 +83,10 @@ export default function CallPage() {
   )
 
   return (
-    <Screen title="Check-in">
+    <Screen
+      title="Check-in"
+      lead="CareLoop rings your telephone and asks how you are. You never have to call it."
+    >
       <Notice tone="info" word={due ? 'Due now' : 'Coming up'} className="measure">
         {next ? (
           due ? (
@@ -108,7 +111,7 @@ export default function CallPage() {
         )}
       </Notice>
 
-      {spoken ? <PhoneCallCard patientName={who} /> : null}
+      {spoken ? <PhoneCallCard patientName={who} onRing={ring} /> : null}
 
       <VoicePanel
         patientId={patientId}

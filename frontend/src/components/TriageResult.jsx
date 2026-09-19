@@ -147,7 +147,13 @@ export default function TriageResult({ result, latencyMs, booking }) {
           />
           <Fact
             label="Time taken"
-            value={typeof ms === 'number' ? ms + ' ms' : 'not measured'}
+            value={
+              typeof ms !== 'number'
+                ? 'not measured'
+                : ms < 1000
+                  ? 'Less than a second'
+                  : (Math.round(ms / 100) / 10).toFixed(1) + ' seconds'
+            }
           />
         </dl>
 

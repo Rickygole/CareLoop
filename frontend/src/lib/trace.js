@@ -45,8 +45,7 @@ export function clockTime(isoString) {
 export function clockShort(isoString) {
   const d = new Date(isoString)
   if (Number.isNaN(d.getTime())) return '--:--'
-  const pad = (n) => String(n).padStart(2, '0')
-  return pad(d.getHours()) + ':' + pad(d.getMinutes())
+  return d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })
 }
 
 export function summarize(event) {

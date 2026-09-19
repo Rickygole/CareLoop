@@ -35,7 +35,7 @@ export default function CheckIn({ busy, error, scenarios, onSubmit }) {
             <p className="smallcaps text-micro text-clay">
               Not sure what to say? Borrow one of these
             </p>
-            <div className="mt-4 flex flex-wrap gap-3">
+            <div className="mt-5 flex flex-wrap gap-5">
               {scenarios.map((scenario) => (
                 <button
                   key={scenario.id}
@@ -66,13 +66,13 @@ export default function CheckIn({ busy, error, scenarios, onSubmit }) {
           className={FIELD + ' mt-8 block resize-y'}
         />
 
-        <div className="mt-7 flex flex-wrap items-center gap-x-8 gap-y-5">
+        <div className="mt-7 flex flex-wrap items-center gap-x-10 gap-y-6">
           <button
             type="submit"
             disabled={busy || !text.trim()}
             className={BTN_HERO + ' disabled:cursor-not-allowed'}
           >
-            {busy ? 'CareLoop is calling...' : 'Start the check-in'}
+            {busy ? 'Sending your answer...' : 'Send my answer'}
           </button>
           <p className="max-w-[30ch] text-sm text-ink-2">
             Your answer is written to a made up patient record, not to you.
@@ -83,7 +83,7 @@ export default function CheckIn({ busy, error, scenarios, onSubmit }) {
           <Notice
             role="alert"
             tone="alarm"
-            word="CareLoop could not place the call"
+            word="CareLoop could not send your answer"
             className="enter-fade mt-8"
             size="sm"
           >

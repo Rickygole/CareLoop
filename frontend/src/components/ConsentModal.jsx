@@ -116,7 +116,7 @@ export default function ConsentModal({ open, patientName, busy, onAllow, onDeny 
           </p>
         </div>
 
-        <div className="flex flex-col-reverse gap-4 border-t border-line bg-sunken px-7 py-7 sm:flex-row sm:justify-end sm:px-10">
+        <div className="flex flex-col-reverse gap-y-6 border-t border-line bg-sunken px-7 py-8 sm:flex-row sm:justify-end sm:gap-x-12 sm:px-10">
           <button type="button" onClick={onDeny} className={BTN_SECONDARY}>
             Deny
           </button>

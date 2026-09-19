@@ -138,6 +138,20 @@ export default function DecisionPage() {
         </section>
       ) : null}
 
+      <section aria-labelledby="next-heading" className="mt-12">
+        <h2 id="next-heading" className="display text-2xl text-ink">
+          What to do next
+        </h2>
+        <Rule tone="sand" />
+        <p className="measure mt-6 text-ink-2">
+          CareLoop has written this down on your record. There is nothing else
+          you need to do here.
+        </p>
+        <Link to="/" className={BTN_PRIMARY + ' mt-7'}>
+          Back to Today
+        </Link>
+      </section>
+
       <section aria-labelledby="record-heading" className="mt-12">
         <h2 id="record-heading" className="display text-2xl text-ink">
           Activity log

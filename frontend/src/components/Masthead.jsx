@@ -47,7 +47,7 @@ export default function Masthead() {
         <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
           <ApiStatus />
           {signedIn ? (
-            <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
+            <div className="flex flex-wrap items-center gap-x-8 gap-y-4">
               <p className="text-sm text-ink-2">
                 <span className="smallcaps text-micro text-ink-2">
                   Signed in
