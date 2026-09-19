@@ -169,3 +169,17 @@ def test_the_call_never_claims_a_later_dose_is_due_now():
         later = "due later today" in spoken
         assert plan_due or later, f"{patient_id} did not say when the dose is due"
         assert not (plan_due and later), "the call cannot say both"
+
+
+def test_the_emergency_line_never_claims_it_notified_anyone():
+    from responses import suggested_response
+    from triage_engine import Severity
+
+    spoken = suggested_response(Severity.EMERGENCY, False).lower()
+    for claim in ["alert your care team", "alerting your care team", "i have told", "i will tell"]:
+        assert claim not in spoken, (
+            f"the emergency response claims {claim!r}. escalation.py states in plain "
+            "words that no message, call, page or alert is sent to any person. A "
+            "product whose differentiator is refusing to overclaim cannot say this."
+        )
+    assert "cannot contact anyone" in spoken

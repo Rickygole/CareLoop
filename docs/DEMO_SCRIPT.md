@@ -80,14 +80,16 @@ reaches the emergency path.
 
 ## 1:20 to 1:40  The measurement
 
-> "We ran 540 calls across three prompting strategies to test whether
-> phrasing changes the triage result. Prompting didn't fix anything, all
-> three arms tie. But every disagreement, eleven out of eleven, went the
-> same direction: when a patient downplays a symptom, the model rates it
-> less severe. Never more."
+> "We preregistered one test with a stopping rule before we ran it. 1,260
+> model calls, 24 vignettes across five phrasings and three arms. It came
+> back null. We did not find the gap we went looking for."
 
-> "You cannot prompt your way out of that. Which is exactly why our
-> emergency floor is a regex and not a model."
+> "And our own pipeline lost to the naive baseline on casual and dialect
+> phrasing, 75 percent over escalation against 25. We are telling you that
+> because we wrote down what would count as failure before we looked."
+
+> "It is also why our emergency floor is a regex and not a model. We
+> already did not trust the model layer. Now we have a number for why."
 
 Do not oversell this. If a judge pushes on sample size, agree with them
 immediately, see the prepared answer below.

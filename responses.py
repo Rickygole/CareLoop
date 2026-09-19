@@ -16,8 +16,9 @@ SUGGESTED_RESPONSE = {
     ),
     Severity.EMERGENCY: (
         "I want to stop here for a moment. Based on what you've described, "
-        "please call 911 or get to an emergency room right now. I'm going to "
-        "alert your care team as well."
+        "please call 911 or get to an emergency room right now. I am writing "
+        "this down on your record for your care team. I cannot contact anyone "
+        "for you, so please make that call yourself."
     ),
 }
 
