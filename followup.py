@@ -7,6 +7,9 @@ from providers import accepts_payer, next_available, PROVIDERS
 from scheduler import clinic_timezone
 
 DEFAULT_HORIZON_DAYS = 120
+MIN_INTERVAL_DAYS = 1
+MAX_INTERVAL_DAYS = 3650
+MAX_NOTE_AGE_DAYS = 3650
 DAY_BEFORE_HOUR = 18
 SAME_DAY_HOUR = 8
 SAME_DAY_MIN_LEAD_MINUTES = 120
@@ -25,8 +28,12 @@ STATUS_UNBOOKABLE = "unbookable"
 STATUS_UNPARSED = "unparsed"
 
 ISSUE_NO_INTERVAL = "no_interval"
+ISSUE_NO_AUTHORED_DATE = "no_authored_date"
+ISSUE_STALE_NOTE = "note_too_stale"
+ISSUE_NO_DUE_DATE = "no_usable_due_date"
 ISSUE_NO_IN_NETWORK_PROVIDER = "no_in_network_provider"
 ISSUE_NO_SLOT_AFTER_DUE = "no_slot_on_or_after_due_date"
+ISSUE_SLOTS_ALREADY_TAKEN = "all_matching_slots_already_taken"
 
 KIND_DAY_BEFORE = "day_before"
 KIND_SAME_DAY = "same_day"
@@ -80,6 +87,16 @@ _PATTERNS = [
 _EVERY_BARE = re.compile(r"\bevery\s+" + _UNIT + r"\b", re.IGNORECASE)
 _ANNUAL = re.compile(r"\b(annually|annual|yearly)\b", re.IGNORECASE)
 
+_DOSE_UNIT = r"(?:mg|mcg|ug|g|ml|mls|units?|iu|milligrams?|micrograms?)"
+_DOSE_FIGURE = re.compile(r"\b\d+(?:\.\d+)?\s*" + _DOSE_UNIT + r"\b", re.IGNORECASE)
+_DOSE_PHRASE = re.compile(
+    r"\s*\b(?:on|with|of|taking|using|at)\s+[A-Za-z][\w\-]*\s+\d+(?:\.\d+)?\s*" + _DOSE_UNIT + r"\b",
+    re.IGNORECASE,
+)
+_SENTENCE_SPLIT = re.compile(r"(?<=[.!?])\s+")
+_SPACE_BEFORE_PUNCT = re.compile(r"\s+([,.;:])")
+_REPEATED_SPACE = re.compile(r"\s{2,}")
+
 
 def _to_number(token: str) -> Optional[int]:
     token = token.strip().lower()
@@ -89,8 +106,19 @@ def _to_number(token: str) -> Optional[int]:
     return NUMBER_WORDS.get(token)
 
 
-def parse_interval(text: Optional[str]) -> Optional[int]:
-    if not text:
+def _clamp_interval(days: Optional[int]) -> Optional[int]:
+    if days is None:
+        return None
+    if days < MIN_INTERVAL_DAYS or days > MAX_INTERVAL_DAYS:
+        return None
+    return days
+
+
+def parse_interval(text: Union[str, int, float, None]) -> Optional[int]:
+    if text is None:
+        return None
+    text = str(text)
+    if not text.strip():
         return None
     if _VAGUE.search(text) or _RANGE.search(text):
         return None
@@ -127,7 +155,7 @@ def parse_interval(text: Optional[str]) -> Optional[int]:
         if best is None or candidate[0] < best[0]:
             best = candidate
 
-    return best[1] if best else None
+    return _clamp_interval(best[1]) if best else None
 
 
 def _as_date(value: Union[str, date, datetime, None]) -> Optional[date]:
@@ -174,23 +202,51 @@ def _start_of_day(day: date) -> datetime:
     return datetime.combine(day, time(0, 0), tzinfo=clinic_timezone())
 
 
+def note_text(note: dict) -> str:
+    value = note.get("text")
+    if value is None:
+        return ""
+    return str(value).strip()
+
+
 def note_interval_days(note: dict) -> Optional[int]:
     explicit = note.get("interval_days")
-    if isinstance(explicit, int) and explicit > 0:
-        return explicit
+    if isinstance(explicit, int) and not isinstance(explicit, bool):
+        bounded = _clamp_interval(explicit)
+        if bounded is not None:
+            return bounded
     return parse_interval(note.get("text"))
+
+
+def note_authored_on(note: dict) -> Optional[date]:
+    return _as_date(note.get("authored_on"))
+
+
+def note_is_stale(note: dict, today: Union[str, date, datetime, None] = None) -> bool:
+    authored = note_authored_on(note)
+    anchor = _as_date(today)
+    if authored is None or anchor is None:
+        return False
+    try:
+        oldest = anchor - timedelta(days=MAX_NOTE_AGE_DAYS)
+    except OverflowError:
+        return False
+    return authored < oldest
 
 
 def due_date(note: dict, today: Union[str, date, datetime, None] = None) -> Optional[date]:
     interval = note_interval_days(note)
     if interval is None:
         return None
-    authored = _as_date(note.get("authored_on"))
-    if authored is None:
-        authored = _as_date(today)
+    authored = note_authored_on(note)
     if authored is None:
         return None
-    return authored + timedelta(days=interval)
+    if note_is_stale(note, today):
+        return None
+    try:
+        return authored + timedelta(days=interval)
+    except OverflowError:
+        return None
 
 
 def _format_day(moment: datetime) -> str:
@@ -221,22 +277,32 @@ def _candidate_slots(specialty: str, payer_id: Optional[str]) -> List[dict]:
     return sorted(options, key=lambda o: o["slot"])
 
 
+def slot_key(provider: dict, slot: str) -> str:
+    return f"{provider.get('provider_id')}|{slot}"
+
+
 def next_slot_on_or_after(
-    specialty: str, payer_id: Optional[str], earliest: datetime
+    specialty: str,
+    payer_id: Optional[str],
+    earliest: datetime,
+    taken: Optional[set] = None,
 ) -> Optional[dict]:
-    soonest = next_available(specialty, payer_id)
-    if soonest is None:
-        return None
-    if _parse_slot(soonest["slot"]) >= earliest:
-        return soonest
     for option in _candidate_slots(specialty, payer_id):
+        if taken and slot_key(option["provider"], option["slot"]) in taken:
+            continue
         if _parse_slot(option["slot"]) >= earliest:
             return option
     return None
 
 
+def _any_slot_on_or_after(
+    specialty: str, payer_id: Optional[str], earliest: datetime
+) -> bool:
+    return next_slot_on_or_after(specialty, payer_id, earliest) is not None
+
+
 def visit_reason(note: dict) -> str:
-    text = (note.get("text") or "").strip()
+    text = note_text(note)
     prescriber = note.get("prescriber") or "the prescriber"
     if not text:
         return f"Follow-up requested by {prescriber}."
@@ -254,7 +320,7 @@ def _base_visit(patient: dict, note: dict) -> dict:
         "phone": patient.get("phone"),
         "note_id": note.get("note_id"),
         "note": note,
-        "note_text": note.get("text"),
+        "note_text": note_text(note) or None,
         "prescriber": note.get("prescriber"),
         "authored_on": note.get("authored_on"),
         "specialty": note.get("specialty"),
@@ -286,6 +352,7 @@ def plan_followups(
     payer_id = patient.get("insurance_payer_id")
     payer_display = patient.get("insurance_display_name")
     visits = []
+    taken = set()
 
     for note in patient.get("care_plan_notes", []) or []:
         if note.get("status", "active") != "active":
@@ -300,9 +367,29 @@ def plan_followups(
             continue
 
         visit["interval_days"] = interval
+        authored = note_authored_on(note)
+
+        if authored is None:
+            visit["issue"] = ISSUE_NO_AUTHORED_DATE
+            visit["issue_detail"] = "The note has no usable authored date."
+            visits.append(visit)
+            continue
+
+        if note_is_stale(note, anchor_day):
+            visit["issue"] = ISSUE_STALE_NOTE
+            visit["issue_detail"] = (
+                f"The note was authored on {authored.isoformat()}, more than "
+                f"{MAX_NOTE_AGE_DAYS} days ago, so it is too old to book from."
+            )
+            visits.append(visit)
+            continue
+
         due = due_date(note, anchor_day)
         if due is None:
-            visit["issue_detail"] = "The note has no usable authored date."
+            visit["issue"] = ISSUE_NO_DUE_DATE
+            visit["issue_detail"] = (
+                "The follow-up due date could not be worked out from this note."
+            )
             visits.append(visit)
             continue
 
@@ -317,7 +404,7 @@ def plan_followups(
             earliest = max(earliest, _start_of_day(anchor_day))
 
         specialty = note.get("specialty") or ""
-        choice = next_slot_on_or_after(specialty, payer_id, earliest)
+        choice = next_slot_on_or_after(specialty, payer_id, earliest, taken)
 
         if choice is None:
             visit["status"] = STATUS_UNBOOKABLE
@@ -326,6 +413,13 @@ def plan_followups(
                 visit["issue_detail"] = (
                     f"No {specialty} provider in network for "
                     f"{payer_display or payer_id or 'this payer'}."
+                )
+            elif _any_slot_on_or_after(specialty, payer_id, earliest):
+                visit["issue"] = ISSUE_SLOTS_ALREADY_TAKEN
+                visit["issue_detail"] = (
+                    f"Every in-network {specialty} slot on or after "
+                    f"{due.isoformat()} was already taken by another follow-up "
+                    f"in this plan."
                 )
             else:
                 visit["issue"] = ISSUE_NO_SLOT_AFTER_DUE
@@ -337,6 +431,7 @@ def plan_followups(
             continue
 
         provider = choice["provider"]
+        taken.add(slot_key(provider, choice["slot"]))
         visit["status"] = STATUS_BOOKED
         visit["provider"] = provider
         visit["provider_name"] = provider["name"]
@@ -359,23 +454,44 @@ def spoken_seconds(text: str) -> float:
     return round(words / WORDS_PER_MINUTE * 60.0, 1)
 
 
+def dose_safe_purpose(text: Union[str, None]) -> str:
+    if text is None:
+        return ""
+    cleaned = _DOSE_PHRASE.sub("", str(text))
+    kept = [
+        sentence.strip()
+        for sentence in _SENTENCE_SPLIT.split(cleaned)
+        if sentence.strip() and not _DOSE_FIGURE.search(sentence)
+    ]
+    joined = " ".join(kept)
+    joined = _SPACE_BEFORE_PUNCT.sub(r"\1", joined)
+    joined = _REPEATED_SPACE.sub(" ", joined).strip()
+    joined = joined.strip(" ,;:").strip()
+    if _DOSE_FIGURE.search(joined):
+        return ""
+    return joined
+
+
 def spoken_reminder(visit: dict, kind: str, patient_first_name: Optional[str] = None) -> str:
     first_name = patient_first_name or visit.get("patient_first_name") or "there"
     provider_name = visit.get("provider_name") or "your provider"
     specialty = visit.get("specialty") or "follow-up"
     when = visit.get("slot_local") or "a time the clinic confirmed"
     lead = "tomorrow" if kind == KIND_DAY_BEFORE else "today"
-    note_text = (visit.get("note_text") or "").strip().rstrip(".")
+    purpose = dose_safe_purpose(visit.get("note_text")).rstrip(".")
     prescriber = visit.get("prescriber") or "your prescriber"
 
     parts = [
         f"Hello {first_name}. {AUTOMATED_CALL_DISCLOSURE}",
         f"You have {_article(specialty)} {specialty} visit {lead}, {when}, with {provider_name}.",
     ]
-    if note_text:
-        parts.append(f"CareLoop booked it because {prescriber} wrote: {note_text}.")
+    if purpose:
+        parts.append(f"CareLoop booked it because {prescriber} asked for this: {purpose}.")
     else:
-        parts.append(f"CareLoop booked it at the request of {prescriber}.")
+        parts.append(
+            f"CareLoop booked it at the request of {prescriber}, "
+            f"who asked for {_article(specialty)} {specialty} follow-up."
+        )
     parts.append(NO_ADVICE_LINE)
     parts.append("If the time does not work, call the clinic and they will move it.")
     return " ".join(parts)

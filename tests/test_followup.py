@@ -1,4 +1,5 @@
 import json
+import re
 import sys
 from datetime import date, datetime, timedelta
 from pathlib import Path
@@ -314,3 +315,198 @@ def test_module_and_data_stay_ascii():
     for name in ("followup.py", "mock_data/patients.json", "tests/test_followup.py"):
         text = (ROOT / name).read_text()
         assert text.isascii()
+
+
+def test_two_notes_due_together_never_take_the_same_slot():
+    patient = make_patient("aetna-001", [
+        make_note("Recheck in 1 day.", specialty="Internal Medicine", note_id="n1"),
+        make_note("Recheck in 1 day.", specialty="Internal Medicine", note_id="n2"),
+    ])
+    visits = followup.plan_followups(patient, TODAY)
+    booked = [v for v in visits if v["status"] == "booked"]
+
+    assert len(booked) == 2
+    assert booked[0]["slot"] != booked[1]["slot"]
+    assert len({(v["provider"]["provider_id"], v["slot"]) for v in booked}) == 2
+
+
+def test_a_note_that_finds_every_slot_taken_is_unbookable_not_a_duplicate():
+    notes = [
+        make_note("Recheck in 1 day.", specialty="Internal Medicine", note_id=f"n{i}")
+        for i in range(4)
+    ]
+    visits = followup.plan_followups(make_patient("aetna-001", notes), TODAY)
+    booked = [v for v in visits if v["status"] == "booked"]
+    left_over = [v for v in visits if v["status"] == "unbookable"]
+
+    assert len(booked) == 3
+    assert len({v["slot"] for v in booked}) == 3
+    assert len(left_over) == 1
+    assert left_over[0]["issue"] == followup.ISSUE_SLOTS_ALREADY_TAKEN
+    assert left_over[0]["slot"] is None
+    assert "already taken" in left_over[0]["issue_detail"]
+
+
+def test_taken_slots_are_not_shared_between_separate_plans():
+    patient = make_patient("aetna-001", [
+        make_note("Recheck in 1 day.", specialty="Internal Medicine", note_id="n1"),
+    ])
+
+    first = followup.plan_followups(patient, TODAY)[0]
+    second = followup.plan_followups(patient, TODAY)[0]
+
+    assert first["slot"] == second["slot"]
+
+
+@pytest.mark.parametrize("interval", [1000000000, True, False, 0, -5, 4000, "7", 3.5])
+def test_hostile_interval_days_never_raises_and_never_guesses(interval):
+    note = make_note("Patient doing well, continue current dose.")
+    note["interval_days"] = interval
+    visit = followup.plan_followups(make_patient("carefirst-001", [note]), TODAY)[0]
+
+    assert visit["status"] == "unparsed"
+    assert visit["issue"] == "no_interval"
+    assert visit["slot"] is None
+
+
+def test_a_sane_explicit_interval_is_still_honoured():
+    note = make_note("Patient doing well, continue current dose.", authored_on="2026-09-18")
+    note["interval_days"] = 2
+    visit = followup.plan_followups(make_patient("carefirst-001", [note]), TODAY)[0]
+
+    assert visit["interval_days"] == 2
+    assert visit["due_date"] == "2026-09-20"
+
+
+def test_a_far_future_authored_date_does_not_overflow():
+    note = make_note("Recheck in 2 weeks.", authored_on="9999-12-31")
+    visit = followup.plan_followups(make_patient("carefirst-001", [note]), TODAY)[0]
+
+    assert visit["status"] == "unparsed"
+    assert visit["issue"] == followup.ISSUE_NO_DUE_DATE
+    assert visit["due_date"] is None
+    assert followup.due_date(note, TODAY) is None
+
+
+def test_non_string_note_text_is_coerced_not_crashed():
+    note = make_note(12345)
+    visit = followup.plan_followups(make_patient("carefirst-001", [note]), TODAY)[0]
+
+    assert visit["status"] == "unparsed"
+    assert visit["issue"] == "no_interval"
+    assert followup.parse_interval(12345) is None
+    assert isinstance(visit["reason"], str)
+
+
+@pytest.mark.parametrize("authored_on", [None, "", "not a date", "2026-02-30", 12345])
+def test_a_note_without_a_usable_authored_date_is_reported_not_booked(authored_on):
+    note = make_note("Recheck in 2 weeks.", authored_on=authored_on)
+    visit = followup.plan_followups(make_patient("carefirst-001", [note]), TODAY)[0]
+
+    assert visit["status"] == "unparsed"
+    assert visit["issue"] == followup.ISSUE_NO_AUTHORED_DATE
+    assert visit["due_date"] is None
+    assert visit["slot"] is None
+    assert "authored date" in visit["issue_detail"]
+
+
+def test_a_note_with_no_authored_on_key_at_all_is_reported():
+    note = make_note("Recheck in 2 weeks.")
+    del note["authored_on"]
+    visit = followup.plan_followups(make_patient("carefirst-001", [note]), TODAY)[0]
+
+    assert visit["issue"] == followup.ISSUE_NO_AUTHORED_DATE
+    assert followup.due_date(note, TODAY) is None
+
+
+def test_an_absurdly_stale_note_is_reported_rather_than_booked():
+    note = make_note("Blood pressure review in 4 weeks.", authored_on="1900-01-01")
+    visit = followup.plan_followups(make_patient("carefirst-001", [note]), TODAY)[0]
+
+    assert visit["status"] == "unparsed"
+    assert visit["issue"] == followup.ISSUE_STALE_NOTE
+    assert visit["slot"] is None
+    assert "1900-01-01" in visit["issue_detail"]
+
+
+def test_a_merely_overdue_note_is_not_treated_as_stale():
+    note = make_note("Blood pressure review in 4 weeks.", authored_on="2026-01-05")
+    visit = followup.plan_followups(make_patient("carefirst-001", [note]), TODAY)[0]
+
+    assert visit["status"] == "booked"
+    assert followup.note_is_stale(note, TODAY) is False
+
+
+def test_spoken_reminder_never_speaks_a_dose_figure_for_any_mock_note():
+    dose = re.compile(
+        r"\b\d+(?:\.\d+)?\s*(?:mg|mcg|ug|milligrams?|micrograms?)\b", re.IGNORECASE
+    )
+    checked = 0
+    for patient_id in ("p1", "p2"):
+        for visit in followup.plan_followups(load_patient(patient_id), TODAY):
+            if visit["status"] != "booked":
+                continue
+            for kind in ("day_before", "same_day"):
+                line = followup.spoken_reminder(visit, kind, visit["patient_first_name"])
+                assert not dose.search(line), line
+                assert followup.spoken_seconds(line) < followup.MAX_REMINDER_SECONDS
+                checked += 1
+    assert checked > 0
+
+
+def test_spoken_reminder_drops_the_dosing_clause_but_keeps_the_purpose():
+    visit = next(
+        v for v in followup.plan_followups(load_patient("p2"), TODAY)
+        if v["note_id"] == "cpn2"
+    )
+    line = followup.spoken_reminder(visit, "day_before", "Dorothy")
+
+    assert "Blood pressure review in 4 weeks" in line
+    assert "lisinopril" not in line.lower()
+    assert "10mg" not in line
+    assert "Dr. Raj Patel" in line
+    assert followup.AUTOMATED_CALL_DISCLOSURE in line
+    assert followup.NO_ADVICE_LINE in line
+
+
+def test_spoken_reminder_drops_a_whole_dosing_sentence():
+    visit = next(
+        v for v in followup.plan_followups(load_patient("p1"), TODAY)
+        if v["note_id"] == "cpn1"
+    )
+    line = followup.spoken_reminder(visit, "same_day", "Maria")
+
+    assert "metformin" not in line.lower()
+    assert "500" not in line
+    assert "Recheck A1c in 3 months" in line
+    assert "Dr. Elena Vance" in line
+
+
+def test_a_note_that_is_only_a_dosing_clause_still_names_the_prescriber():
+    visit = {
+        "patient_first_name": "Sam",
+        "provider_name": "Dr. Sarah Lin",
+        "specialty": "Cardiology",
+        "slot_local": "Monday, September 21 at 9:00 AM",
+        "note_text": "Continue lisinopril 10mg once daily.",
+        "prescriber": "Dr. Raj Patel",
+    }
+    line = followup.spoken_reminder(visit, "day_before")
+
+    assert "10mg" not in line
+    assert "Dr. Raj Patel" in line
+    assert "Cardiology follow-up" in line
+    assert followup.NO_ADVICE_LINE in line
+
+
+@pytest.mark.parametrize("text,expected", [
+    ("Blood pressure review in 4 weeks on lisinopril 10mg, with electrolytes.",
+     "Blood pressure review in 4 weeks, with electrolytes."),
+    ("Continue metformin 500mg twice daily. Recheck A1c in 3 months.",
+     "Recheck A1c in 3 months."),
+    ("Continue levothyroxine 50 mcg daily.", ""),
+    ("Recheck BMP in 10 days.", "Recheck BMP in 10 days."),
+    (None, ""),
+])
+def test_dose_safe_purpose_strips_only_the_dosing(text, expected):
+    assert followup.dose_safe_purpose(text) == expected
