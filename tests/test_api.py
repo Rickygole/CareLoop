@@ -293,3 +293,74 @@ def test_day_plan_uses_clinic_local_time_not_utc():
         "UTC made it read missed at exactly demo time."
     )
     assert plan["next_dose"]["time"] == "08:00"
+
+
+def test_adding_a_medication_cascades_snapshot_schedule_and_check():
+    client.post("/admin/reset", json={})
+    before = client.get("/regimen/p3").json()
+    assert before["regimen"]["surfaced"] == []
+
+    body = client.post("/meds", json={
+        "patient_id": "p3", "medication": "Warfarin 5 mg tablet",
+        "dosage_text": "5mg", "frequency": "once daily", "preferred_hours": [20],
+    }).json()
+
+    assert body["added"] is True
+    assert body["regimen"]["content_hash"] != before["regimen"]["content_hash"]
+    assert body["schedule"]["doses_total"] > before["schedule"]["doses_total"]
+
+    types = [e["event_type"] for e in client.get("/trace/events?since=0").json()["events"]]
+    assert "REGIMEN_SNAPSHOT" in types
+    assert "SCHEDULE_RECOMPUTED" in types
+
+
+def test_a_major_interaction_surfaces_with_a_cited_source():
+    client.post("/admin/reset", json={})
+    client.post("/meds", json={
+        "patient_id": "p2", "medication": "Warfarin 5 mg tablet", "preferred_hours": [20],
+    })
+    body = client.post("/meds", json={
+        "patient_id": "p2", "medication": "Aspirin 81 mg tablet", "preferred_hours": [8],
+    }).json()
+
+    surfaced = body["regimen"]["surfaced"]
+    assert surfaced, "warfarin plus aspirin must surface"
+    assert surfaced[0]["severity"] == "major"
+    assert surfaced[0]["source"]
+
+    types = [e["event_type"] for e in client.get("/trace/events?since=0").json()["events"]]
+    assert "CONTRADICTION_FLAGGED" in types
+
+
+def test_patient_message_never_tells_anyone_to_stop_a_drug():
+    client.post("/admin/reset", json={})
+    client.post("/meds", json={"patient_id": "p2", "medication": "Warfarin 5 mg tablet"})
+    body = client.post("/meds", json={"patient_id": "p2", "medication": "Aspirin 81 mg tablet"}).json()
+
+    message = body["regimen"]["patient_message"].lower()
+    assert "do not stop" in message
+    assert "prescriber" in message or "pharmacist" in message
+    for forbidden in ["stop taking", "reduce your dose", "lower the dose", "half a tablet"]:
+        assert forbidden not in message
+
+
+def test_minor_and_moderate_findings_are_not_surfaced_to_the_patient():
+    from contradiction import check_regimen
+
+    meds = [
+        {"medication": "Lisinopril 10 mg tablet", "status": "active"},
+        {"medication": "Ibuprofen 400 mg tablet", "status": "active"},
+    ]
+    findings = check_regimen(meds)
+    assert findings, "the moderate pair should still be detected"
+    assert all(not f["surfaced"] for f in findings), (
+        "only major and above reach the patient"
+    )
+
+
+def test_regimen_endpoint_carries_its_own_limitations():
+    from contradiction import LIMITATIONS
+
+    body = client.get("/regimen/p1").json()
+    assert body["regimen"]["limitations"] == LIMITATIONS
+    assert "not a formulary check" in LIMITATIONS.lower()

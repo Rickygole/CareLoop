@@ -15,6 +15,7 @@ from pydantic import BaseModel, Field
 load_dotenv()
 
 from clinic import plan_clinic_call
+from contradiction import LIMITATIONS, check_regimen, patient_message
 from providers import find_provider, specialties
 from scheduler import build_day_plan
 from responses import suggested_response
@@ -437,6 +438,101 @@ EXPECTED_ENV_KEYS = [
     "BACKBOARD_API_KEY",
     "CARELOOP_WEBHOOK_SECRET",
 ]
+
+
+class AddMedicationRequest(BaseModel):
+    patient_id: str
+    medication: str
+    dosage_text: str = ""
+    frequency: str = "once daily"
+    preferred_hours: List[int] = [8]
+    prescriber: str = "Portal import"
+
+
+def regimen_hash(medication_requests: List[dict]) -> str:
+    import hashlib
+
+    basis = "|".join(sorted(
+        f"{m.get('medication')}::{m.get('dosage_text')}::{m.get('frequency')}"
+        for m in medication_requests if m.get("status") == "active"
+    ))
+    return hashlib.sha256(basis.encode()).hexdigest()[:12]
+
+
+def evaluate_regimen(patient: dict) -> dict:
+    findings = check_regimen(patient["medication_requests"])
+    surfaced = [f for f in findings if f["surfaced"]]
+    return {
+        "content_hash": regimen_hash(patient["medication_requests"]),
+        "findings": findings,
+        "surfaced": surfaced,
+        "patient_message": patient_message(surfaced[0]) if surfaced else None,
+        "limitations": LIMITATIONS,
+    }
+
+
+@app.get("/regimen/{patient_id}")
+def regimen_state(patient_id: str):
+    patient = PATIENTS.get(patient_id)
+    if patient is None:
+        raise HTTPException(404, "unknown_patient")
+    return {
+        "patient_id": patient_id,
+        "medications": patient["medication_requests"],
+        "schedule": build_day_plan(patient),
+        "regimen": evaluate_regimen(patient),
+    }
+
+
+@app.post("/meds")
+async def add_medication(body: AddMedicationRequest):
+    patient = PATIENTS.get(body.patient_id)
+    if patient is None:
+        raise HTTPException(404, "unknown_patient")
+
+    before_hash = regimen_hash(patient["medication_requests"])
+    new_id = f"med-{len(patient['medication_requests']) + 1}-{body.patient_id}"
+    patient["medication_requests"] = patient["medication_requests"] + [{
+        "medication_id": new_id,
+        "medication": body.medication,
+        "dosage_text": body.dosage_text,
+        "frequency": body.frequency,
+        "timing": {"times_per_day": len(body.preferred_hours),
+                   "preferred_hours": body.preferred_hours},
+        "prescriber": body.prescriber,
+        "status": "active",
+        "start_date": datetime.now(timezone.utc).date().isoformat(),
+    }]
+
+    regimen = evaluate_regimen(patient)
+    plan = build_day_plan(patient)
+
+    await bus.emit("REGIMEN_SNAPSHOT", {
+        "patient_id": body.patient_id,
+        "previous_hash": before_hash,
+        "content_hash": regimen["content_hash"],
+        "medication_added": body.medication,
+    })
+    await bus.emit("SCHEDULE_RECOMPUTED", {
+        "patient_id": body.patient_id,
+        "doses_total": plan["doses_total"],
+        "next_dose": plan["next_dose"]["time"] if plan["next_dose"] else None,
+    })
+    for finding in regimen["surfaced"]:
+        await bus.emit("CONTRADICTION_FLAGGED", {
+            "ingredients": finding["ingredients"],
+            "severity": finding["severity"],
+            "concern": finding["concern"],
+            "source": finding["source"],
+        })
+
+    return {
+        "added": True,
+        "medication_id": new_id,
+        "medications": patient["medication_requests"],
+        "schedule": plan,
+        "regimen": regimen,
+    }
 
 
 @app.get("/health")

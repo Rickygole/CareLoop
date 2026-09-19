@@ -1,0 +1,103 @@
+from typing import Dict, List, Optional
+
+SURFACE_THRESHOLD = "major"
+SEVERITY_ORDER = {"minor": 1, "moderate": 2, "major": 3, "contraindicated": 4}
+
+INTERACTION_PAIRS = [
+    {"a": "warfarin", "b": "aspirin", "severity": "major",
+     "concern": "additive bleeding risk",
+     "source": "FDA label, Coumadin, Drug Interactions"},
+    {"a": "warfarin", "b": "ibuprofen", "severity": "major",
+     "concern": "additive bleeding risk and GI injury",
+     "source": "FDA label, Coumadin, Drug Interactions"},
+    {"a": "warfarin", "b": "naproxen", "severity": "major",
+     "concern": "additive bleeding risk and GI injury",
+     "source": "FDA label, Coumadin, Drug Interactions"},
+    {"a": "warfarin", "b": "fluconazole", "severity": "major",
+     "concern": "CYP2C9 inhibition raising INR",
+     "source": "FDA label, Diflucan, Drug Interactions"},
+    {"a": "lisinopril", "b": "spironolactone", "severity": "major",
+     "concern": "additive hyperkalemia",
+     "source": "FDA label, Zestril, Warnings"},
+    {"a": "lisinopril", "b": "potassium chloride", "severity": "major",
+     "concern": "additive hyperkalemia",
+     "source": "FDA label, Zestril, Warnings"},
+    {"a": "lisinopril", "b": "ibuprofen", "severity": "moderate",
+     "concern": "reduced antihypertensive effect and renal risk",
+     "source": "FDA label, Zestril, Drug Interactions"},
+    {"a": "metformin", "b": "contrast media", "severity": "major",
+     "concern": "lactic acidosis risk around iodinated contrast",
+     "source": "FDA label, Glucophage, Boxed Warning"},
+    {"a": "atorvastatin", "b": "clarithromycin", "severity": "major",
+     "concern": "CYP3A4 inhibition raising myopathy risk",
+     "source": "FDA label, Lipitor, Drug Interactions"},
+    {"a": "atorvastatin", "b": "gemfibrozil", "severity": "major",
+     "concern": "additive myopathy and rhabdomyolysis risk",
+     "source": "FDA label, Lipitor, Drug Interactions"},
+    {"a": "sertraline", "b": "tramadol", "severity": "major",
+     "concern": "serotonin syndrome risk",
+     "source": "FDA label, Zoloft, Warnings"},
+    {"a": "sertraline", "b": "linezolid", "severity": "contraindicated",
+     "concern": "serotonin syndrome risk",
+     "source": "FDA label, Zoloft, Contraindications"},
+    {"a": "sertraline", "b": "ibuprofen", "severity": "moderate",
+     "concern": "increased bleeding risk",
+     "source": "FDA label, Zoloft, Drug Interactions"},
+    {"a": "levothyroxine", "b": "calcium carbonate", "severity": "moderate",
+     "concern": "reduced levothyroxine absorption if taken together",
+     "source": "FDA label, Synthroid, Drug Interactions"},
+    {"a": "furosemide", "b": "lisinopril", "severity": "moderate",
+     "concern": "first dose hypotension",
+     "source": "FDA label, Lasix, Drug Interactions"},
+]
+
+
+def normalize_ingredient(name: str) -> str:
+    return (name or "").strip().lower()
+
+
+def active_ingredients(medication_requests: List[dict]) -> List[str]:
+    out = []
+    for request in medication_requests:
+        if request.get("status") != "active":
+            continue
+        out.append(normalize_ingredient(request.get("medication", "").split()[0]
+                                        if request.get("medication") else ""))
+    return [i for i in out if i]
+
+
+def check_regimen(medication_requests: List[dict]) -> List[dict]:
+    present = set(active_ingredients(medication_requests))
+    found = []
+    for pair in INTERACTION_PAIRS:
+        if pair["a"] in present and pair["b"] in present:
+            found.append({
+                "check_id": "regimen_pair",
+                "ingredients": [pair["a"], pair["b"]],
+                "severity": pair["severity"],
+                "concern": pair["concern"],
+                "source": pair["source"],
+                "surfaced": SEVERITY_ORDER[pair["severity"]] >= SEVERITY_ORDER[SURFACE_THRESHOLD],
+            })
+    return sorted(found, key=lambda f: -SEVERITY_ORDER[f["severity"]])
+
+
+def patient_message(finding: dict) -> Optional[str]:
+    if not finding.get("surfaced"):
+        return None
+    a, b = finding["ingredients"]
+    return (
+        f"Something on your list looks worth checking. Your {a} and your {b} "
+        "can interact. Please keep taking both exactly as prescribed for now, "
+        "and speak to your prescriber or your pharmacist about it. Do not stop "
+        "or change anything on your own."
+    )
+
+
+LIMITATIONS = (
+    "Hand curated demonstration table of a small number of ingredient pairs. "
+    "Not a formulary check and not a drug interaction database. There is no "
+    "ingredient normalization, so brand names and combination products are not "
+    "resolved and a duplicate ingredient inside a combination product will be "
+    "missed. There is no indication, renal function, dose or timing context."
+)
