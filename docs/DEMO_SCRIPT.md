@@ -4,120 +4,151 @@ A rehearsable two minute walkthrough for the table. Time it against a clock
 at least three times before judging. If something breaks live, fall back to
 the backup video rather than debugging in front of a judge.
 
-Keep `docs/PLAN.md` section 5 open on a second screen; the regulatory answer
+Keep `docs/PLAN.md` section 5 open on a second screen. The regulatory answer
 below is taken from it and you should not paraphrase it from memory under
 pressure.
 
+Demo patient is **p1, Maria Santos**. She is the only patient with two daily
+doses, so the reminder step always has something to show. Do not demo p2 or
+p3 late in the day; their single dose can fall outside the window and the
+first step of the loop will have nothing to say.
+
 ---
 
-## 0:00 to 0:15 -- Open with the disclaimer, unprompted
-
-Say this before anything else, in your own words but keeping the content:
+## 0:00 to 0:15  Open with the disclaimer, unprompted
 
 > "Quick disclaimer before I show you anything: this is a hackathon
 > prototype, not a medical device, not medical advice, and everything you
 > see uses synthetic patient data. If you're experiencing a real emergency,
-> call 911, and if you're in crisis, call or text 988. Okay -- here's what
+> call 911, and if you're in crisis, call or text 988. Okay, here's what
 > we built."
 
-Volunteering this before a judge asks for it is the single most credible
-thing you can do at this table. Do not wait to be asked.
+Volunteering this before a judge asks is the single most credible thing you
+can do at this table. Do not wait to be asked.
 
-## 0:15 to 0:35 -- What it is, in one breath
+---
 
-> "CareLoop is a medication check-in voice agent. It calls a patient, asks
-> how they're doing, and a triage engine behind it decides how urgent
-> whatever they say is. The interesting part isn't the phone call, it's
-> the safety floor underneath it."
+## 0:15 to 0:35  The one sentence version
 
-## 0:35 to 0:55 -- The emergency beat (the strongest ten seconds)
+> "CareLoop calls patients to check they took their medication. If they
+> report something concerning, it triages what they said, and then it calls
+> the clinic and books the follow-up itself. The patient never types
+> anything and never logs in. They connect their portal once and answer
+> the phone."
 
-Type or say a clear emergency phrase into the console, live, for example
-"I can't breathe." Let the response come back, then say:
+---
 
-> "Notice that came back instantly. That's not the language model being
-> fast, that's no model being consulted at all. Tier 0 is a table of
-> regular expressions checking for unambiguous emergencies. It's
-> sub-millisecond, it runs with zero network calls, and because it fires
-> before the language model ever sees the transcript, there is no code
-> path where a model can talk an emergency back down. The model can only
-> raise severity above this floor. It can never lower it."
+## 0:35 to 1:00  Run the loop. One button.
 
-This is the moment to let the response sit on screen for a second before
-moving on. Do not rush past it.
+Press **Run the check-in call** on the console. Let it play. Narrate over it:
 
-## 0:55 to 1:10 -- The crisis beat
+> "That is one press. It reminded her about her eight AM metformin, asked
+> how she's feeling, triaged what she said, then called the office, gave
+> the reason for the visit, gave her insurance, took the slot, and told
+> her it was booked."
 
-> "One more thing on purpose: a mental health crisis and a heart attack are
-> both flagged at the same urgency, but we route them differently. Watch."
+Point at the clinic transcript.
 
-Type a crisis phrase, for example "I want to die." Point out that the
-response offers 988 and does not tell the caller to hang up and call 911.
+> "That conversation is our agent talking to a front desk. The front desk
+> is simulated and we label it as simulated, because a booking demo that
+> implies we called a real medical office is not a demo anyone should give."
 
-> "Telling someone who just told you they want to die to call the police
-> and then hanging up is the most criticized failure mode in AI mental
-> health right now. We deliberately do not treat a crisis like a cardiac
-> event."
+---
 
-## 1:10 to 1:40 -- Hand the keyboard to the judge
+## 1:00 to 1:20  The strongest ten seconds. Hand them the keyboard.
 
-> "Type your own symptom, however you'd actually say it. Don't write it
-> like a doctor would."
+Ask the judge to type an emergency in their own words into the free text
+box. Anything. Let them invent it.
 
-Let the judge type freely. Whatever tier comes back, narrate what happened:
-did Tier 0 fire, or did it pass to the model. This is the proof that
-nothing on screen is scripted.
+When it comes back, point at the latency and the source field.
 
-## 1:40 to 2:00 -- Close
+> "That came back in about two milliseconds and the source says rule.
+> No model was consulted. Emergency detection is deterministic regex, and
+> the model is never given the opportunity to talk us down from an
+> emergency. It can raise severity. It cannot lower it."
 
-> "Everything you just watched is backed by a test suite: ninety tests, all
-> offline, no API key required to prove the safety property holds. And to
-> be clear again: this is a prototype for a judged event. It doesn't
-> diagnose anything and it hasn't touched a real patient."
+Then ask them to type a negation. Suggest: **"no chest pain today, I feel fine"**
+
+> "And it does not fire on that. Negation, past tense, hypotheticals.
+> Thirteen out of thirteen in our test set. Every team here can make
+> something fire on the words chest pain. Almost none can make it not fire."
+
+If they speak Spanish, invite them to try it. `tengo dolor en el pecho`
+reaches the emergency path.
+
+---
+
+## 1:20 to 1:40  The measurement
+
+> "We ran 540 calls across three prompting strategies to test whether
+> phrasing changes the triage result. Prompting didn't fix anything, all
+> three arms tie. But every disagreement, eleven out of eleven, went the
+> same direction: when a patient downplays a symptom, the model rates it
+> less severe. Never more."
+
+> "You cannot prompt your way out of that. Which is exactly why our
+> emergency floor is a regex and not a model."
+
+Do not oversell this. If a judge pushes on sample size, agree with them
+immediately, see the prepared answer below.
+
+---
+
+## 1:40 to 2:00  Close
+
+> "So the loop is: we remind, we listen, we triage deterministically first
+> and with a model second, we act on it by booking the visit, and the next
+> call remembers what happened on this one."
 
 ---
 
 ## Prepared answers
 
-Use these close to verbatim. They are pre-committed so you do not improvise
-a regulatory claim under pressure.
-
 ### "Is this a medical device?"
 
-> "CareLoop is a research prototype, not a medical device. A patient-facing
-> tool that recommends emergency care would very likely be regulated under
-> FDA's clinical decision support framework: it is directed at a patient,
-> it is time-critical, and the patient cannot independently review the
-> basis. We are not claiming the exemption. What we built is the safety
-> architecture you would need before you could pursue that pathway."
+> "No, and I want to be precise about that. A patient facing tool that
+> recommends emergency care would very likely be regulated under the FDA's
+> clinical decision support framework: it is directed at a patient, it is
+> time critical, and the patient cannot independently review the basis. We
+> are not claiming the exemption. What we built is the safety architecture
+> you would need before you could pursue that pathway."
 
-### "Who labeled your eval data?"
+### "Who labelled your eval data?"
 
-> "We did, and we say so. The evaluation is about paraphrase consistency,
-> not accuracy against a ground truth label, specifically because we wrote
-> the test cases ourselves and grading our own labels would be circular.
-> The question we're answering is: does the same underlying symptom get
-> the same tier no matter how the patient phrases it. That needs no
-> external ground truth at all. The sample is small, non-clinical, and
-> authored by non-clinicians, and we say that on the results themselves,
-> not just here."
+> "We did, and that is a real limitation. We wrote the sentences and we are
+> not clinicians. That is why we did not frame it as a bias measurement.
+> We measured whether the classifier gives the same answer for the same
+> symptom phrased differently, which needs no ground truth labels at all.
+> The next step would be clinician labelled transcripts from real speakers,
+> and that needs IRB."
+
+### "What about false negatives in your regex?"
+
+> "That is the right question and it is the honest limit of the approach.
+> A rule layer only catches what we wrote down. What we can show is that it
+> holds across informal, dialectal and Spanish phrasing, and that when it
+> does not match, the model still runs and can escalate. The rule layer is
+> a floor, not a ceiling."
 
 ### "What would you need before this touches a real patient?"
 
-> "Clinical validation against real patient transcripts with real labels
-> from clinicians, not us. A regulatory pathway determination, since this
-> likely falls under FDA clinical decision support guidance and probably
-> EU MDR if deployed there. HIPAA-compliant infrastructure, which this
-> demo explicitly does not have. And a much larger, adversarially reviewed
-> Tier 0 rule set audited by people who are not the ones who wrote it,
-> because a rule table we wrote and graded ourselves is not evidence it
-> is safe, it's evidence it is safe against the cases we thought of."
+> "A business associate agreement with every vendor in the stack, clinician
+> labelled validation data, and prospective testing. Gemini's own terms
+> would probably push us to self host the classifier for anything clinical."
 
 ---
 
 ## If something breaks
 
-Have the backup video ready and say so plainly: "the venue wifi is fighting
-me, let me show you the recording from last night while I get this back up."
-A demo that has only ever run once has not been tested; a backup that you
-are unafraid to reach for reads as competence, not failure.
+- **Tier 1 returns `fallback_error`.** Say it out loud: "the model is
+  unreachable right now, and notice it failed toward more attention rather
+  than less, it returned moderate rather than mild. That is deliberate."
+  This is a better answer than an excuse.
+- **Network is gone.** Switch to the backup video. Do not debug live.
+- **The trace looks stale.** Press reset on the console between judges.
+
+## Before you present
+
+- Run it three times end to end without stopping.
+- Record the backup video while everything works.
+- Confirm the deployed site loads on a phone, not just the laptop.
