@@ -219,6 +219,8 @@ class TriageResult:
     matched_rules: List[str] = field(default_factory=list)
     llm_severity: Optional[Severity] = None
     llm_raw: Optional[str] = None
+    normalized_text: Optional[str] = None
+    confidence: Optional[float] = None
     escalated: bool = False        # True when Tier 1 raised above the Tier 0 floor
 
     @property
@@ -241,6 +243,8 @@ class TriageResult:
             "reasoning": self.reasoning,
             "matched_rules": self.matched_rules,
             "llm_severity": self.llm_severity.label if self.llm_severity else None,
+            "normalized_text": self.normalized_text,
+            "confidence": self.confidence,
             "escalated": self.escalated,
             "is_emergency": self.is_emergency,
             "is_crisis": self.is_crisis,
@@ -375,6 +379,7 @@ def triage(transcript: str, llm_classifier=None) -> TriageResult:
                 + ". Escalated to EMERGENCY without an LLM call."
             ),
             matched_rules=matched,
+            confidence=1.0,
         )
 
     # Tier 0 did not fire, so the floor is the lowest severity and Tier 1
