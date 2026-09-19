@@ -20,6 +20,7 @@ class StripPrefix:
                 stripped = path[len(self.prefix):] or "/"
                 scope = dict(scope)
                 scope["path"] = stripped
+                scope["root_path"] = self.prefix
                 raw = scope.get("raw_path")
                 if raw:
                     scope["raw_path"] = raw[len(self.prefix):] or b"/"
