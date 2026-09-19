@@ -100,3 +100,14 @@ test('portal connects and the prescription list arrives', async () => {
   expect(screen.getByText(/tried again on the next round/)).toBeTruthy()
   expect(screen.getAllByText('Nothing urgent').length).toBeGreaterThan(0)
 })
+
+test('no booking explains itself', () => {
+  render(<ClinicCall events={[]} booking={null} tier="emergency" />)
+  expect(screen.getByText(/never books an appointment for an emergency/)).toBeTruthy()
+  cleanup()
+  render(<ClinicCall events={[]} booking={null} tier="mild" />)
+  expect(screen.getByText(/only rings the clinic when/)).toBeTruthy()
+  cleanup()
+  const { container } = render(<ClinicCall events={[]} booking={null} tier={null} />)
+  expect(container.textContent).toBe('')
+})

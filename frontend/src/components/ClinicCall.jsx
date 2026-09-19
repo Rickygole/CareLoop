@@ -5,7 +5,25 @@ function speakerLabel(eventType) {
 }
 
 export default function ClinicCall({ events, booking, tier }) {
-  if (!booking) return null
+  if (!booking) {
+    const level = String(tier || '').toLowerCase()
+    if (!level) return null
+    return (
+      <section aria-labelledby="clinic-heading" className="mt-14">
+        <h3
+          id="clinic-heading"
+          className="font-display border-b-2 border-line-ink pb-2 text-xl font-semibold text-ink"
+        >
+          No call to the clinic this time
+        </h3>
+        <p className="measure mt-5 text-ink-2">
+          {level === 'emergency'
+            ? 'CareLoop never books an appointment for an emergency. An appointment is too slow, so it tells you to get help now and alerts your care team instead.'
+            : 'CareLoop only rings the clinic when what you said means you should be seen. Nothing you said today needed that, so it did not take up an appointment.'}
+        </p>
+      </section>
+    )
+  }
 
   const turns = (events || []).filter(
     (event) =>
@@ -17,7 +35,7 @@ export default function ClinicCall({ events, booking, tier }) {
     <section aria-labelledby="clinic-heading" className="mt-14">
       <h3
         id="clinic-heading"
-        className="font-display border-b-2 border-line-ink pb-3 text-xl font-semibold text-ink"
+        className="font-display border-b-2 border-line-ink pb-2 text-xl font-semibold text-ink"
       >
         The call CareLoop made for you
       </h3>
