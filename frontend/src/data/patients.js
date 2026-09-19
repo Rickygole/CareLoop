@@ -1,8 +1,3 @@
-/*
-  The demo roster. These ids match mock_data/patients.json on the backend.
-  The API has no list endpoint, so the picker needs names locally. Every
-  other field comes from POST /portal/connect.
-*/
 export const PATIENTS = [
   { id: 'p1', name: 'Maria Santos' },
   { id: 'p2', name: 'James Okafor' },

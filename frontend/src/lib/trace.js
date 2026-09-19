@@ -1,11 +1,3 @@
-/*
-  Trace event presentation.
-
-  Color carries the event class, but every line also carries the event name
-  in text, so nothing here depends on a judge being able to tell teal from
-  green.
-*/
-
 export const EVENT_STYLE = {
   CALL_INITIATED: { color: '#7DD3FC', label: 'call' },
   CALL_CONNECTED: { color: '#38BDF8', label: 'call' },
@@ -34,7 +26,6 @@ export function styleFor(eventType) {
   return EVENT_STYLE[eventType] || DEFAULT_STYLE
 }
 
-/* Time of day only. The date is always today during a demo. */
 export function clockTime(isoString) {
   const d = new Date(isoString)
   if (Number.isNaN(d.getTime())) return '--:--:--'
@@ -44,7 +35,6 @@ export function clockTime(isoString) {
   )
 }
 
-/* One line of payload, readable at a glance, never wider than the panel. */
 export function summarize(event) {
   const p = event.payload || {}
   switch (event.event_type) {

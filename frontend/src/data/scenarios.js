@@ -1,8 +1,3 @@
-/*
-  Scenario pills for the console. One per tier plus the crisis route, so a
-  presenter can walk a judge from "nothing happens" to "this is the fastest
-  response in the demo, because no model was consulted".
-*/
 export const SCENARIOS = [
   {
     id: 'mild',

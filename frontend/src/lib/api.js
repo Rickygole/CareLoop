@@ -1,15 +1,7 @@
-/*
-  Every network call in the app goes through this file.
-
-  One env var, VITE_API_BASE, points the whole frontend at a backend. It
-  defaults to localhost so a fresh clone runs with no .env at all.
-*/
-
 export const API_BASE = (
   import.meta.env.VITE_API_BASE || 'http://localhost:8000'
 ).replace(/\/+$/, '')
 
-// Optional shared secret. The backend only checks it when it has one set.
 export const TRACE_TOKEN = import.meta.env.VITE_TRACE_TOKEN || ''
 
 export class ApiError extends Error {
@@ -37,7 +29,6 @@ async function request(path, options = {}) {
       const body = await response.json()
       if (body && body.detail) detail = String(body.detail)
     } catch {
-      // Non JSON error body. The status line is enough.
     }
     throw new ApiError(detail, response.status)
   }

@@ -2,21 +2,6 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { fetchEventsSince, traceSocketUrl } from './api.js'
 
-/*
-  The trace stream.
-
-  WebSocket first, because that is the honest implementation. But Vercel
-  serverless cannot hold a socket open, so the polling path is not a
-  decoration: set VITE_TRACE_TRANSPORT=poll and the panel runs entirely on
-  GET /trace/events?since=N every 500ms, and a judge cannot tell which one
-  is running.
-
-  Failure handling, in order:
-    socket drops -> start polling right away so events keep arriving
-                 -> retry the socket every 2s, up to 5 times
-                 -> after that, stay on polling for good
-*/
-
 const POLL_MS = 500
 const RETRY_MS = 2000
 const MAX_RETRIES = 5
@@ -111,8 +96,6 @@ export function useTrace() {
       attempts.current = 0
       setRetries(0)
       stopPolling()
-      // The server replays its buffer on connect, so reset the cursor and
-      // let the dedupe in push() sort out anything polling already showed.
       setStatus(TRACE_STATUS.LIVE)
     }
 
@@ -123,7 +106,6 @@ export function useTrace() {
         if (event.event_type === 'PING') return
         push([event])
       } catch {
-        // A frame we cannot parse is not worth tearing the stream down for.
       }
     }
 
@@ -131,7 +113,6 @@ export function useTrace() {
       try {
         ws.close()
       } catch {
-        // Already closing.
       }
     }
 
@@ -140,7 +121,6 @@ export function useTrace() {
       socket.current = null
 
       if (attempts.current >= MAX_RETRIES) {
-        // Give up on the socket. Polling is a first class transport here.
         startPolling(TRACE_STATUS.POLLING)
         return
       }
@@ -171,15 +151,12 @@ export function useTrace() {
         try {
           ws.close()
         } catch {
-          // Already closed.
         }
       }
     }
   }, [openSocket, startPolling, stopPolling])
 
   const clear = useCallback(() => {
-    // Clears the view only. The server keeps its buffer; the cursor stays
-    // where it is so cleared events do not come back on the next poll.
     setEvents([])
   }, [])
 
