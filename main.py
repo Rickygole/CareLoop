@@ -26,12 +26,14 @@ from fastapi import (
 )
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
+from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 
 
 load_dotenv()
 
 import conversation
 import telephony
+import twilio_signature
 from clinic import FRONT_DESK_DISCLOSURE, plan_clinic_call
 from contradiction import (
     LIMITATIONS,
@@ -77,6 +79,58 @@ WEBHOOK_SECRET = os.environ.get("CARELOOP_WEBHOOK_SECRET", "")
 
 SESSION_HEADER = "X-CareLoop-Session"
 SESSION_QUERY_PARAM = "session_id"
+
+TWILIO_VALIDATE_SIGNATURES_ENV = "TWILIO_VALIDATE_SIGNATURES"
+TWILIO_SIGNATURE_HEADER = "X-Twilio-Signature"
+
+
+def _twilio_signature_required() -> bool:
+    return (os.environ.get(TWILIO_VALIDATE_SIGNATURES_ENV) or "").strip().lower() in (
+        "1", "true", "yes",
+    )
+
+
+async def _verify_twilio_request(request: Request) -> None:
+    if not _twilio_signature_required():
+        return
+    auth_token = (os.environ.get("TWILIO_AUTH_TOKEN") or "").strip()
+    if not auth_token:
+        return
+    if request.method != "POST":
+        raise HTTPException(403, "invalid_twilio_signature")
+    raw_body = (await request.body()).decode("utf-8")
+    fields = dict(parse_qsl(raw_body, keep_blank_values=True))
+    signature = request.headers.get(TWILIO_SIGNATURE_HEADER, "")
+    url = str(request.base_url).rstrip("/") + request.url.path
+    if request.url.query:
+        url += "?" + request.url.query
+    if not twilio_signature.valid_signature(auth_token, url, fields, signature):
+        raise HTTPException(403, "invalid_twilio_signature")
+
+
+@app.api_route("/debug/twilio_echo", methods=["GET", "POST"])
+async def debug_twilio_echo(request: Request, secret: str = ""):
+    if not WEBHOOK_SECRET or secret != WEBHOOK_SECRET:
+        raise HTTPException(404)
+    raw_body = (await request.body()).decode("utf-8")
+    fields = dict(parse_qsl(raw_body, keep_blank_values=True))
+    url = str(request.base_url).rstrip("/") + request.url.path
+    if request.url.query:
+        url += "?" + request.url.query
+    return {
+        "reconstructed_url": url,
+        "fields": fields,
+        "has_signature_header": bool(request.headers.get(TWILIO_SIGNATURE_HEADER, "")),
+        "host_header": request.headers.get("host", ""),
+        "x_forwarded_proto": request.headers.get("x-forwarded-proto", ""),
+        "x_forwarded_host": request.headers.get("x-forwarded-host", ""),
+        "scope_scheme": request.scope.get("scheme"),
+        "scope_root_path": request.scope.get("root_path"),
+        "scope_path": request.scope.get("path"),
+        "scope_server": request.scope.get("server"),
+    }
+
+
 SESSION_CAPACITY = 200
 SESSION_IDLE_SECONDS = 1800
 ANSWERED_CALL_CAPACITY = 64
@@ -1345,6 +1399,7 @@ async def voice_checkin(
     patient_id: str = DEFAULT_DEMO_PATIENT_ID,
     session: SessionState = Depends(get_session),
 ):
+    await _verify_twilio_request(request)
     patient = session.patients.get(patient_id)
     if patient is None:
         raise HTTPException(404, "unknown_patient")
@@ -1443,6 +1498,7 @@ async def voice_checkin_respond(
     patient_id: str = DEFAULT_DEMO_PATIENT_ID,
     session: SessionState = Depends(get_session),
 ):
+    await _verify_twilio_request(request)
     patient = session.patients.get(patient_id)
     if patient is None:
         raise HTTPException(404, "unknown_patient")
@@ -1610,6 +1666,7 @@ async def voice_checkin_hold(
     patient_id: str = DEFAULT_DEMO_PATIENT_ID,
     session: SessionState = Depends(get_session),
 ):
+    await _verify_twilio_request(request)
     await session.bus.emit("CRISIS_LINE_HELD", {"patient_id": patient_id})
     return _twiml(
         _say(CHECKIN_CRISIS_HOLD)
@@ -1691,6 +1748,7 @@ async def voice_checkin_status(
 
 @app.api_route("/voice/clinic", methods=["GET", "POST"])
 async def voice_clinic(
+    request: Request,
     specialty: str = "Internal Medicine",
     payer_id: str = "",
     payer_display: str = "their insurer",
@@ -1699,6 +1757,7 @@ async def voice_clinic(
     transcript: str = "Routine follow-up requested from the CareLoop demo.",
     session: SessionState = Depends(get_session),
 ):
+    await _verify_twilio_request(request)
     await session.bus.emit("CALL_CONNECTED", {"leg": "clinic"})
 
     call = plan_clinic_call(specialty, payer_id or None, payer_display, patient_name, tier, transcript)
@@ -2051,11 +2110,13 @@ def _find_reminder(patient: dict, note_id: str, kind: str) -> Optional[dict]:
 
 @app.api_route("/voice/reminder", methods=["GET", "POST"])
 async def voice_reminder(
+    request: Request,
     patient_id: str = DEFAULT_DEMO_PATIENT_ID,
     note_id: str = "",
     kind: str = followup.KIND_DAY_BEFORE,
     session: SessionState = Depends(get_session),
 ):
+    await _verify_twilio_request(request)
     patient = session.patients.get(patient_id)
     if patient is None:
         raise HTTPException(404, "unknown_patient")
@@ -2217,3 +2278,6 @@ def health():
         "telephony_missing": telephony.missing_env_vars(),
         "runtime": os.environ.get("VERCEL_ENV", "local"),
     }
+
+
+app = ProxyHeadersMiddleware(app, trusted_hosts="*")
