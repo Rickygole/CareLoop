@@ -197,3 +197,52 @@ def test_admin_reset_clears_the_trace_and_rotates_boot_id():
 def test_trace_events_expose_a_boot_id_for_restart_detection():
     body = client.get("/trace/events?since=0").json()
     assert isinstance(body["boot_id"], str) and body["boot_id"]
+
+
+def test_loop_run_reminds_triages_and_books_in_one_pass():
+    client.post("/admin/reset", json={})
+    body = client.post("/loop/run", json={
+        "patient_id": "p1",
+        "transcript": "I have been throwing up after every dose for three days",
+    }).json()
+    assert body["plan"]["next_dose"] is not None
+    assert body["triage"]["tier"] in ("moderate", "severe")
+    assert body["booking"]["confirmed"] is True
+    assert body["booking"]["simulated_front_desk"] is True
+    assert "simulated front desk" in body["booking"]["disclosure"]
+
+    types = [e["event_type"] for e in client.get("/trace/events?since=0").json()["events"]]
+    for expected in ["REMINDER_DUE", "PATIENT_SPEECH", "CLINIC_CALL_INITIATED",
+                     "CLINIC_DESK_SPEECH", "BOOKING_CONFIRMED", "PATIENT_CONFIRMED"]:
+        assert expected in types, f"{expected} missing from the loop trace"
+
+
+def test_loop_never_books_on_an_emergency():
+    client.post("/admin/reset", json={})
+    body = client.post("/loop/run", json={
+        "patient_id": "p1", "transcript": "my chest is killing me",
+    }).json()
+    assert body["triage"]["tier"] == "emergency"
+    assert body["booking"] is None
+    types = [e["event_type"] for e in client.get("/trace/events?since=0").json()["events"]]
+    assert "CLINIC_CALL_INITIATED" not in types
+    assert "EMERGENCY_ESCALATION" in types
+
+
+def test_loop_never_books_on_a_crisis():
+    client.post("/admin/reset", json={})
+    body = client.post("/loop/run", json={
+        "patient_id": "p1", "transcript": "I want to die",
+    }).json()
+    assert body["triage"]["is_crisis"] is True
+    assert body["booking"] is None
+
+
+def test_schedule_endpoint_returns_a_day_plan():
+    body = client.get("/schedule/p1").json()
+    assert body["doses_total"] == 2
+    assert body["next_call"] is not None
+
+
+def test_schedule_unknown_patient_is_404():
+    assert client.get("/schedule/ghost").status_code == 404

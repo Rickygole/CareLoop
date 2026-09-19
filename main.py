@@ -14,7 +14,9 @@ from pydantic import BaseModel, Field
 
 load_dotenv()
 
+from clinic import plan_clinic_call
 from providers import find_provider, specialties
+from scheduler import build_day_plan
 from responses import suggested_response
 from triage_engine import Severity, triage
 
@@ -328,6 +330,90 @@ async def elevenlabs_webhook(body: ToolCall):
         )
 
     raise HTTPException(400, f"unknown tool {body.tool_name!r}")
+
+
+class RunLoopRequest(BaseModel):
+    patient_id: str
+    transcript: str
+    auto_book: bool = True
+
+
+@app.post("/loop/run")
+async def run_loop(body: RunLoopRequest):
+    patient = PATIENTS.get(body.patient_id)
+    if patient is None:
+        raise HTTPException(404, "unknown_patient")
+
+    plan = build_day_plan(patient)
+    await bus.emit("CALL_INITIATED", {
+        "patient_id": body.patient_id, "patient": patient["name"],
+    })
+    if plan["next_dose"]:
+        await bus.emit("REMINDER_DUE", {
+            "medication": plan["next_dose"]["medication"],
+            "dosage": plan["next_dose"]["dosage"],
+            "time": plan["next_dose"]["time"],
+            "status": plan["next_dose"]["status"],
+        })
+    await bus.emit("CALL_CONNECTED", {"patient_id": body.patient_id})
+
+    result = await run_triage(body.transcript, body.patient_id)
+
+    booking = None
+    if body.auto_book and result["tier"] in ("moderate", "severe") and not result["is_emergency"]:
+        specialty = patient["medication_requests"][0]["prescriber"]
+        specialty = "Internal Medicine"
+        call = plan_clinic_call(
+            specialty,
+            patient["insurance_payer_id"],
+            patient.get("insurance_display_name", "their insurer"),
+            patient["name"],
+            result["tier"],
+            body.transcript,
+        )
+        if call:
+            await bus.emit("CLINIC_CALL_INITIATED", {
+                "provider": call["provider"]["name"],
+                "specialty": call["provider"]["specialty"],
+                "simulated": call["simulated"],
+                "disclosure": call["disclosure"],
+            })
+            for turn in call["turns"]:
+                event = "CLINIC_AGENT_SPEECH" if turn["speaker"] == "careloop" else "CLINIC_DESK_SPEECH"
+                await bus.emit(event, {"text": turn["text"]})
+            await bus.emit("CLINIC_CALL_ENDED", {"booked": True})
+            await bus.emit("BOOKING_CONFIRMED", {
+                "provider_name": call["provider"]["name"],
+                "time": call["slot"],
+                "specialty": call["provider"]["specialty"],
+            })
+            booking = {
+                "confirmed": True,
+                "provider_name": call["provider"]["name"],
+                "time": call["slot"],
+                "specialty": call["provider"]["specialty"],
+                "simulated_front_desk": call["simulated"],
+                "disclosure": call["disclosure"],
+                "turns": call["turns"],
+            }
+            await bus.emit("PATIENT_CONFIRMED", {
+                "text": f"You're booked with {call['provider']['name']} at {call['slot']}.",
+            })
+
+    await bus.emit("BACKBOARD_WRITE", {
+        "patient_id": body.patient_id, "tier": result["tier"],
+    })
+    await bus.emit("CALL_ENDED", {"patient_id": body.patient_id})
+
+    return {"triage": result, "plan": plan, "booking": booking}
+
+
+@app.get("/schedule/{patient_id}")
+def patient_schedule(patient_id: str):
+    patient = PATIENTS.get(patient_id)
+    if patient is None:
+        raise HTTPException(404, "unknown_patient")
+    return build_day_plan(patient)
 
 
 @app.get("/health")
