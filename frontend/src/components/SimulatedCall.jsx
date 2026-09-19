@@ -46,7 +46,8 @@ const PHASE_WORD = {
   gave_up: { word: 'Stopped calling', glyph: DIAMOND },
 }
 
-const POLL_DONE = ['answered', 'ended', 'gave_up']
+const POLL_DONE = ['ended', 'gave_up']
+const POLL_MAX_MS = 180000
 
 function reducedMotion() {
   if (typeof window === 'undefined' || !window.matchMedia) return false
@@ -218,7 +219,13 @@ export default function SimulatedCall({
   const startPolling = useCallback(() => {
     stopPolling()
     let failures = 0
+    const startedAt = Date.now()
     const read = async () => {
+      if (Date.now() - startedAt > POLL_MAX_MS) {
+        stopPolling()
+        setRingState(CALL_STATUS.IDLE)
+        return
+      }
       let state = null
       try {
         state = await callState('checkin')
@@ -229,7 +236,10 @@ export default function SimulatedCall({
       if (!state) {
         failures += 1
         setStateUnread(true)
-        if (failures >= MAX_POLL_FAILURES) stopPolling()
+        if (failures >= MAX_POLL_FAILURES) {
+          stopPolling()
+          setRingState(CALL_STATUS.IDLE)
+        }
         return
       }
       failures = 0
@@ -319,7 +329,8 @@ export default function SimulatedCall({
   const phoneWorking =
     ringState === CALL_STATUS.DIALLING ||
     (ringState === CALL_STATUS.RINGING &&
-      (!live || !POLL_DONE.includes(live.phase) || live.phase === 'answered'))
+      Boolean(live) &&
+      !POLL_DONE.includes(live.phase))
   const writtenRunning = phase !== 'idle' && phase !== 'ended'
 
   const phoneState = phoneWorking ? 'active' : 'waiting'
