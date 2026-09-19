@@ -623,8 +623,11 @@ test('the written stand-in says what the phone call says', async () => {
 
   fireEvent.click(screen.getByText('Read the check-in in writing'))
   await screen.findByText(/This is CareLoop, your medication assistant/, {}, { timeout: 4000 })
-  await screen.findByText(/this is a reminder to take your/, {}, { timeout: 4000 })
-  await screen.findByText(/Please take it now if you have not already/, {}, { timeout: 4000 })
+  await screen.findByText(/how have you been feeling/, {}, { timeout: 4000 })
+  await screen.findByText(/this is a reminder about your/, {}, { timeout: 4000 })
+  await screen.findByText(/due later today, at 8 pm/, {}, { timeout: 4000 })
+  await screen.findByText(/let me know once you have taken it/, {}, { timeout: 4000 })
+  expect(screen.queryByText(/Please take it now if you have not already/)).toBe(null)
   expect(screen.queryByText(/Do you have a couple of minutes/)).toBe(null)
   expect(screen.queryByText(/Have you been able to take it/)).toBe(null)
   expect(screen.queryByText(/prescriber's schedule has your/)).toBe(null)

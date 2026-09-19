@@ -76,18 +76,53 @@ function greetingLine(first) {
   )
 }
 
-function doseLine(first, dose) {
+function doseTiming(dose) {
+  if (!dose || !dose.time) return { when: 'due today', dueNow: false }
+  if (dose.status === 'due_now' || dose.status === 'due_soon') {
+    return { when: 'due at about this time', dueNow: true }
+  }
+  const [h] = String(dose.time).split(':')
+  const hour = Number(h)
+  const twelve = hour % 12 === 0 ? 12 : hour % 12
+  const suffix = hour >= 12 ? 'pm' : 'am'
+  return { when: 'due later today, at ' + twelve + ' ' + suffix, dueNow: false }
+}
+
+function doseLine(first, dose, flagged) {
   const named = dose && dose.medication ? dose.medication : 'medication'
   const amount = dose && dose.dosage ? ', ' + dose.dosage : ''
   const why = dose && dose.indication ? ', the one ' + dose.indication : ''
+  const { when, dueNow } = doseTiming(dose)
+
+  if (flagged) {
+    return (
+      first +
+      ', how have you been feeling? Separately, your prescriber\'s schedule ' +
+      'has your ' +
+      named +
+      amount +
+      ' ' +
+      when +
+      '. I am not going to ask you to take it, because something on your ' +
+      'medication list is worth asking your prescriber or pharmacist about ' +
+      'first. Please do not start, stop or change anything because of this ' +
+      'call. Tell me how you are doing.'
+    )
+  }
+
+  const take = dueNow ? 'Please take it now if you have not already. ' : ''
   return (
     first +
-    ', this is a reminder to take your ' +
+    ', how have you been feeling? And separately, this is a reminder about ' +
+    'your ' +
     named +
     amount +
     why +
-    '. Please take it now if you have not already. When you have, tell me ' +
-    'you took it, and tell me how you have been feeling since.'
+    ', ' +
+    when +
+    '. ' +
+    take +
+    'Tell me how you are doing, and let me know once you have taken it.'
   )
 }
 
@@ -192,6 +227,7 @@ export default function SimulatedCall({
   error,
   onReply,
   onRing,
+  isDoseFlagged,
   children,
 }) {
   const [turns, setTurns] = useState([])
@@ -277,7 +313,7 @@ export default function SimulatedCall({
     say('careloop', greetingLine(first))
     await pause(GAP_LONG)
     if (!alive.current) return
-    say('careloop', doseLine(first, nextDose))
+    say('careloop', doseLine(first, nextDose, isDoseFlagged))
     await pause(GAP_SHORT)
     if (!alive.current) return
     setPhase('awaiting')

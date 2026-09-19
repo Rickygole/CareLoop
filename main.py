@@ -207,6 +207,7 @@ class SessionState:
         self.escalations: Dict[str, List[dict]] = {}
         self.regimen_snapshots: Dict[str, List[dict]] = {}
         self.bookings: Dict[str, List[dict]] = {}
+        self.pending_bookings: Dict[str, dict] = {}
         self.answered_calls: Dict[str, bool] = {}
         self.callback_nonces: Dict[str, bool] = {}
         self.consumed_callbacks: Dict[str, bool] = {}
@@ -556,6 +557,12 @@ async def elevenlabs_webhook(body: ToolCall, session: SessionState = Depends(get
         return await run_triage(session, body.transcript or "", body.patient_id)
 
     if body.tool_name == "book_appointment":
+        if body.transcript is not None and not _confirms_appointment(body.transcript):
+            raise HTTPException(
+                422,
+                "book_appointment was called without the patient clearly agreeing. "
+                "Ask again and only call this tool once they say yes.",
+            )
         return await book_appointment(
             BookRequest(
                 specialty=body.specialty or "Internal Medicine",
@@ -622,83 +629,113 @@ async def run_loop(
             })
 
     booking = None
-    if body.auto_book and result["tier"] in ("moderate", "severe") and not result["is_emergency"]:
-        specialty = patient["medication_requests"][0]["prescriber"]
-        specialty = "Internal Medicine"
+    booking_offered = False
+    pending = session.pending_bookings.get(body.patient_id)
+
+    if pending and _confirms_appointment(body.transcript):
+        session.pending_bookings.pop(body.patient_id, None)
+        specialty = pending["specialty"]
         call = plan_clinic_call(
             specialty,
             patient["insurance_payer_id"],
             patient.get("insurance_display_name", "their insurer"),
             patient["name"],
-            result["tier"],
-            body.transcript,
+            pending["tier"],
+            pending["transcript"],
         )
-        if call:
-            await session.bus.emit("CLINIC_CALL_INITIATED", {
-                "provider": call["provider"]["name"],
-                "specialty": call["provider"]["specialty"],
-                "simulated": call["simulated"],
-                "disclosure": call["disclosure"],
-            })
-            for turn in call["turns"]:
-                event = "CLINIC_AGENT_SPEECH" if turn["speaker"] == "careloop" else "CLINIC_DESK_SPEECH"
-                await session.bus.emit(event, {"text": turn["text"]})
-            await session.bus.emit("CLINIC_CALL_ENDED", {"booked": True})
-            await session.bus.emit("BOOKING_CONFIRMED", {
-                "provider_name": call["provider"]["name"],
-                "time": call["slot"],
-                "specialty": call["provider"]["specialty"],
-            })
-            booking = {
-                "confirmed": True,
-                "provider_name": call["provider"]["name"],
-                "time": call["slot"],
-                "specialty": call["provider"]["specialty"],
-                "simulated_front_desk": call["simulated"],
-                "disclosure": call["disclosure"],
-                "turns": call["turns"],
-            }
-            _remember_booking(session, body.patient_id, booking, body.transcript)
-            await session.bus.emit("PATIENT_CONFIRMED", {
-                "text": (
-                    "This is a simulated booking. In a real deployment you would "
-                    f"now be booked with {call['provider']['name']} at "
-                    f"{call['slot']}. No real clinic was contacted and no "
-                    "appointment exists."
-                ),
-            })
+        if not call:
+            result["suggested_agent_response"] = (
+                "I could not find an opening right now, so please call the "
+                "clinic yourself. " + result["suggested_agent_response"]
+            )
+    elif pending and _declines_appointment(body.transcript):
+        session.pending_bookings.pop(body.patient_id, None)
+        await session.bus.emit("BOOKING_DECLINED", {"patient_id": body.patient_id})
+        result["suggested_agent_response"] = (
+            "No problem, I will not book anything. " + result["suggested_agent_response"]
+        )
+        call = None
+    elif body.auto_book and result["tier"] in ("moderate", "severe") and not result["is_emergency"]:
+        specialty = "Internal Medicine"
+        session.pending_bookings[body.patient_id] = {
+            "specialty": specialty,
+            "tier": result["tier"],
+            "transcript": body.transcript,
+        }
+        booking_offered = True
+        await session.bus.emit("BOOKING_OFFERED", {
+            "patient_id": body.patient_id, "specialty": specialty,
+        })
+        call = None
+    else:
+        call = None
 
-            missing = telephony.missing_env_vars()
-            if not body.call_clinic:
-                await session.bus.emit("PHONE_CALL_NOT_PLACED", {
-                    "leg": "clinic",
-                    "reason": "not_requested",
-                    "detail": "The booking ran. No telephone was dialled, because this run did not ask for one.",
-                })
-            elif missing:
-                await session.bus.emit("PHONE_CALL_NOT_CONFIGURED", {
-                    "leg": "clinic", "missing": missing,
-                })
-            elif not session.call_limiter.allow():
-                await session.bus.emit("PHONE_CALL_NOT_CONFIGURED", {
-                    "leg": "clinic", "reason": "rate_limited",
-                })
-            else:
-                params = {
-                    "specialty": specialty,
-                    "payer_id": patient["insurance_payer_id"] or "",
-                    "payer_display": patient.get("insurance_display_name", "their insurer"),
-                    "patient_name": patient["name"],
-                    "tier": result["tier"],
-                    "transcript": body.transcript,
-                    SESSION_QUERY_PARAM: session.session_id,
-                }
-                base_url = str(request.base_url).rstrip("/")
-                twiml_url = base_url + "/voice/clinic?" + urlencode(params)
-                to = telephony.demo_phone_number()
-                dial_result = await _offload(telephony.place_call, to, twiml_url=twiml_url)
-                session.call_limiter.record()
-                await _emit_call_result(session, "clinic", to, dial_result)
+    if call:
+        await session.bus.emit("CLINIC_CALL_INITIATED", {
+            "provider": call["provider"]["name"],
+            "specialty": call["provider"]["specialty"],
+            "simulated": call["simulated"],
+            "disclosure": call["disclosure"],
+        })
+        for turn in call["turns"]:
+            event = "CLINIC_AGENT_SPEECH" if turn["speaker"] == "careloop" else "CLINIC_DESK_SPEECH"
+            await session.bus.emit(event, {"text": turn["text"]})
+        await session.bus.emit("CLINIC_CALL_ENDED", {"booked": True})
+        await session.bus.emit("BOOKING_CONFIRMED", {
+            "provider_name": call["provider"]["name"],
+            "time": call["slot"],
+            "specialty": call["provider"]["specialty"],
+        })
+        booking = {
+            "confirmed": True,
+            "provider_name": call["provider"]["name"],
+            "time": call["slot"],
+            "specialty": call["provider"]["specialty"],
+            "simulated_front_desk": call["simulated"],
+            "disclosure": call["disclosure"],
+            "turns": call["turns"],
+        }
+        _remember_booking(session, body.patient_id, booking, body.transcript)
+        await session.bus.emit("PATIENT_CONFIRMED", {
+            "text": (
+                "This is a simulated booking. In a real deployment you would "
+                f"now be booked with {call['provider']['name']} at "
+                f"{call['slot']}. No real clinic was contacted and no "
+                "appointment exists."
+            ),
+        })
+
+        missing = telephony.missing_env_vars()
+        if not body.call_clinic:
+            await session.bus.emit("PHONE_CALL_NOT_PLACED", {
+                "leg": "clinic",
+                "reason": "not_requested",
+                "detail": "The booking ran. No telephone was dialled, because this run did not ask for one.",
+            })
+        elif missing:
+            await session.bus.emit("PHONE_CALL_NOT_CONFIGURED", {
+                "leg": "clinic", "missing": missing,
+            })
+        elif not session.call_limiter.allow():
+            await session.bus.emit("PHONE_CALL_NOT_CONFIGURED", {
+                "leg": "clinic", "reason": "rate_limited",
+            })
+        else:
+            params = {
+                "specialty": specialty,
+                "payer_id": patient["insurance_payer_id"] or "",
+                "payer_display": patient.get("insurance_display_name", "their insurer"),
+                "patient_name": patient["name"],
+                "tier": result["tier"],
+                "transcript": body.transcript,
+                SESSION_QUERY_PARAM: session.session_id,
+            }
+            base_url = str(request.base_url).rstrip("/")
+            twiml_url = base_url + "/voice/clinic?" + urlencode(params)
+            to = telephony.demo_phone_number()
+            dial_result = await _offload(telephony.place_call, to, twiml_url=twiml_url)
+            session.call_limiter.record()
+            await _emit_call_result(session, "clinic", to, dial_result)
 
     now = datetime.now(timezone.utc)
     escalation_record = record_escalation(
@@ -735,6 +772,7 @@ async def run_loop(
         "triage": result,
         "plan": plan,
         "booking": booking,
+        "booking_offered": booking_offered,
         "prior_episode": prior_episode,
         "cross_call_findings": cross_call_findings,
         "escalation": escalation_record,
@@ -892,20 +930,20 @@ CHECKIN_GREETING = (
 )
 
 CHECKIN_DOSE_PROMPT = (
-    "{patient_first_name}, this is a reminder about your {medication}"
-    "{indication}, {when}. {take}When you have taken it, tell me, and tell me "
-    "how you have been feeling since."
+    "{patient_first_name}, how have you been feeling? And separately, this "
+    "is a reminder about your {medication}{indication}, {when}. {take}"
+    "Tell me how you are doing, and let me know once you have taken it."
 )
 
 DOSE_TAKE_NOW = "Please take it now if you have not already. "
 DOSE_TAKE_LATER = ""
 
 CHECKIN_DOSE_PROMPT_FLAGGED = (
-    "{patient_first_name}, your prescriber's schedule has your {medication} "
-    "{when}. I am not going to ask you to take it, because "
-    "something on your medication list is worth asking your prescriber or "
-    "pharmacist about first. Please do not start, stop or change anything "
-    "because of this call. Tell me how you have been feeling since."
+    "{patient_first_name}, how have you been feeling? Separately, your "
+    "prescriber's schedule has your {medication} {when}. I am not going to "
+    "ask you to take it, because something on your medication list is worth "
+    "asking your prescriber or pharmacist about first. Please do not start, "
+    "stop or change anything because of this call. Tell me how you are doing."
 )
 
 CHECKIN_NO_ANSWER = (
@@ -1290,6 +1328,72 @@ async def voice_checkin_respond(
             + "<Hangup/>"
         )
 
+    pending = session.pending_bookings.get(patient_id)
+
+    if pending and _confirms_appointment(transcript):
+        session.pending_bookings.pop(patient_id, None)
+        call = plan_clinic_call(
+            pending["specialty"],
+            patient["insurance_payer_id"],
+            patient.get("insurance_display_name", "their insurer"),
+            patient["name"],
+            pending["tier"],
+            pending["transcript"],
+        )
+        if call:
+            _remember_booking(session, patient_id, {
+                "provider_name": call["provider"]["name"],
+                "specialty": call["provider"]["specialty"],
+                "time": call["slot"],
+                "disclosure": call["disclosure"],
+                "simulated_front_desk": call["simulated"],
+            }, pending["transcript"])
+            ack = _say(
+                f"Great, I have booked you with {call['provider']['name']} at "
+                f"{followup.format_slot(call['slot'])}."
+            )
+        else:
+            ack = _say(
+                "I could not find an opening right now, so please call the "
+                "clinic yourself."
+            )
+        return _twiml(
+            ack
+            + '<Pause length="1"/>'
+            + _say(CHECKIN_CLOSING.format(patient_first_name=first_name))
+            + "<Hangup/>"
+        )
+
+    if pending and _declines_appointment(transcript):
+        session.pending_bookings.pop(patient_id, None)
+        return _twiml(
+            _say("No problem, I will not book anything.")
+            + '<Pause length="1"/>'
+            + _say(CHECKIN_CLOSING.format(patient_first_name=first_name))
+            + "<Hangup/>"
+        )
+
+    if result["tier"] in ("moderate", "severe"):
+        session.pending_bookings[patient_id] = {
+            "specialty": "Internal Medicine",
+            "tier": result["tier"],
+            "transcript": transcript,
+        }
+        action = "/voice/checkin/respond?" + urlencode({
+            "patient_id": patient_id, SESSION_QUERY_PARAM: session.session_id,
+        })
+        return _twiml(
+            f'<Gather input="speech" action="{xml_escape(action)}" method="POST" '
+            'speechTimeout="auto" timeout="8" language="en-US">'
+            + _say(result["suggested_agent_response"])
+            + "</Gather>"
+            + _say(
+                "I did not hear an answer, so I will not book anything right now."
+            )
+            + _say(CHECKIN_CLOSING.format(patient_first_name=first_name))
+            + "<Hangup/>"
+        )
+
     return _twiml(
         _say(result["suggested_agent_response"])
         + '<Pause length="1"/>'
@@ -1590,6 +1694,38 @@ def _record_dose_taken(session: SessionState, patient_id: str, transcript: str) 
     }
     patient.setdefault("history", []).append(entry)
     return entry
+
+
+BOOKING_YES = re.compile(
+    r"\b(yes|yeah|yep|yup|sure|okay|ok|please|that works|sounds good|"
+    r"go ahead|book it|let'?s do it|works for me)\b",
+    re.IGNORECASE,
+)
+BOOKING_NO = re.compile(
+    r"\b(no|nope|nah|not now|not today|not necessary|not needed|"
+    r"i'?ll pass|rather not|don'?t book|do not book|no thanks|"
+    r"don'?t want|do not want|not interested)\b",
+    re.IGNORECASE,
+)
+
+
+NEGATED_YES = re.compile(
+    r"\b(not|isn'?t|aren'?t|won'?t|can'?t|never|no)\s+\w{0,6}\s?"
+    r"(yes|sure|okay|ok|good|fine)\b",
+    re.IGNORECASE,
+)
+
+
+def _confirms_appointment(transcript: str) -> bool:
+    text = (transcript or "").strip()
+    if not text or BOOKING_NO.search(text) or NEGATED_YES.search(text):
+        return False
+    return bool(BOOKING_YES.search(text))
+
+
+def _declines_appointment(transcript: str) -> bool:
+    text = (transcript or "").strip()
+    return bool(text) and bool(BOOKING_NO.search(text))
 
 
 def _remember_booking(

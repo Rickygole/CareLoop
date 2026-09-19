@@ -117,6 +117,7 @@ export default function CallPage() {
     openCall && (openCall.doses || []).some((item) => isFlagged(item, marked))
       ? ((regimen && regimen.surfaced) || [])[0]
       : null
+  const isDoseFlagged = isFlagged(next, marked)
 
   const check = useCallback(
     async (transcript) => {
@@ -178,6 +179,7 @@ export default function CallPage() {
         busy={busy}
         error={failed || null}
         onReply={check}
+        isDoseFlagged={isDoseFlagged}
         onRing={ring}
       >
         <div className="mt-9 border-t border-line pt-6">

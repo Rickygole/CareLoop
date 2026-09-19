@@ -63,7 +63,7 @@ def test_the_check_in_withholds_the_reminder_for_a_flagged_medicine():
 @pytest.mark.parametrize("patient_id", ["p1", "p2"])
 def test_the_check_in_still_asks_how_they_have_been_feeling(patient_id):
     spoken = greeting(patient_id, f"med-asks-{patient_id}")
-    assert "how you have been feeling" in spoken
+    assert "how have you been feeling" in spoken
 
 
 def test_a_flagged_medicine_is_detected_as_flagged():

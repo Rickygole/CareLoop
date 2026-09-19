@@ -14,6 +14,7 @@ export default function VoicePanel({
   error,
   onReply,
   onRing,
+  isDoseFlagged,
   children,
 }) {
   const configured = isConfigured()
@@ -32,6 +33,7 @@ export default function VoicePanel({
         error={error}
         onReply={onReply}
         onRing={onRing}
+        isDoseFlagged={isDoseFlagged}
       >
         {children}
       </SimulatedCall>

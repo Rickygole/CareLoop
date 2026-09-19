@@ -234,21 +234,31 @@ def test_trace_events_expose_a_boot_id_for_restart_detection():
     assert isinstance(body["boot_id"], str) and body["boot_id"]
 
 
-def test_loop_run_reminds_triages_and_books_in_one_pass():
+def test_loop_run_offers_first_then_books_once_the_patient_agrees():
     client.post("/admin/reset", json=gated())
-    body = client.post("/loop/run", json={
+    offered = client.post("/loop/run", json={
         "patient_id": "p1",
         "transcript": "I have been throwing up after every dose for three days",
     }).json()
-    assert body["plan"]["next_dose"] is not None
-    assert body["triage"]["tier"] in ("moderate", "severe")
+    assert offered["plan"]["next_dose"] is not None
+    assert offered["triage"]["tier"] in ("moderate", "severe")
+    assert offered["booking"] is None, (
+        "the offer and the booking used to happen in one pass, so the agent "
+        "asked would that be okay and booked without ever hearing an answer"
+    )
+    assert offered["booking_offered"] is True
+
+    body = client.post("/loop/run", json={
+        "patient_id": "p1", "transcript": "yes that works",
+    }).json()
     assert body["booking"]["confirmed"] is True
     assert body["booking"]["simulated_front_desk"] is True
     assert "simulated front desk" in body["booking"]["disclosure"]
 
     types = [e["event_type"] for e in client.get(trace_url(0)).json()["events"]]
-    for expected in ["REMINDER_DUE", "PATIENT_SPEECH", "CLINIC_CALL_INITIATED",
-                     "CLINIC_DESK_SPEECH", "BOOKING_CONFIRMED", "PATIENT_CONFIRMED"]:
+    for expected in ["REMINDER_DUE", "PATIENT_SPEECH", "BOOKING_OFFERED",
+                     "CLINIC_CALL_INITIATED", "CLINIC_DESK_SPEECH",
+                     "BOOKING_CONFIRMED", "PATIENT_CONFIRMED"]:
         assert expected in types, f"{expected} missing from the loop trace"
 
 
@@ -294,11 +304,14 @@ def test_triage_returns_its_own_events_for_stateless_hosts():
 
 
 def test_loop_returns_its_own_events_for_stateless_hosts():
-    body = client.post("/loop/run", json={
+    headers = session_headers("stateless-events")
+    client.post("/loop/run", json={
         "patient_id": "p1", "transcript": "I keep throwing up after every dose",
-    }).json()
+    }, headers=headers)
+    body = client.post("/loop/run", json={
+        "patient_id": "p1", "transcript": "yes that works",
+    }, headers=headers).json()
     types = [e["event_type"] for e in body["events"]]
-    assert "REMINDER_DUE" in types
     assert "CLINIC_CALL_INITIATED" in types
     assert "CALL_ENDED" in types
     assert body["boot_id"]
@@ -783,10 +796,13 @@ def test_loop_run_does_not_dial_when_telephony_is_not_configured(monkeypatch):
 
     headers = session_headers("tel-loop-not-configured-1")
     client.post("/admin/reset", json=gated(), headers=headers)
-    body = client.post("/loop/run", json={
+    client.post("/loop/run", json={
         "patient_id": "p1",
         "transcript": "I have been throwing up after every dose for three days",
         "call_clinic": True,
+    }, headers=headers)
+    body = client.post("/loop/run", json={
+        "patient_id": "p1", "transcript": "yes that works", "call_clinic": True,
     }, headers=headers).json()
 
     assert body["booking"]["confirmed"] is True
