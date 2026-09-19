@@ -2,10 +2,10 @@ import { clockLabel } from '../lib/format.js'
 import { doseMeta } from '../lib/dose.js'
 
 const SKIN = {
-  taken: 'border-mild-edge bg-mild-tint',
+  taken: 'border-mild bg-mild-tint',
   due_now: 'border-brand bg-brand-tint',
   due_soon: 'border-edge-strong bg-sunken',
-  missed: 'border-severe-edge bg-severe-tint',
+  missed: 'border-severe bg-severe-tint',
   upcoming: 'border-edge-strong bg-sunken',
 }
 
@@ -20,7 +20,7 @@ export default function DoseChip({ dose, size = 'base' }) {
         skin +
         ' ' +
         (size === 'sm'
-          ? 'min-h-[40px] px-4 py-1.5 text-2xs'
+          ? 'min-h-[44px] px-4 py-1.5 text-2xs'
           : 'min-h-[48px] px-5 py-2 text-sm')
       }
     >

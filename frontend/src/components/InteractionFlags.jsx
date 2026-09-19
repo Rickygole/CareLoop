@@ -5,19 +5,19 @@ const SEVERITY = {
     word: 'Should not be taken together',
     glyph: String.fromCharCode(9679),
     text: 'text-emergency',
-    skin: 'border-emergency-edge bg-emergency-tint',
+    skin: 'border-emergency bg-emergency-tint',
   },
   major: {
     word: 'Major interaction',
     glyph: String.fromCharCode(9670),
     text: 'text-severe',
-    skin: 'border-severe-edge bg-severe-tint',
+    skin: 'border-severe bg-severe-tint',
   },
   moderate: {
     word: 'Moderate interaction',
     glyph: String.fromCharCode(9651),
     text: 'text-moderate',
-    skin: 'border-moderate-edge bg-moderate-tint',
+    skin: 'border-moderate bg-moderate-tint',
   },
   minor: {
     word: 'Minor interaction',

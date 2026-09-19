@@ -7,7 +7,7 @@ const TIERS = {
     shape: 'a circle',
     text: 'text-mild',
     bg: 'bg-mild-tint',
-    border: 'border-mild-edge',
+    border: 'border-mild',
     rail: '#124a32',
     darkText: 'text-dark-mild',
     darkBg: 'bg-dark-mild/12',
@@ -24,7 +24,7 @@ const TIERS = {
     shape: 'a triangle',
     text: 'text-moderate',
     bg: 'bg-moderate-tint',
-    border: 'border-moderate-edge',
+    border: 'border-moderate',
     rail: '#663d04',
     darkText: 'text-dark-moderate',
     darkBg: 'bg-dark-moderate/12',
@@ -40,7 +40,7 @@ const TIERS = {
     shape: 'a diamond',
     text: 'text-severe',
     bg: 'bg-severe-tint',
-    border: 'border-severe-edge',
+    border: 'border-severe',
     rail: '#78290a',
     darkText: 'text-dark-severe',
     darkBg: 'bg-dark-severe/12',
@@ -56,7 +56,7 @@ const TIERS = {
     shape: 'a filled circle',
     text: 'text-emergency',
     bg: 'bg-emergency-tint',
-    border: 'border-emergency-edge',
+    border: 'border-emergency',
     rail: '#8e1b12',
     darkText: 'text-dark-emergency',
     darkBg: 'bg-dark-emergency/14',
@@ -82,7 +82,7 @@ export const UNDECIDED = {
 }
 
 const SCALE = {
-  sm: 'min-h-[40px] px-4 py-1.5 text-2xs gap-2.5',
+  sm: 'min-h-[44px] px-4 py-1.5 text-2xs gap-2.5',
   md: 'min-h-[48px] px-5 py-2 text-sm gap-3',
 }
 

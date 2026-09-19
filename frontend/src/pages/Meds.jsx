@@ -270,7 +270,7 @@ export default function MedsPage() {
                           className={
                             'flex items-baseline gap-4 rounded-card border-2 px-5 py-3 ' +
                             (done
-                              ? 'border-mild-edge bg-mild-tint'
+                              ? 'border-mild bg-mild-tint'
                               : 'border-edge-strong bg-sunken')
                           }
                         >

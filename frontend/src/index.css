@@ -9,7 +9,6 @@
 
   --color-canvas: #fbf3e9;
   --color-surface: #ffffff;
-  --color-surface-2: #fdf8f1;
   --color-sunken: #f4e9da;
   --color-line: #e6d7c4;
   --color-line-strong: #8a7663;
@@ -29,26 +28,21 @@
   --color-brand-ink-2: #e3d2c0;
   --color-sand: #f0c36b;
   --color-sand-deep: #c8973c;
+  --color-ocean-alert: #ffd5d0;
 
-  --color-clay: #8e2f16;
-  --color-clay-deep: #71230f;
-  --color-clay-tint: #fae3da;
+  --color-clay: #7f2712;
+  --color-clay-deep: #651e0d;
 
   --color-mild: #124a32;
   --color-mild-tint: #dcede0;
-  --color-mild-edge: #b6d3bf;
   --color-moderate: #663d04;
   --color-moderate-tint: #faebcf;
-  --color-moderate-edge: #ddc396;
   --color-severe: #78290a;
   --color-severe-tint: #fbe3d5;
-  --color-severe-edge: #e2bda6;
   --color-emergency: #8e1b12;
   --color-emergency-tint: #fbdfdc;
-  --color-emergency-edge: #e2b4ae;
 
   --color-console-bg: #171009;
-  --color-console-chrome: #1f160e;
   --color-console-panel: #1f160e;
   --color-console-inset: #0d0906;
   --color-console-line: #3a2c1f;
@@ -96,18 +90,12 @@
   --radius-card: 20px;
   --radius-panel: 28px;
 
-  --shadow-card: none;
-  --shadow-raised: none;
-  --shadow-lift: none;
   --shadow-modal: 0 24px 60px -24px rgba(36, 27, 21, 0.45),
     0 2px 0 0 rgba(36, 27, 21, 0.12);
-  --shadow-console: 0 6px 0 0 #0d0906;
 
   --ease-settle: cubic-bezier(0.2, 0.9, 0.24, 1);
   --ease-spring: cubic-bezier(0.16, 1.32, 0.38, 1);
-  --ease-exit: cubic-bezier(0.55, 0, 0.9, 0.35);
   --ease-out-soft: cubic-bezier(0.2, 0.9, 0.24, 1);
-  --ease-in-soft: cubic-bezier(0.55, 0, 0.9, 0.35);
 }
 
 @layer base {
@@ -242,20 +230,12 @@
     box-shadow: 0 5px 0 0 var(--ledge, var(--color-edge));
   }
 
-  .ledge-sm {
-    box-shadow: 0 3px 0 0 var(--ledge, var(--color-edge));
-  }
-
   .ledge-strong {
     --ledge: var(--color-edge-strong);
   }
 
   .ledge-ink {
     --ledge: var(--color-ink);
-  }
-
-  .ledge-ocean {
-    --ledge: var(--color-brand-deep);
   }
 
   .ledge-sand {
@@ -283,10 +263,6 @@
     box-shadow: 0 1px 0 0 var(--ledge, var(--color-edge));
   }
 
-  .stagger {
-    animation-delay: calc(var(--i, 0) * 70ms);
-  }
-
   .enter-land {
     animation: land 640ms var(--ease-spring) both;
     animation-delay: calc(var(--i, 0) * 95ms);
@@ -305,11 +281,6 @@
   .enter-fade {
     animation: fade 260ms var(--ease-settle) both;
     animation-delay: calc(var(--i, 0) * 70ms);
-  }
-
-  .enter-trace {
-    animation: slide-in 280ms var(--ease-settle) both;
-    animation-delay: calc(var(--i, 0) * 45ms);
   }
 
   .enter-step {
@@ -370,17 +341,6 @@
   }
 }
 
-@keyframes slide-in {
-  from {
-    opacity: 0;
-    transform: translate3d(-12px, 0, 0);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
-
 @keyframes rule-sweep {
   from {
     transform: scaleX(0);
@@ -420,7 +380,6 @@
 
   .enter-rise,
   .enter-step,
-  .enter-trace,
   .enter-fade {
     animation-name: fade;
     animation-duration: 240ms;

@@ -106,7 +106,7 @@ function Turn({ turn, index }) {
       </p>
       <p className="measure mt-3 text-ink">{turn.text}</p>
       {turn.note ? (
-        <p className="measure mt-4 rounded-card border-2 border-moderate-edge bg-moderate-tint px-4 py-3 text-sm text-ink">
+        <p className="measure mt-4 rounded-card border-2 border-moderate bg-moderate-tint px-4 py-3 text-sm text-ink">
           <span aria-hidden="true" className="mr-3 text-moderate">
             {String.fromCharCode(9651)}
           </span>

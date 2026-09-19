@@ -22,7 +22,7 @@ const STATES = {
     glyph: String.fromCharCode(9651),
     light: 'text-emergency',
     dark: 'text-dark-emergency',
-    ocean: 'text-dark-emergency',
+    ocean: 'text-ocean-alert',
   },
 }
 

@@ -3,15 +3,15 @@ export const BTN_BASE =
 
 export const BTN_HERO =
   BTN_BASE +
-  ' ledge-ink min-h-[72px] bg-brand px-10 py-5 text-xl text-brand-ink hover:bg-brand-deep disabled:bg-line-strong disabled:text-canvas'
+  ' ledge-ink min-h-[72px] bg-brand px-10 py-5 text-xl text-brand-ink hover:bg-brand-deep disabled:border-2 disabled:border-line-strong disabled:bg-sunken disabled:text-ink-2'
 
 export const BTN_PRIMARY =
   BTN_BASE +
-  ' ledge-ink min-h-[60px] bg-brand px-9 py-4 text-lg text-brand-ink hover:bg-brand-deep disabled:bg-line-strong disabled:text-canvas'
+  ' ledge-ink min-h-[60px] bg-brand px-9 py-4 text-lg text-brand-ink hover:bg-brand-deep disabled:border-2 disabled:border-line-strong disabled:bg-sunken disabled:text-ink-2'
 
 export const BTN_URGENT =
   BTN_BASE +
-  ' ledge-clay min-h-[60px] bg-clay px-9 py-4 text-lg text-brand-ink hover:bg-clay-deep disabled:bg-line-strong disabled:text-canvas'
+  ' ledge-clay min-h-[60px] bg-clay px-9 py-4 text-lg text-brand-ink hover:bg-clay-deep disabled:border-2 disabled:border-line-strong disabled:bg-sunken disabled:text-ink-2'
 
 export const BTN_SECONDARY =
   BTN_BASE +

@@ -24,7 +24,7 @@ export default function DecisionPage() {
   if (!run) {
     return (
       <Screen
-        title="No check-in call has happened yet"
+        title="Nothing has been decided yet"
         lead="When CareLoop has spoken to you, what you said and what it did about it will be here."
       >
         <Link to="/call" className={BTN_PRIMARY}>
