@@ -134,22 +134,30 @@ def _as_date(value: Union[str, date, datetime, None]) -> Optional[date]:
     if value is None:
         return None
     if isinstance(value, datetime):
+        if value.tzinfo is None:
+            value = value.replace(tzinfo=clinic_timezone())
         return value.astimezone(clinic_timezone()).date()
     if isinstance(value, date):
         return value
     text = str(value).strip()
     if not text:
         return None
+    try:
+        return date.fromisoformat(text)
+    except ValueError:
+        pass
     if text.endswith("Z"):
         text = text[:-1] + "+00:00"
     try:
-        return datetime.fromisoformat(text).astimezone(clinic_timezone()).date()
+        parsed = datetime.fromisoformat(text)
     except ValueError:
-        pass
-    try:
-        return date.fromisoformat(text[:10])
-    except ValueError:
-        return None
+        try:
+            return date.fromisoformat(text[:10])
+        except ValueError:
+            return None
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=clinic_timezone())
+    return parsed.astimezone(clinic_timezone()).date()
 
 
 def _parse_slot(slot: str) -> datetime:
