@@ -51,6 +51,12 @@ const PLAN = {
     { medication: 'Metformin', dosage: '500mg', medication_id: 'med1', prescriber: 'Dr. Elena Vance', time: '20:00', due_at: '2026-09-19T20:00:00-04:00', status: 'upcoming' },
   ],
   doses_total: 2,
+  calls: [
+    { at: '2026-09-19T08:00:00-04:00', time: '08:00', status: 'taken', medications: ['Metformin'], medication_ids: ['med1'], covers: 1, moved_into_contact_window: false },
+    { at: '2026-09-19T20:00:00-04:00', time: '20:00', status: 'upcoming', medications: ['Metformin'], medication_ids: ['med1'], covers: 1, moved_into_contact_window: false },
+  ],
+  calls_total: 2,
+  contact_window: { start: '08:00', end: '20:00' },
 }
 
 const REGIMEN = {
@@ -111,9 +117,17 @@ const AFTER_PORTAL_PULL = {
   schedule: {
     ...PLAN,
     doses: [
-      ...PLAN.doses,
+      PLAN.doses[0],
       { medication: 'Warfarin', dosage: '5mg', medication_id: 'med-2-p1', prescriber: 'Dr. Ana Reyes', time: '18:00', due_at: '2026-09-19T18:00:00-04:00', status: 'upcoming' },
+      PLAN.doses[1],
     ],
+    calls: [
+      PLAN.calls[0],
+      { at: '2026-09-19T18:00:00-04:00', time: '18:00', status: 'upcoming', medications: ['Warfarin'], medication_ids: ['med-2-p1'], covers: 1, moved_into_contact_window: false },
+      PLAN.calls[1],
+    ],
+    calls_total: 3,
+    doses_total: 3,
   },
   regimen: {
     content_hash: '9f9f9f9f9f9f',
@@ -223,7 +237,7 @@ import TriageResult from './src/components/TriageResult.jsx'
 import ClinicCall from './src/components/ClinicCall.jsx'
 import MedicationCard from './src/components/MedicationCard.jsx'
 import SimulatedCall from './src/components/SimulatedCall.jsx'
-import { callState, followups, withTimeout } from './src/lib/api.js'
+import { callState, followups, regimenState, syncPortal, withTimeout } from './src/lib/api.js'
 import { tierMeta } from './src/components/TierBadge.jsx'
 import { zoneLabel } from './src/components/PortalShared.jsx'
 import { flaggedNames, isFlagged, pairLabels, pinFlagged } from './src/lib/flagged.js'
@@ -318,7 +332,7 @@ test('signing up lands on the insurance step and nothing is locked', async () =>
   expect(screen.getByRole('heading', { level: 1 }).textContent).toMatch(/Appointments/)
 
   fireEvent.click(within(tabs).getByText('Today'))
-  expect(screen.getByText(/Choose your insurance to see your medicines/)).toBeTruthy()
+  expect(screen.getByText(/Choose your insurance to see your day/)).toBeTruthy()
   fireEvent.click(screen.getAllByText(/^Choose your insurance$/)[0])
   fireEvent.click(screen.getByText(/^Connect Aetna and load my records$/))
   const dialog = screen.getByRole('dialog')
@@ -373,10 +387,22 @@ test('the dashboard shows the next call, the medicines and the next appointment'
   signUp()
   connect()
   await screen.findByRole('heading', { level: 1, name: /Today/ }, { timeout: 4000 })
-  expect(screen.getAllByText('Metformin').length).toBeGreaterThan(0)
-  await screen.findByText('Tuesday, September 22 at 12:00 PM', {}, { timeout: 4000 })
+  expect(screen.getAllByText(/Metformin/).length).toBeGreaterThan(0)
+  expect(screen.getByText(/Two calls today\. They cover two doses\./)).toBeTruthy()
+  expect(screen.getByText('CareLoop called you')).toBeTruthy()
+  expect(screen.getByText('CareLoop rings your telephone')).toBeTruthy()
+  await screen.findByText(/Tuesday, September 22 at 12:00 PM/, {}, { timeout: 4000 })
   expect(screen.getByText(/Covered by Aetna/)).toBeTruthy()
-  expect(screen.getByText(/Demonstration controls, not part of the patient product/)).toBeTruthy()
+  expect(
+    screen.queryByText(/Demonstration controls, not part of the patient product/),
+  ).toBe(null)
+  const strip = screen.getByRole('complementary', { name: 'Demonstration' })
+  expect(strip.textContent).toMatch(
+    /Every patient, medicine and clinic on this page is made up for the demonstration/,
+  )
+  expect(
+    within(strip).getByRole('button', { name: 'Move the clock to the next dose' }),
+  ).toBeTruthy()
 }, 10000)
 
 test('the appointments section shows the booking, the reminders and the refusal', async () => {
@@ -427,7 +453,7 @@ test('a medicine arriving from the portal cascades through snapshot, schedule an
   expect(screen.getAllByText(/replaces a1b2c3d4e5f6/).length).toBeGreaterThan(0)
   expect(screen.getByText(/Warfarin arrived from MyHealth/)).toBeTruthy()
   expect(screen.getByText('The portal reports a change. Warfarin was added by Dr. Ana Reyes.')).toBeTruthy()
-  const callList = screen.getByRole('region', { name: /Every call today/ })
+  const callList = screen.getByRole('region', { name: /Every dose today/ })
   await within(callList).findByText(/18:00|6:00 PM/, {}, { timeout: 4000 })
   await screen.findByText(/warfarin and aspirin/i, {}, { timeout: 4000 })
   expect(screen.getByText(/FDA label, Coumadin/)).toBeTruthy()
@@ -570,7 +596,7 @@ test('the phone call reports what it is doing, including a redial', async () => 
   await screen.findByText(/CareLoop is ringing you again now/, {}, { timeout: 4000 })
   expect(screen.getByText(/This is try 2 of 3/)).toBeTruthy()
   expect(screen.getByText('Calling again')).toBeTruthy()
-  expect(screen.getByText('Not the path you are on')).toBeTruthy()
+  expect(screen.queryByText('Yes, call my phone')).toBe(null)
   expect(screen.getByText('Read the check-in in writing').closest('button').disabled).toBe(true)
 }, 10000)
 
@@ -934,8 +960,8 @@ test('a reload keeps the reviewer signed in and the records connected', async ()
 
   expect(screen.queryByText(/Sign up for the CareLoop demonstration/)).toBe(null)
   await screen.findByRole('heading', { level: 1, name: /Today/ }, { timeout: 15000 })
-  expect(screen.queryByText(/Choose your insurance to see your medicines/)).toBe(null)
-  await screen.findAllByText('Metformin', {}, { timeout: 6000 })
+  expect(screen.queryByText(/Choose your insurance to see your day/)).toBe(null)
+  await screen.findAllByText(/Metformin/, {}, { timeout: 6000 })
 }, 30000)
 
 test('the appointments section says New York time, not a timezone identifier', async () => {
@@ -975,14 +1001,190 @@ test('the medicines section keeps its reviewer panels collapsed', async () => {
   const panel = document.getElementById(disclosure.getAttribute('aria-controls'))
   expect(disclosure.getAttribute('aria-expanded')).toBe('false')
   expect(panel.hidden).toBe(true)
+  const clock = screen.getByRole('button', {
+    name: /Move the clock to the next dose/,
+  })
+  expect(panel.contains(clock)).toBe(false)
   expect(
-    screen.queryByRole('button', { name: /Move the clock to the next dose/ }),
-  ).toBe(null)
+    clock.closest('[aria-label="Demonstration"]'),
+  ).toBeTruthy()
 
   fireEvent.click(disclosure)
   expect(disclosure.getAttribute('aria-expanded')).toBe('true')
   expect(panel.hidden).toBe(false)
-  expect(
-    screen.getByRole('button', { name: /Move the clock to the next dose/ }),
-  ).toBeTruthy()
+  expect(panel.textContent).toMatch(/Where this list comes from/)
 }, 15000)
+
+async function openTodayWithPlan(schedule, regimen) {
+  const state = {
+    ...REGIMEN,
+    schedule,
+    regimen: regimen || REGIMEN.regimen,
+  }
+  regimenState.mockImplementation(async () => state)
+  syncPortal.mockImplementation(async () => ({ ...FIRST_SYNC, ...state }))
+  try {
+    startAtFirstScreen()
+    render(<HashRouter><App /></HashRouter>)
+    signUp()
+    connect()
+    await screen.findByRole('heading', { level: 1, name: /Today/ }, { timeout: 15000 })
+    await screen.findByRole('heading', { level: 2, name: /September/ }, { timeout: 15000 })
+  } finally {
+    regimenState.mockImplementation(async () => REGIMEN)
+    syncPortal.mockImplementation(async (patientId, acceptChanges) =>
+      acceptChanges ? AFTER_PORTAL_PULL : FIRST_SYNC,
+    )
+  }
+}
+
+test('doses hang off the call that covers them, and the next call carries the button', async () => {
+  const schedule = {
+    ...PLAN,
+    calls: [
+      { at: '2026-09-19T08:00:00-04:00', time: '08:00', status: 'taken', medications: ['Metformin', 'Aspirin'], medication_ids: ['med1', 'med-2-p1'], covers: 2, moved_into_contact_window: false },
+      PLAN.calls[1],
+    ],
+    doses: [
+      PLAN.doses[0],
+      { medication: 'Aspirin', dosage: '81mg', medication_id: 'med-2-p1', prescriber: 'Dr. Ana Reyes', time: '08:00', due_at: '2026-09-19T08:00:00-04:00', status: 'taken' },
+      PLAN.doses[1],
+    ],
+    doses_total: 3,
+  }
+
+  await openTodayWithPlan(schedule)
+
+  expect(screen.getByText(/Two calls today\. They cover three doses\./)).toBeTruthy()
+
+  const morning = screen.getByText('CareLoop called you').closest('li')
+  expect(within(morning).getByText('One call, two doses')).toBeTruthy()
+  expect(within(morning).getAllByText('Taken').length).toBe(2)
+  expect(within(morning).queryByText(/Start my check-in|Call my phone now/)).toBe(null)
+
+  const next = screen.getByText('CareLoop rings your telephone').closest('li')
+  expect(within(next).getByText(/Start my check-in|Call my phone now/)).toBeTruthy()
+}, 25000)
+
+test('a day with every call behind you is an honest empty spine, not a broken one', async () => {
+  const schedule = {
+    ...PLAN,
+    doses: PLAN.doses.map((dose) => ({ ...dose, status: 'taken' })),
+    calls: PLAN.calls.map((call) => ({ ...call, status: 'taken' })),
+    next_dose: null,
+    next_call: null,
+  }
+
+  await openTodayWithPlan(schedule)
+
+  expect(
+    screen.getByRole('heading', { name: 'No call is left today' }),
+  ).toBeTruthy()
+  expect(screen.getByText(/Every call CareLoop planned for today is behind you/)).toBeTruthy()
+  expect(screen.getByRole('link', { name: 'Take a check-in anyway' })).toBeTruthy()
+  expect(screen.queryByRole('alert')).toBe(null)
+  await screen.findByText(/Tuesday, September 22 at 12:00 PM/, {}, { timeout: 6000 })
+}, 25000)
+
+test('one medicine is a timeline of one event rather than a broken page', async () => {
+  const schedule = {
+    ...PLAN,
+    doses: [PLAN.doses[1]],
+    calls: [PLAN.calls[1]],
+    calls_total: 1,
+    doses_total: 1,
+  }
+
+  await openTodayWithPlan(schedule)
+
+  expect(screen.getByText('One call today. It covers one dose.')).toBeTruthy()
+  expect(screen.getAllByText(/CareLoop (called you|rings your telephone|will call again)/).length).toBe(1)
+}, 25000)
+
+test('a record with no medicines says so on the spine and keeps the booking', async () => {
+  const schedule = {
+    ...PLAN,
+    doses: [],
+    calls: [],
+    calls_total: 0,
+    doses_total: 0,
+    next_dose: null,
+    next_call: null,
+  }
+
+  await openTodayWithPlan(schedule)
+
+  expect(screen.getByText('No calls today.')).toBeTruthy()
+  expect(
+    screen.getByRole('heading', { name: /There are no calls on today's list/ }),
+  ).toBeTruthy()
+  await screen.findByText(/Tuesday, September 22 at 12:00 PM/, {}, { timeout: 6000 })
+}, 25000)
+
+test('the interaction is pinned inside the call it qualifies, not floating at the top', async () => {
+  const finding = {
+    check_id: 'regimen_pair',
+    ingredients: ['warfarin', 'aspirin'],
+    labels: ['Coumadin (warfarin)', 'Aspirin'],
+    severity: 'major',
+    concern: 'additive bleeding risk',
+    source: 'FDA label, Coumadin, Drug Interactions',
+    surfaced: true,
+  }
+  const schedule = {
+    ...PLAN,
+    doses: [
+      { medication: 'Aspirin', dosage: '81mg', medication_id: 'med-2-p1', prescriber: 'Dr. Ana Reyes', time: '08:00', due_at: '2026-09-19T08:00:00-04:00', status: 'taken' },
+      { medication: 'Coumadin', dosage: '5mg', medication_id: 'med-3-p1', prescriber: 'Dr. Elena Vance', time: '18:00', due_at: '2026-09-19T18:00:00-04:00', status: 'upcoming' },
+    ],
+    calls: [
+      { at: '2026-09-19T08:00:00-04:00', time: '08:00', status: 'taken', medications: ['Aspirin'], medication_ids: ['med-2-p1'], covers: 1, moved_into_contact_window: false },
+      { at: '2026-09-19T18:00:00-04:00', time: '18:00', status: 'upcoming', medications: ['Coumadin'], medication_ids: ['med-3-p1'], covers: 1, moved_into_contact_window: false },
+    ],
+    next_dose: { medication: 'Coumadin', dosage: '5mg', medication_id: 'med-3-p1', time: '18:00', status: 'upcoming', due_at: '2026-09-19T18:00:00-04:00' },
+    doses_total: 2,
+  }
+
+  await openTodayWithPlan(schedule, {
+    ...REGIMEN.regimen,
+    findings: [finding],
+    surfaced: [finding],
+  })
+
+  const pin = screen.getByText(/Major interaction, this call/)
+  const card = pin.closest('li')
+  expect(within(card).getByText('CareLoop rings your telephone')).toBeTruthy()
+  expect(pin.closest('ol').firstChild).not.toBe(card)
+
+  const text = card.textContent
+  expect(text).toMatch(/Coumadin \(warfarin\)/)
+  expect(text).toMatch(/Aspirin/)
+  expect(text).toMatch(/additive bleeding risk/)
+  expect(text).toMatch(/FDA label, Coumadin, Drug Interactions/)
+  expect(text).toMatch(/CareLoop cannot tell you what to do about this and has told no one/)
+  expect(text).toMatch(/Do not start, stop or change any medicine/)
+  expect(text).toMatch(/Please speak to your prescriber or pharmacist/)
+
+  const morning = screen.getByText('CareLoop called you').closest('li')
+  expect(morning.textContent).toMatch(/paired with your Coumadin, see 6:00 PM/)
+}, 25000)
+
+test('the footer carries the standing limits past the end of the day', async () => {
+  startAtFirstScreen()
+  render(<HashRouter><App /></HashRouter>)
+  signUp()
+  connect()
+  await screen.findByRole('heading', { level: 1, name: /Today/ }, { timeout: 15000 })
+
+  const footer = document.querySelector('footer')
+  expect(footer.textContent).toMatch(/Please read this/)
+  expect(footer.textContent).toMatch(/After the last call/)
+  expect(footer.textContent).toMatch(/It notifies no human being/)
+  expect(footer.textContent).toMatch(
+    /CareLoop is a research prototype and is not a medical device\. It does not provide medical advice, diagnosis, or treatment\. If you are having a medical emergency, call 911\. If you are in crisis, call or text 988\./,
+  )
+  expect(footer.textContent).toMatch(/What it could not read/)
+  expect(
+    within(footer).getByText(/How today was decided, and what was held back/),
+  ).toBeTruthy()
+}, 20000)

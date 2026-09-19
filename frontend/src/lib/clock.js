@@ -1,3 +1,5 @@
+import { callEvents, worstStatus } from './day.js'
+
 const REMINDER_WINDOW_MINUTES = 90
 const LATE_AFTER_MINUTES = 120
 
@@ -33,9 +35,20 @@ export function applyClockShift(plan, shiftMs) {
     doses.find((d) => ['upcoming', 'due_soon', 'due_now'].includes(d.status)) ||
     null
 
+  const calls = plan.calls
+    ? callEvents({ ...plan, doses }).map((call, index) => {
+        const members = call.doses || []
+        const original = plan.calls[index]
+        return members.length
+          ? { ...original, status: worstStatus(members.map((d) => d.status)) }
+          : original
+      })
+    : plan.calls
+
   return {
     ...plan,
     doses,
+    calls,
     next_dose: nextDose,
     next_call: nextDose
       ? {

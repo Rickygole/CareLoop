@@ -1,15 +1,23 @@
 import { useCallback, useState } from 'react'
 
 import { clockLabel } from '../lib/format.js'
-import { applyClockShift, clockAfterShift, nextDoseShiftMs } from '../lib/clock.js'
-import { BTN_SECONDARY, CARD } from '../lib/ui.js'
+import {
+  applyClockShift,
+  clockAfterShift,
+  nextDoseShiftMs,
+} from '../lib/clock.js'
+
+const NIGHT_BUTTON =
+  'pressable inline-flex min-h-[44px] items-center justify-center rounded-control border border-console-muted px-5 text-base font-semibold text-console-ink hover:bg-console-panel disabled:border-console-line-2 disabled:text-console-muted'
 
 function sentence(plan, ms) {
   const moved = applyClockShift(plan, ms)
   const at = clockAfterShift(plan.as_of, ms)
   const dose = moved && moved.next_dose
   const where = ms
-    ? 'The clock moved forward to ' + (at ? clockLabel(at) : 'a later hour') + '. '
+    ? 'The clock moved forward to ' +
+      (at ? clockLabel(at) : 'a later hour') +
+      '. '
     : 'The clock is back to now. '
   const taken = ((moved && moved.doses) || []).filter(
     (item) => item.status === 'taken',
@@ -24,9 +32,7 @@ function sentence(plan, ms) {
   return (
     where +
     next +
-    (taken === 1
-      ? '1 dose is behind you.'
-      : taken + ' doses are behind you.')
+    (taken === 1 ? '1 dose is behind you.' : taken + ' doses are behind you.')
   )
 }
 
@@ -49,28 +55,21 @@ export default function TimeTravel({ plan, shiftMs, onShift }) {
 
   return (
     <section
-      aria-labelledby="clock-heading"
-      className={CARD + ' mt-8 px-6 py-7'}
+      aria-label="The demonstration clock"
+      className="flex flex-wrap items-center gap-x-6 gap-y-3"
     >
-      <h3 id="clock-heading" className="smallcaps text-micro text-clay">
-        The clock
-      </h3>
-
-      <p className="mt-4 flex flex-wrap items-baseline gap-x-4 gap-y-1">
-        <span className="numeric display-tight text-xl text-ink">
+      <p className="flex items-baseline gap-x-3">
+        <span className="smallcaps text-micro text-console-muted">Clock</span>
+        <span className="numeric text-base font-semibold text-console-ink">
           {now ? clockLabel(now) : 'unknown'}
         </span>
-        <span className="text-sm text-ink-2">
+        <span className="text-sm text-console-ink-2">
           {shifted ? 'moved forward' : 'now'}
         </span>
       </p>
 
       {shifted ? (
-        <button
-          type="button"
-          onClick={() => move(0)}
-          className={BTN_SECONDARY + ' mt-6 w-full'}
-        >
+        <button type="button" onClick={() => move(0)} className={NIGHT_BUTTON}>
           Put the clock back
         </button>
       ) : (
@@ -78,10 +77,7 @@ export default function TimeTravel({ plan, shiftMs, onShift }) {
           type="button"
           onClick={() => move(jump)}
           disabled={!jump}
-          className={
-            BTN_SECONDARY +
-            ' mt-6 w-full disabled:border-line disabled:text-ink-2'
-          }
+          className={NIGHT_BUTTON}
         >
           {jump
             ? 'Move the clock to the next dose'
@@ -89,8 +85,14 @@ export default function TimeTravel({ plan, shiftMs, onShift }) {
         </button>
       )}
 
-      <div role="status" aria-live="polite" className="mt-5 empty:hidden">
-        {note ? <p className="measure text-sm text-ink-2">{note}</p> : null}
+      <div
+        role="status"
+        aria-live="polite"
+        className="w-full empty:hidden sm:w-auto"
+      >
+        {note ? (
+          <p className="measure text-sm text-console-ink-2">{note}</p>
+        ) : null}
       </div>
     </section>
   )

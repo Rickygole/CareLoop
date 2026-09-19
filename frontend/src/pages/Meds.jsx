@@ -2,8 +2,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 
 import CallSchedule from '../components/CallSchedule.jsx'
-import DemoControls from '../components/DemoControls.jsx'
-import InteractionFlags, { InteractionLimits } from '../components/InteractionFlags.jsx'
+import InteractionFlags, {
+  InteractionLimits,
+} from '../components/InteractionFlags.jsx'
 import { LoadFailed, Loading, RefreshFailed } from '../components/LoadState.jsx'
 import MedicationCard from '../components/MedicationCard.jsx'
 import NextUpCard from '../components/NextUpCard.jsx'
@@ -11,7 +12,6 @@ import PortalShared from '../components/PortalShared.jsx'
 import PortalUpdate from '../components/PortalUpdate.jsx'
 import RegimenSnapshot from '../components/RegimenSnapshot.jsx'
 import Screen from '../components/Screen.jsx'
-import TimeTravel from '../components/TimeTravel.jsx'
 import { Rule } from '../components/Block.jsx'
 import { applyClockShift } from '../lib/clock.js'
 import { clockLabel, dateTimeLabel, groupSchedule } from '../lib/format.js'
@@ -37,15 +37,8 @@ function arrivalSentence(applied) {
 }
 
 export default function MedsPage() {
-  const {
-    medications,
-    schedule,
-    regimen,
-    connected,
-    restoring,
-    clockShiftMs,
-    setClockShiftMs,
-  } = useSession()
+  const { medications, schedule, regimen, connected, restoring, clockShiftMs } =
+    useSession()
 
   const { portal, loading, loadFailed, refreshFailed, failure, reload, sync } =
     usePortal(connected)
@@ -104,7 +97,8 @@ export default function MedsPage() {
           setAnnouncement(
             nextPlan && nextPlan.next_dose
               ? 'Call times worked out again. The next call is at ' +
-                  clockLabel(nextPlan.next_dose.time) + '.'
+                  clockLabel(nextPlan.next_dose.time) +
+                  '.'
               : 'Call times worked out again. No call is left today.',
           )
         }, gap),
@@ -170,8 +164,8 @@ export default function MedsPage() {
             Choose your insurance to see your medicines
           </h2>
           <p className="mt-3 text-ink-2">
-            The list comes from the records your insurer holds. You never type
-            a medicine in.
+            The list comes from the records your insurer holds. You never type a
+            medicine in.
           </p>
           <Link to="/connect" className={BTN_PRIMARY + ' mt-7'}>
             Choose your insurance
@@ -185,7 +179,9 @@ export default function MedsPage() {
 
   return (
     <Screen title="Medications">
-      {loading ? <Loading what="Reading your medicines from MyHealth." /> : null}
+      {loading ? (
+        <Loading what="Reading your medicines from MyHealth." />
+      ) : null}
 
       {loadFailed ? (
         <LoadFailed
@@ -256,8 +252,8 @@ export default function MedsPage() {
               </span>
               <span className="mt-2 block text-sm font-semibold text-ink">
                 {toolsOpen
-                  ? 'Hide where this list comes from, and the clock'
-                  : 'Show where this list comes from, and the clock'}
+                  ? 'Hide where this list comes from'
+                  : 'Show where this list comes from'}
               </span>
             </button>
 
@@ -284,7 +280,11 @@ export default function MedsPage() {
                   onPull={pull}
                 />
 
-                <div role="status" aria-live="polite" className="mt-9 empty:hidden">
+                <div
+                  role="status"
+                  aria-live="polite"
+                  className="mt-9 empty:hidden"
+                >
                   {cascading ? (
                     <div className={'enter-fade ' + CARD + ' px-7 py-7'}>
                       <p className="smallcaps text-micro text-clay">
@@ -314,7 +314,9 @@ export default function MedsPage() {
                               <span
                                 className={
                                   'text-sm ' +
-                                  (done ? 'font-semibold text-ink' : 'text-ink-2')
+                                  (done
+                                    ? 'font-semibold text-ink'
+                                    : 'text-ink-2')
                                 }
                               >
                                 {label}
@@ -337,14 +339,6 @@ export default function MedsPage() {
                   flash={cascading && stage >= 1}
                 />
               </section>
-
-              <DemoControls>
-                <TimeTravel
-                  plan={shownPlanRaw}
-                  shiftMs={clockShiftMs}
-                  onShift={setClockShiftMs}
-                />
-              </DemoControls>
             </div>
           </div>
         </div>

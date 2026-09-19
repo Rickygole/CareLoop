@@ -5,17 +5,6 @@ import { isConfigured } from '../lib/voice.js'
 const SAFETY =
   'Please do not describe your own real health. This is a demonstration and every record in it is made up.'
 
-function SafetyNotice() {
-  return (
-    <p className="mt-6 flex items-start gap-4 rounded-card border border-moderate bg-moderate-tint px-5 py-4 text-sm text-ink">
-      <span aria-hidden="true" className="leading-[1.6] text-moderate">
-        {String.fromCharCode(9651)}
-      </span>
-      <span className="measure">{SAFETY}</span>
-    </p>
-  )
-}
-
 export default function VoicePanel({
   patientId,
   patientName,
@@ -25,9 +14,13 @@ export default function VoicePanel({
   error,
   onReply,
   onRing,
+  children,
 }) {
   const configured = isConfigured()
-  const firstName = String(patientName || '').trim().split(/\s+/)[0] || ''
+  const firstName =
+    String(patientName || '')
+      .trim()
+      .split(/\s+/)[0] || ''
 
   if (!configured) {
     return (
@@ -39,30 +32,34 @@ export default function VoicePanel({
         error={error}
         onReply={onReply}
         onRing={onRing}
-      />
+      >
+        {children}
+      </SimulatedCall>
     )
   }
 
   return (
-    <section
-      aria-labelledby="voice-heading"
-      className="ledge ledge-strong mt-10 overflow-hidden rounded-panel border border-line bg-surface text-ink"
-    >
-      <div className="px-6 py-8 sm:px-10">
-        <h2 id="voice-heading" className="display text-xl text-ink">
-          Answer out loud
-        </h2>
-        <p className="measure mt-3 text-ink-2">
-          Press the button, and CareLoop speaks to you the way it would on the
-          phone. Or type your answer further down instead.
-        </p>
+    <section aria-labelledby="voice-heading">
+      <h2 id="voice-heading" className="display text-2xl text-ink">
+        CareLoop rings your telephone
+      </h2>
+      <p className="measure mt-4 text-lg leading-[1.45] text-ink">
+        Press the button and your phone rings, like any other call. You can
+        answer out loud, the way you would on the phone.
+      </p>
 
-        <SafetyNotice />
-      </div>
+      <p className="measure mt-4 flex items-start gap-3 text-sm text-ink">
+        <span aria-hidden="true" className="leading-[1.6] text-moderate">
+          {String.fromCharCode(9651)}
+        </span>
+        <span>{SAFETY}</span>
+      </p>
 
-      <div className="voice-mount border-t border-line px-6 py-7 sm:px-10">
+      <div className="voice-mount mt-6">
         <VoiceAgent patientId={patientId} patientName={firstName} />
       </div>
+
+      {children}
     </section>
   )
 }

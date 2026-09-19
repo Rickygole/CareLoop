@@ -33,13 +33,51 @@ const SEVERITY = {
   },
 }
 
-function severityMeta(severity) {
+export function severityMeta(severity) {
   return SEVERITY[String(severity || '').toLowerCase()] || SEVERITY.minor
 }
 
-function pairLabel(ingredients) {
+export function pairLabel(ingredients) {
   const [a, b] = ingredients || []
   return String(a || '') + ' and ' + String(b || '')
+}
+
+export function InteractionPin({ finding, lead, children }) {
+  if (!finding) return null
+
+  const meta = severityMeta(finding.severity)
+  const [first, second] = finding.labels || finding.ingredients || []
+
+  return (
+    <div
+      className={
+        'mt-5 flex gap-x-3 rounded-card border border-l-8 px-4 py-4 sm:gap-x-4 sm:px-5 ' +
+        meta.skin +
+        ' ' +
+        meta.rail
+      }
+    >
+      <span
+        aria-hidden="true"
+        className={'text-[1.3em] leading-[1.3] ' + meta.text}
+      >
+        {meta.glyph}
+      </span>
+      <p className="measure text-sm text-ink">
+        <strong className={'font-semibold ' + meta.text}>
+          {lead || meta.word + ', this call.'}
+        </strong>{' '}
+        Your {String(first || '')} and your {String(second || '')} carry{' '}
+        {finding.concern} together. Source: {finding.source}.{' '}
+        <strong className="font-semibold">
+          CareLoop cannot tell you what to do about this and has told no one.
+        </strong>{' '}
+        Do not start, stop or change any medicine because of it. Please speak to
+        your prescriber or pharmacist.
+        {children}
+      </p>
+    </div>
+  )
 }
 
 export function InteractionLimits({ regimen }) {
@@ -158,7 +196,10 @@ export default function InteractionFlags({ regimen, flash }) {
                   style={{ '--i': index }}
                 >
                   <p className={'flex items-center gap-3 ' + meta.text}>
-                    <span aria-hidden="true" className="text-[1.3em] leading-none">
+                    <span
+                      aria-hidden="true"
+                      className="text-[1.3em] leading-none"
+                    >
                       {meta.glyph}
                     </span>
                     <span className="smallcaps text-sm">{meta.word}</span>

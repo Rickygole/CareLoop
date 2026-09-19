@@ -1,4 +1,4 @@
-function head(text) {
+export function nameKey(text) {
   return String(text || '')
     .split('(')[0]
     .trim()
@@ -14,7 +14,7 @@ export function flaggedNames(findings) {
       ...((finding && finding.ingredients) || []),
     ]
     for (const part of parts) {
-      const word = head(part)
+      const word = nameKey(part)
       if (word) names.add(word)
     }
   }
@@ -23,7 +23,7 @@ export function flaggedNames(findings) {
 
 export function isFlagged(med, names) {
   if (!names || !names.size) return false
-  return names.has(head(med && med.medication))
+  return names.has(nameKey(med && med.medication))
 }
 
 export function pinFlagged(list, names, shown) {
@@ -34,6 +34,7 @@ export function pinFlagged(list, names, shown) {
 }
 
 export function pairLabels(finding) {
-  const parts = (finding && finding.labels) || (finding && finding.ingredients) || []
+  const parts =
+    (finding && finding.labels) || (finding && finding.ingredients) || []
   return parts.map((part) => String(part || ''))
 }

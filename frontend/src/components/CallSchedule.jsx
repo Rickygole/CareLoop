@@ -1,6 +1,22 @@
 import { clockLabel } from '../lib/format.js'
+import { countWord } from '../lib/day.js'
 import { doseMeta } from '../lib/dose.js'
 import { CARD } from '../lib/ui.js'
+
+function grouping(plan) {
+  const calls = (plan && plan.calls_total) || 0
+  const doses = (plan && plan.doses_total) || 0
+  if (!calls || calls === doses) {
+    return 'Every dose on the record, with the time CareLoop calls about it.'
+  }
+  return (
+    'Doses close together are grouped into one call, so your phone rings ' +
+    countWord(calls) +
+    ' times rather than ' +
+    countWord(doses) +
+    '.'
+  )
+}
 
 export default function CallSchedule({ plan, flash }) {
   const doses = (plan && plan.doses) || []
@@ -11,10 +27,10 @@ export default function CallSchedule({ plan, flash }) {
       className={CARD + ' px-6 py-7 ' + (flash ? 'trace-flash' : '')}
     >
       <h2 id="schedule-heading" className="display-tight text-lg text-ink">
-        Every call today
+        Every dose today
       </h2>
       <p className="mt-2 text-sm text-ink-2">
-        One call planned for every dose, worked out by CareLoop. Nothing in
+        {grouping(plan)} The day itself, call by call, is on Today. Nothing in
         this prototype runs on a timer, so a call happens only when you start
         the check-in.
       </p>
@@ -29,7 +45,10 @@ export default function CallSchedule({ plan, flash }) {
                 className="enter-fade flex flex-wrap items-baseline gap-x-3 gap-y-1 rounded-card border border-line bg-sunken px-4 py-3"
                 style={{ '--i': index }}
               >
-                <span aria-hidden="true" className={'leading-none ' + meta.tone}>
+                <span
+                  aria-hidden="true"
+                  className={'leading-none ' + meta.tone}
+                >
                   {meta.glyph}
                 </span>
                 <span className="min-w-0 flex-1">

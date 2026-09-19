@@ -1,32 +1,67 @@
 import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
 
-import CallSchedule from '../components/CallSchedule.jsx'
-import DemoControls from '../components/DemoControls.jsx'
-import MedicationCard from '../components/MedicationCard.jsx'
-import { LoadFailed, Loading, RefreshFailed } from '../components/LoadState.jsx'
-import NextUpCard from '../components/NextUpCard.jsx'
 import Notice from '../components/Notice.jsx'
-import PortalShared from '../components/PortalShared.jsx'
 import Screen from '../components/Screen.jsx'
-import TimeTravel from '../components/TimeTravel.jsx'
-import { Rule } from '../components/Block.jsx'
+import { CallHeading, DoseRows, Event, Spine } from '../components/DaySpine.jsx'
+import { InteractionPin } from '../components/InteractionFlags.jsx'
+import { LoadFailed, Loading, RefreshFailed } from '../components/LoadState.jsx'
 import { applyClockShift } from '../lib/clock.js'
-import { dateTimeLabel, groupSchedule } from '../lib/format.js'
-import { BTN_HERO, BTN_PRIMARY, BTN_SECONDARY, CARD } from '../lib/ui.js'
-import { flaggedNames, isFlagged, pairLabels, pinFlagged } from '../lib/flagged.js'
+import { clockLabel } from '../lib/format.js'
+import { BTN_HERO, BTN_SECONDARY, CARD } from '../lib/ui.js'
+import {
+  callEvents,
+  coversLine,
+  countWord,
+  dayCount,
+  dayLabel,
+  groupingLine,
+  movedLine,
+  visitGutter,
+  windowLine,
+} from '../lib/day.js'
+import { flaggedNames, isFlagged, nameKey } from '../lib/flagged.js'
+import { isConfigured as phoneConfigured } from '../lib/telephony.js'
 import { bookedVisits, useFollowups } from '../lib/useFollowups.js'
 import { usePortal } from '../lib/usePortal.js'
 import { useSession } from '../lib/session.jsx'
 
-const SHOWN = 3
+const DIAMOND = String.fromCharCode(9670)
+const CHECK = String.fromCharCode(10003)
 
-function today() {
-  return new Date().toLocaleDateString(undefined, {
-    weekday: 'long',
-    month: 'long',
-    day: 'numeric',
-  })
+function findingFor(event, finding, marked) {
+  if (!finding) return null
+  const hit = (event.doses || []).some((dose) => isFlagged(dose, marked))
+  return hit ? finding : null
+}
+
+function pairNote(dose, marked, events, index) {
+  if (!isFlagged(dose, marked)) return null
+  const key = nameKey(dose.medication)
+
+  for (let i = 0; i < events.length; i += 1) {
+    if (i === index) continue
+    for (const other of events[i].doses || []) {
+      if (isFlagged(other, marked) && nameKey(other.medication) !== key) {
+        return (
+          <>
+            <span aria-hidden="true" className="mr-2 text-severe">
+              {DIAMOND}
+            </span>
+            paired with your {other.medication}, see{' '}
+            {clockLabel(events[i].time)}
+          </>
+        )
+      }
+    }
+  }
+  return null
+}
+
+function takenMark(covers) {
+  if (covers === 1) return 'You said you took it'
+  if (covers === 2) return 'You said you took both'
+  return 'You said you took all ' + countWord(covers)
 }
 
 export default function TodayPage() {
@@ -36,14 +71,12 @@ export default function TodayPage() {
     connected,
     restoring,
     restoreFailed,
-    medications,
     schedule,
     clockShiftMs,
-    setClockShiftMs,
     regimen,
   } = useSession()
 
-  const { portal, loading, loadFailed, refreshFailed, failure, reload } =
+  const { loading, loadFailed, refreshFailed, failure, reload } =
     usePortal(connected)
   const {
     data: visits,
@@ -57,15 +90,7 @@ export default function TodayPage() {
     [schedule, clockShiftMs],
   )
 
-  const list = useMemo(() => {
-    const frequencyById = new Map(
-      (medications || []).map((r) => [r.medication_id, r.frequency]),
-    )
-    return groupSchedule((plan && plan.doses) || []).map((med) => ({
-      ...med,
-      frequency: frequencyById.get(med.key) || '',
-    }))
-  }, [plan, medications])
+  const events = useMemo(() => callEvents(plan), [plan])
 
   if (restoring) {
     return (
@@ -79,21 +104,25 @@ export default function TodayPage() {
     return (
       <Screen title="Today">
         {restoreFailed ? (
-          <Notice role="alert" tone="alarm" word="Not read" className="measure mb-10">
-            CareLoop could not read your records again after the page
-            reloaded. Nothing on the record changed. Choose your insurance
-            again below.
+          <Notice
+            role="alert"
+            tone="alarm"
+            word="Not read"
+            className="measure mb-10"
+          >
+            CareLoop could not read your records again after the page reloaded.
+            Nothing on the record changed. Choose your insurance again below.
           </Notice>
         ) : null}
         <div className={CARD + ' measure px-7 py-8'}>
           <h2 className="display-tight text-xl text-ink">
-            Choose your insurance to see your medicines
+            Choose your insurance to see your day
           </h2>
           <p className="mt-3 text-ink-2">
             CareLoop reads the medicine list from the records your insurer
             holds, and works out when to call. You never type a medicine in.
           </p>
-          <Link to="/connect" className={BTN_PRIMARY + ' mt-7'}>
+          <Link to="/connect" className={BTN_SECONDARY + ' mt-7'}>
             Choose your insurance
           </Link>
         </div>
@@ -101,17 +130,30 @@ export default function TodayPage() {
     )
   }
 
-  const next = bookedVisits(visits)[0]
   const who = record ? record.name.split(' ')[0] : ''
-  const flagged = (regimen && regimen.surfaced) || []
-  const marked = flaggedNames(flagged)
-  const shown = pinFlagged(list, marked, SHOWN)
-  const pinned =
-    list.length > SHOWN && shown.some((med) => isFlagged(med, marked))
+  const finding = ((regimen && regimen.surfaced) || [])[0] || null
+  const marked = flaggedNames((regimen && regimen.surfaced) || [])
+  const phoneLive = phoneConfigured()
+
+  const nextDose = plan && plan.next_dose
+  const nextIndex = nextDose
+    ? events.findIndex((event) =>
+        (event.doses || []).some(
+          (dose) =>
+            dose.medication_id === nextDose.medication_id &&
+            dose.time === nextDose.time,
+        ),
+      )
+    : -1
+
+  const visit = bookedVisits(visits)[0]
+  const closing = nextIndex === -1 && events.length > 0
 
   return (
-    <Screen title={who ? 'Today, ' + who : 'Today'} lead={today()}>
-      {loading ? <Loading what="Reading your medicines from MyHealth." /> : null}
+    <Screen title={who ? 'Today, ' + who : 'Today'}>
+      {loading ? (
+        <Loading what="Reading your medicines from MyHealth." />
+      ) : null}
 
       {loadFailed ? (
         <LoadFailed
@@ -130,143 +172,210 @@ export default function TodayPage() {
       ) : null}
 
       {!loading && !loadFailed && plan ? (
-        <div>
-          {flagged.length ? (
-            <Notice
-              tone="caution"
-              word="Worth checking"
-              className="measure mb-10"
-            >
-              <p className="text-lg leading-[1.45] text-ink">
-                Two of your medicines are worth asking about:{' '}
-                <strong className="inline-block font-semibold first-letter:uppercase">
-                  {pairLabels(flagged[0]).join(' and ')}
-                </strong>
-                . Both are in the list below.
-              </p>
-              <Link to="/meds" className={BTN_SECONDARY + ' mt-6'}>
-                See what to ask about
-              </Link>
-            </Notice>
-          ) : null}
-
-          <NextUpCard dose={plan.next_dose} />
-
-          <div className="mt-9">
-            <Link to="/call" className={BTN_HERO}>
-              Start my check-in
-            </Link>
-            <p className="measure mt-4 text-ink-2">
-              You do not have to wait for the call. You can take the check-in
-              whenever you like.
+        <section aria-labelledby="day-heading">
+          <div className="flex flex-wrap items-baseline justify-between gap-x-10 gap-y-2 border-b border-line pb-5">
+            <h2 id="day-heading" className="display text-2xl text-ink">
+              {dayLabel(plan)}
+            </h2>
+            <p className="text-lg font-semibold text-ink-2">
+              {dayCount(plan, events)}
             </p>
           </div>
 
-          <div className="mt-12 grid gap-x-12 gap-y-14 lg:grid-cols-[minmax(0,1fr)_21rem]">
-            <div className="min-w-0">
-              <h2 className="display text-2xl text-ink">Medications</h2>
-              <Rule />
-              {pinned ? (
-                <p className="measure mt-5 text-sm text-ink-2">
-                  The medicines named above are shown first, so a short list
-                  never hides the pair worth asking about.
+          <Spine>
+            {events.length ? null : (
+              <Event index={0} time="Today" state="No calls" tone="ahead">
+                <h3 className="display-tight text-xl text-ink">
+                  There are no calls on today's list
+                </h3>
+                <p className="measure mt-3 text-sm text-ink-2">
+                  There are no medicines on this record, so CareLoop has nothing
+                  to ring you about. If that is wrong, read the record again
+                  from your insurer.
                 </p>
-              ) : null}
-              {list.length ? (
-                <ul className="mt-8 flex flex-col gap-6">
-                  {shown.map((med, index) => (
-                    <MedicationCard key={med.key} med={med} index={index} />
-                  ))}
-                </ul>
-              ) : (
-                <p className="measure mt-8 text-ink-2">
-                  There are no medicines on this record.
-                </p>
-              )}
-              <Link to="/meds" className={BTN_SECONDARY + ' mt-8'}>
-                {list.length > SHOWN
-                  ? 'All ' + list.length + ' medications'
-                  : 'Go to medications'}
-              </Link>
-            </div>
-
-            <aside className="lg:pt-2">
-              <CallSchedule plan={plan} />
-
-              <section
-                aria-labelledby="visit-heading"
-                className={CARD + ' mt-8 px-6 py-7'}
-              >
-                <h2 id="visit-heading" className="display-tight text-lg text-ink">
-                  Next appointment
-                </h2>
-                {next ? (
-                  <div className="mt-4">
-                    <p className="text-sm font-semibold text-ink">
-                      {next.provider_name}
-                    </p>
-                    <p className="text-sm text-ink-2">{next.specialty}</p>
-                    <p className="numeric mt-2 text-sm text-ink">
-                      {next.slot_local}
-                    </p>
-                  </div>
-                ) : visitsLoading ? (
-                  <p
-                    aria-live="polite"
-                    aria-busy="true"
-                    className="mt-4 text-sm text-ink-2"
-                  >
-                    Reading your appointments.
-                  </p>
-                ) : visitsFailed ? (
-                  <div className="mt-4">
-                    <Notice role="alert" tone="alarm" word="Not loaded" size="sm">
-                      CareLoop could not read your appointments just now. This
-                      is not a statement that you have none. Press Try again,
-                      or call your clinic directly if this is urgent.
-                    </Notice>
-                    <button
-                      type="button"
-                      onClick={reloadVisits}
-                      className={BTN_SECONDARY + ' mt-6 w-full'}
-                    >
-                      Try again
-                    </button>
-                  </div>
-                ) : (
-                  <p className="mt-4 text-sm text-ink-2">
-                    No visit is booked at the moment.
-                  </p>
-                )}
-                {visits && visits.payer_display ? (
-                  <p className="mt-4 border-t border-line pt-4 text-sm text-ink-2">
-                    Covered by {visits.payer_display}.
-                  </p>
-                ) : null}
-                <Link to="/appointments" className={BTN_SECONDARY + ' mt-6 w-full'}>
-                  All appointments
+                <Link to="/meds" className={BTN_SECONDARY + ' mt-6'}>
+                  Go to medications
                 </Link>
-              </section>
+              </Event>
+            )}
 
-              <PortalShared
-                allergies={portal && portal.allergies}
-                window={portal && portal.preferred_contact_window}
-              />
-            </aside>
-          </div>
+            {events.map((event, index) => {
+              const done = event.status === 'taken'
+              const missed = event.status === 'missed'
+              const next = index === nextIndex
+              const tone = done ? 'done' : next ? 'now' : 'later'
+              const state = done
+                ? 'Done'
+                : next
+                  ? 'Next'
+                  : missed
+                    ? 'Not confirmed'
+                    : 'Later'
+              const title =
+                done || missed
+                  ? 'CareLoop called you'
+                  : next
+                    ? 'CareLoop rings your telephone'
+                    : 'CareLoop will call again'
+              const pin = next ? findingFor(event, finding, marked) : null
+              const grouped = groupingLine(event, done || missed)
+              const moved = movedLine(event)
+              const lastCall =
+                index === events.length - 1 && !done && !next && !missed
 
-          <DemoControls>
-            <TimeTravel
-              plan={schedule}
-              shiftMs={clockShiftMs}
-              onShift={setClockShiftMs}
-            />
-            <p className="measure mt-6 text-sm text-ink-2">
-              Last read from MyHealth{' '}
-              {portal && portal.synced_at ? dateTimeLabel(portal.synced_at) : 'on this visit'}.
-            </p>
-          </DemoControls>
-        </div>
+              return (
+                <Event
+                  key={event.at + event.time}
+                  index={index}
+                  time={clockLabel(event.time)}
+                  state={state}
+                  tone={tone}
+                >
+                  <CallHeading
+                    title={title}
+                    covers={coversLine(event)}
+                    mark={
+                      done ? (
+                        <p className="flex items-center gap-2 text-sm font-semibold text-mild">
+                          <span aria-hidden="true" className="leading-none">
+                            {CHECK}
+                          </span>
+                          {takenMark(event.covers || 1)}
+                        </p>
+                      ) : null
+                    }
+                  />
+
+                  {grouped ? (
+                    <p className="measure mt-2 text-sm text-ink-2">{grouped}</p>
+                  ) : null}
+
+                  <DoseRows
+                    doses={event.doses}
+                    note={(dose) => pairNote(dose, marked, events, index)}
+                  />
+
+                  {moved ? (
+                    <p className="measure mt-4 text-sm text-ink-2">{moved}</p>
+                  ) : null}
+
+                  {pin ? (
+                    <InteractionPin finding={pin}>
+                      {' '}
+                      You can ask about it on this call.
+                    </InteractionPin>
+                  ) : null}
+
+                  {next ? (
+                    <div className="mt-7">
+                      <Link to="/call" className={BTN_HERO}>
+                        {phoneLive ? 'Call my phone now' : 'Start my check-in'}
+                      </Link>
+                      <p className="measure mt-4 text-sm text-ink-2">
+                        {phoneLive
+                          ? 'Your phone rings, like any other call. You do not have to wait for ' +
+                            clockLabel(event.time) +
+                            ' and you never call CareLoop. CareLoop asks you to confirm before it dials.'
+                          : 'You do not have to wait for ' +
+                            clockLabel(event.time) +
+                            '. Calling out needs telephone settings that are not filled in here, so no phone will ring and the check-in runs in writing.'}
+                      </p>
+                    </div>
+                  ) : null}
+
+                  {lastCall ? (
+                    <p className="measure mt-4 text-sm text-ink-2">
+                      The last call of the day. {windowLine(plan)}
+                    </p>
+                  ) : null}
+                </Event>
+              )
+            })}
+
+            {closing ? (
+              <Event
+                index={events.length}
+                time="Done"
+                state="Today"
+                tone="ahead"
+              >
+                <h3 className="display-tight text-xl text-ink">
+                  No call is left today
+                </h3>
+                <p className="measure mt-3 text-sm text-ink-2">
+                  Every call CareLoop planned for today is behind you. The next
+                  one is on tomorrow's list. {windowLine(plan)}
+                </p>
+                {finding ? (
+                  <InteractionPin
+                    finding={finding}
+                    lead="Still worth asking about."
+                  />
+                ) : null}
+                <Link to="/call" className={BTN_SECONDARY + ' mt-6'}>
+                  Take a check-in anyway
+                </Link>
+              </Event>
+            ) : null}
+
+            <Event
+              last
+              index={events.length + 1}
+              time={visit ? visitGutter(visit).time : 'Ahead'}
+              state={visit ? visitGutter(visit).state : 'Nothing yet'}
+              tone="ahead"
+            >
+              {visit ? (
+                <>
+                  <h3 className="display-tight text-xl text-ink">
+                    {visit.provider_name}, {visit.specialty}
+                  </h3>
+                  <p className="mt-3 text-base text-ink">
+                    {visit.slot_local}. Covered by{' '}
+                    {visit.payer_display || (visits && visits.payer_display)}
+                    {visit.in_network ? ', inside the network' : ''}.
+                  </p>
+                  <p className="measure mt-3 text-sm text-ink-2">
+                    CareLoop rang the clinic and booked this after you agreed to
+                    it on a call.
+                  </p>
+                </>
+              ) : visitsLoading ? (
+                <p aria-live="polite" aria-busy="true" className="text-ink-2">
+                  Reading your appointments.
+                </p>
+              ) : visitsFailed ? (
+                <>
+                  <Notice role="alert" tone="alarm" word="Not loaded" size="sm">
+                    CareLoop could not read your appointments just now. This is
+                    not a statement that you have none. Press Try again, or call
+                    your clinic directly if this is urgent.
+                  </Notice>
+                  <button
+                    type="button"
+                    onClick={reloadVisits}
+                    className={BTN_SECONDARY + ' mt-6'}
+                  >
+                    Try again
+                  </button>
+                </>
+              ) : (
+                <>
+                  <h3 className="display-tight text-xl text-ink">
+                    No visit is booked at the moment
+                  </h3>
+                  <p className="measure mt-3 text-sm text-ink-2">
+                    CareLoop books a visit only when it offers one on a call and
+                    you say yes.
+                  </p>
+                </>
+              )}
+              <Link to="/appointments" className={BTN_SECONDARY + ' mt-6'}>
+                All appointments
+              </Link>
+            </Event>
+          </Spine>
+        </section>
       ) : null}
     </Screen>
   )
