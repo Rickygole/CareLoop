@@ -430,10 +430,25 @@ def patient_schedule(patient_id: str):
     return build_day_plan(patient)
 
 
+EXPECTED_ENV_KEYS = [
+    "GEMINI_API_KEY",
+    "GEMINI_MODEL",
+    "ELEVENLABS_API_KEY",
+    "BACKBOARD_API_KEY",
+    "CARELOOP_WEBHOOK_SECRET",
+]
+
+
 @app.get("/health")
 def health():
+    from triage_engine import DEFAULT_MODEL
+
+    key = os.environ.get("GEMINI_API_KEY") or ""
     return {
         "status": "ok",
         "patients_loaded": len(PATIENTS),
-        "gemini_configured": bool(os.environ.get("GEMINI_API_KEY")),
+        "gemini_configured": bool(key),
+        "gemini_key_length": len(key),
+        "model": os.environ.get("GEMINI_MODEL") or DEFAULT_MODEL,
+        "env_keys_present": [k for k in EXPECTED_ENV_KEYS if os.environ.get(k)],
     }
