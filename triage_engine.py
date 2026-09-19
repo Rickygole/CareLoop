@@ -301,6 +301,36 @@ def _parse_llm_response(raw: str) -> LLMVerdict:
     return LLMVerdict(severity=_parse_llm_severity(text), raw=text)
 
 
+def _gemini_rest_call(model_name: str, api_key: str, prompt: str) -> str:
+    import json as _json
+    import urllib.request
+
+    url = (
+        "https://generativelanguage.googleapis.com/v1beta/models/"
+        f"{model_name}:generateContent?key={api_key}"
+    )
+    body = _json.dumps({
+        "contents": [{"parts": [{"text": prompt}]}],
+        "generationConfig": {
+            "temperature": 0.0,
+            "maxOutputTokens": LLM_MAX_OUTPUT_TOKENS,
+            "responseMimeType": "application/json",
+        },
+    }).encode("utf-8")
+
+    request = urllib.request.Request(
+        url, data=body, headers={"Content-Type": "application/json"}, method="POST"
+    )
+    with urllib.request.urlopen(request, timeout=LLM_TIMEOUT_SECONDS) as response:
+        data = _json.loads(response.read().decode("utf-8"))
+
+    for candidate in data.get("candidates", []):
+        for part in candidate.get("content", {}).get("parts", []):
+            if part.get("text"):
+                return part["text"]
+    return ""
+
+
 def classify_with_llm(transcript: str, model_name: str = None) -> LLMVerdict:
     api_key = os.environ.get("GEMINI_API_KEY")
     if not api_key:
@@ -309,20 +339,10 @@ def classify_with_llm(transcript: str, model_name: str = None) -> LLMVerdict:
     model_name = model_name or os.environ.get("GEMINI_MODEL") or DEFAULT_MODEL
 
     try:
-        import google.generativeai as genai
-
-        genai.configure(api_key=api_key)
-        model = genai.GenerativeModel(model_name)
-        response = model.generate_content(
-            TIER1_PROMPT.format(transcript=transcript),
-            generation_config={
-                "temperature": 0.0,
-                "max_output_tokens": LLM_MAX_OUTPUT_TOKENS,
-                "response_mime_type": "application/json",
-            },
-            request_options={"timeout": LLM_TIMEOUT_SECONDS},
+        raw = _gemini_rest_call(
+            model_name, api_key, TIER1_PROMPT.format(transcript=transcript)
         )
-        return _parse_llm_response((response.text or "").strip())
+        return _parse_llm_response(raw.strip())
     except Exception:
         return LLMVerdict(severity=None)
 
