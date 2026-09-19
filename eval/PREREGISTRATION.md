@@ -95,6 +95,31 @@ k=3 full repeats of the real scoring pass are required, at temperature 0.
 Temperature 0 is not determinism: run-to-run disagreement across the 3 runs
 is measured and reported per arm and condition, not assumed to be zero.
 
+## Addendum, written before eval/score_v2.py existed and before any dry-run or real output existed
+
+The confirmatory contrast section above says "under-triage rate, naive arm,
+condition D versus condition A" without stating which gold tier that rate is
+conditioned on, while the metrics section separately requires gold=severe
+and gold=moderate to always be reported separately and never pooled. Both
+statements were written in the same sitting and the gap was only noticed
+while building the scoring code, so it is closed here, as an addendum, with
+its own commit and its own timestamp, rather than by quietly rewriting the
+section above.
+
+The confirmatory contrast is under-triage rate conditioned on gold=severe
+only: a same-day symptom classified as mild or moderate. This is the single
+number this project preregisters as confirmatory. Under-triage rate
+conditioned on gold=moderate, naive arm, D versus A, is reported as a
+companion number, computed the same way, but it is exploratory: it was not
+the one contrast locked in above, and the metrics-table rule against pooling
+severe and moderate applies to every other row this harness reports, not to
+which one of the two became the confirmatory test.
+
+If this ordering looks convenient in hindsight, that is the reason it is
+written down as a dated addendum instead of edited into the original
+section: so anyone can see it was a same-day clarification made before any
+score existed, not a post-hoc rationalization of a result already seen.
+
 ## Leakage bookkeeping
 
 Every time the frozen test set is scored with a prompt or scoring-logic
