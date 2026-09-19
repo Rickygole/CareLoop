@@ -185,13 +185,27 @@ reused.
 CareLoop does not diagnose anything. It is not clinically validated. It is
 not FDA compliant. It is not HIPAA compliant. It is not guaranteed safe or
 accurate. It does not replace a nurse line. It does not reduce ER visits.
-It has not been tested on real patients or real patient speech. The only
-claim this project makes is about its own internal behavior: given the
-inputs described in `docs/PLAN.md` section 4, the deterministic Tier 0
-layer classifies consistently regardless of how a symptom is phrased,
-across a small, non-clinical, team-authored evaluation set. See
-`docs/PLAN.md` section 4 for the evaluation methodology and its limits, and
-section 5 for the full regulatory reasoning behind these disclaimers.
+It has not been tested on real patients or real patient speech.
+
+Two narrower claims are made, and they are about internal behavior only.
+The first is structural: Tier 0 is deterministic by construction, so the
+same transcript always produces the same result and a model is never
+consulted on an emergency. That one is verifiable by reading
+`triage_engine.py` and running `pytest`.
+
+The second is measured, not structural: `eval/` contains a harness that
+tests whether the Tier 1 pipeline returns the same severity for
+semantically equivalent transcripts phrased in different registers. That
+harness needs an API key to run, and any numbers it produces come from a
+small, non-clinical, team-authored set of sentences that were written by
+the project team rather than collected from real speakers. Whatever it
+reports says nothing about how CareLoop would behave on real patient
+speech. If `eval/results.json` is absent or flagged as a placeholder, no
+measured claim is being made at all.
+
+See `docs/PLAN.md` section 4 for the evaluation methodology and its
+limits, and section 5 for the regulatory reasoning behind these
+disclaimers.
 
 ## License
 
