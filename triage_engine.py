@@ -26,19 +26,29 @@ class Severity(IntEnum):
 EMERGENCY_RULES: List[tuple] = [
     (
         "chest_pain",
-        r"\b(chest|sternum|breastbone)\b[^.!?]{0,40}\b("
+        r"\b(chest|chets|sternum|breastbone)\b[^.!?]{0,40}\b("
         r"pain|hurt\w*|ache\w*|aching|tight\w*|pressure|squeez\w*|crush\w*|"
         r"heavy|heaviness|burning|killing me|on fire|band around"
         r")\b"
         r"|\b(pain|pressure|tightness|tight|weight|band|elephant|vice|vise)\b"
-        r"[^.!?]{0,30}\b(in|on|across|around|over)\b[^.!?]{0,15}\bchest\b"
-        r"|\bheart attack\b",
+        r"[^.!?]{0,30}\b(in|on|across|around|over)\b[^.!?]{0,20}\bchest\b"
+        r"|\b(clutch\w*|grabbing|grabbed|holding)\b[^.!?]{0,15}\b(my |his |her |their )?chest\b"
+        r"|\bheart at{1,2}ack\b",
     ),
     (
         "breathing_difficulty",
         r"\b(can'?t|cannot|can not|couldn'?t|unable to|hard to|struggl\w* to|"
-        r"fight\w* to|gasping (for|to)|not able to)\b[^.!?]{0,25}\b(breath\w*|air|catch my breath)\b"
-        r"|\b(short(ness)? of breath|out of breath|winded)\b"
+        r"fight\w* to|troubl\w*|trubbl\w*|gasping (for|to)|not able to)\b"
+        r"[^.!?]{0,25}\b(breath\w*|air|catch my breath)\b"
+        r"|\bstopp\w* breathing\b"
+        r"|\b(can'?t|cannot|couldn'?t)\b[^.!?]{0,15}\blie (flat|down)\b"
+        r"[^.!?]{0,30}\b(short(ness)? of breath|breath\w*|winded)\b"
+        r"|\b(sudden\w*|severe\w*|acute\w*|all of a sudden|right now|at rest|"
+        r"even sitting|even lying|resting|worsening|rapidly)\b[^.!?]{0,30}"
+        r"\b(short(ness)? of breath|out of breath|winded)\b"
+        r"|\b(short(ness)? of breath|out of breath|winded)\b[^.!?]{0,30}"
+        r"\b(sudden\w*|severe\w*|acute\w*|right now|at rest|even sitting|"
+        r"even lying|resting|getting worse|worsening|rapidly|can'?t catch)\b"
         r"|\bbreath\w*\b[^.!?]{0,20}\b(hard|difficult|labou?red|shallow)\b"
         r"|\bsuffocat\w*|\bchoking\b|\bgasping\b|\bwheezing bad\w*\b",
     ),
@@ -55,7 +65,11 @@ EMERGENCY_RULES: List[tuple] = [
         r"\b(unconscious|unresponsive|passed out|blacked out|black\w* out|"
         r"collaps\w*|fainted|not waking up|won'?t wake up|came to on the floor|"
         r"woke up on the (floor|ground)|found (him|her|them|them all) on the (floor|ground)"
-        r"|(done )?fell out (on|in|at)|fell out cold)\b",
+        r"|(done )?fell out (on|in|at)|fell out cold)\b"
+        r"|\b(went down|dropped)\b[^.!?]{0,35}\b(not moving|ain'?t moving|"
+        r"isn'?t moving|won'?t (move|get up|wake up))\b"
+        r"|\b(on the (floor|ground))\b[^.!?]{0,35}\b((won'?t|can'?t|isn'?t able to) "
+        r"get up|not (getting up|moving))\b",
     ),
     (
         "severe_bleeding",
@@ -64,7 +78,7 @@ EMERGENCY_RULES: List[tuple] = [
         r"non.?stop|heavy|heavily|badly|bad|"
         r"a lot|lots|everywhere|soak\w*|pour\w*|gush\w*|profuse\w*"
         r")\b"
-        r"|\b((wo|can|will)\s?n[o']?t stop|keeps?)\b[^.!?]{0,20}\bbleed\w*\b"
+        r"|\b((wo|can|will)\s?n[o']?t (stop|quit)|keeps?)\b[^.!?]{0,20}\bbleed\w*\b"
         r"|\b(coughing|throwing|vomit\w*|spitting)\b[^.!?]{0,15}\bup\b[^.!?]{0,15}\bblood\b"
         r"|\bblood in (my|the) (stool|vomit|urine)\b",
     ),
@@ -93,10 +107,11 @@ EMERGENCY_RULES: List[tuple] = [
     ),
     (
         "spanish_emergency",
-        r"\bno puedo respirar\b|\bme falta (el )?aire\b"
-        r"|\bdolor (en|de) (el )?pecho\b|\bme duele el pecho\b"
-        r"|\bse desmay\w*\b|\bno despierta\b|\bno responde\b"
-        r"|\bse est[a\u00e1] ahogando\b|\bsangrado\b|\bataque al coraz[o\u00f3]n\b",
+        r"\bno puedo respirar\b|\bme falta (el )?aire\b|\bme cuesta respirar\b"
+        r"|\bdolor\w*\b[^.!?]{0,25}\bpecho\b|\bme duele\w*\b[^.!?]{0,20}\bpecho\b"
+        r"|\bse desmay\w*\b|\bno (se )?despierta\b|\bno responde\b"
+        r"|\bse est[a\u00e1] ahogando\b|\bsangr(ando|ado)\b"
+        r"|\bataque al coraz[o\u00f3]n\b|\binfarto\b",
     ),
     (
         "seizure",
@@ -135,7 +150,7 @@ def normalize_input(text: str) -> str:
 
 
 _NEGATION_BEFORE = re.compile(
-    r"\b(no|not|never|none|without|deny|denies|denied|"
+    r"\b(no|not|never|none|deny|denies|denied|died (of|from)|passed away (of|from)|"
     r"do(n'?t| not)|does(n'?t| not)|did(n'?t| not)|have(n'?t| not)|has(n'?t| not)|"
     r"is(n'?t| not)|are(n'?t| not)|was(n'?t| not)|were(n'?t| not)|"
     r"used to|if i|if you|in case|watch for|warn\w*|ask\w* if|told me to|"
@@ -144,8 +159,8 @@ _NEGATION_BEFORE = re.compile(
 )
 _HISTORY_AFTER = re.compile(
     r"^[^.!?]{0,20}\b(last (year|month|week)|years? ago|months? ago|back in \d{4}|"
-    r"as a (teen\w*|kid|child)|when i was|none since|never again|not anymore|"
-    r"but i'?m fine|but she'?s fine|but he'?s fine)\b",
+    r"in (19|20)\d{2}|as a (teen\w*|kid|child)|when i was|none since|never again|"
+    r"not anymore|but i'?m fine|but she'?s fine|but he'?s fine)\b",
     re.IGNORECASE,
 )
 
