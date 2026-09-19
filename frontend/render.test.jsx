@@ -9,8 +9,7 @@ function startAtFirstScreen() {
 }
 
 function signIn() {
-  fireEvent.click(screen.getAllByText('Fill in the demo account')[0])
-  fireEvent.click(screen.getByText('Sign in'))
+  fireEvent.click(screen.getByRole('button', { name: 'Sign in' }))
 }
 
 const PATIENT = {
@@ -225,16 +224,21 @@ test('the sign in screen is the first screen and it is an honest demo gate', () 
   startAtFirstScreen()
   render(<HashRouter><App /></HashRouter>)
   expect(screen.getByRole('heading', { level: 1 }).textContent).toMatch(/Sign in to CareLoop/)
-  expect(screen.getByText('demo@careloop.health')).toBeTruthy()
-  expect(screen.getByText('careloop-demo')).toBeTruthy()
+  expect(screen.getByLabelText('Email address').value).toBe('demo@careloop.health')
+  expect(screen.getByLabelText('Password').value).toBe('careloop-demo')
+  expect(screen.queryByText('The demo account')).toBe(null)
+  expect(screen.queryByRole('button', { name: /Fill in the demo account/ })).toBe(null)
+  expect(screen.getByText(/Never type a real password into a demonstration/)).toBeTruthy()
 
   fireEvent.change(screen.getByLabelText('Email address'), { target: { value: 'someone@example.com' } })
   fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'nope' } })
-  fireEvent.click(screen.getByText('Sign in'))
+  fireEvent.click(screen.getByRole('button', { name: 'Sign in' }))
   expect(screen.getByRole('alert').textContent).toMatch(/not the demo account/)
+  fireEvent.click(screen.getByRole('button', { name: /Put the demo account back/ }))
+  expect(screen.getByLabelText('Email address').value).toBe('demo@careloop.health')
   expect(screen.getByRole('heading', { level: 1 }).textContent).toMatch(/Sign in to CareLoop/)
 
-  fireEvent.click(screen.getByText('Sign up'))
+  fireEvent.click(screen.getByRole('button', { name: 'Sign up' }))
   expect(screen.getByText(/There are no new accounts to create/)).toBeTruthy()
 })
 
@@ -497,6 +501,22 @@ test('the phone call reports what it is doing, including a redial', async () => 
   expect(screen.getByText('Read the check-in in writing').closest('button').disabled).toBe(true)
 }, 10000)
 
+test('answering the phone does not brick the screen', async () => {
+  const base = { leg: 'checkin', attempt: 1, max_attempts: 3, retrying: false, call_sid: 'CA9' }
+  callState.mockResolvedValueOnce({ ...base, phase: 'ringing', wording: 'Your phone is ringing now.' })
+  callState.mockResolvedValueOnce({ ...base, phase: 'answered', wording: 'You are on the call with CareLoop.' })
+  callState.mockResolvedValue({ ...base, phase: 'ended', wording: 'The check-in is finished.' })
+
+  renderCall()
+  fireEvent.click(screen.getByText('Call my phone now'))
+
+  await screen.findByText(/You are on the call with CareLoop/, {}, { timeout: 5000 })
+  await screen.findByText(/The check-in is finished/, {}, { timeout: 8000 })
+
+  expect(screen.getByText('Call my phone now').closest('button').disabled).toBe(false)
+  expect(screen.getByText('Read the check-in in writing').closest('button').disabled).toBe(false)
+}, 20000)
+
 test('the written stand-in says what the phone call says', async () => {
   renderCall()
   expect(screen.getByText(/not a recording of the real phone call/)).toBeTruthy()
@@ -508,3 +528,13 @@ test('the written stand-in says what the phone call says', async () => {
   expect(screen.queryByText(/Did you take your/)).toBe(null)
   expect(screen.getByText('Call my phone now').closest('button').disabled).toBe(true)
 }, 10000)
+
+test('the demo account arrives in the fields so no one types a password', () => {
+  startAtFirstScreen()
+  render(<HashRouter><App /></HashRouter>)
+  expect(screen.getByLabelText('Email address').value).toBe('demo@careloop.health')
+  expect(screen.getByLabelText('Password').value).toBe('careloop-demo')
+  fireEvent.click(screen.getByRole('button', { name: 'Sign in' }))
+  expect(screen.getByRole('heading', { level: 1 }).textContent).toMatch(/Today/)
+  window.location.hash = '#/signin'
+})
