@@ -1,5 +1,6 @@
 import { clockLabel } from '../lib/format.js'
 import { doseMeta } from '../lib/dose.js'
+import { CARD } from '../lib/ui.js'
 
 export default function CallSchedule({ plan, flash }) {
   const doses = (plan && plan.doses) || []
@@ -7,12 +8,9 @@ export default function CallSchedule({ plan, flash }) {
   return (
     <section
       aria-labelledby="schedule-heading"
-      className={flash ? 'trace-flash' : undefined}
+      className={CARD + ' px-6 py-7 ' + (flash ? 'trace-flash' : '')}
     >
-      <h2
-        id="schedule-heading"
-        className="font-display text-xl font-semibold text-ink"
-      >
+      <h2 id="schedule-heading" className="display-tight text-lg text-ink">
         Every call today
       </h2>
       <p className="mt-2 text-sm text-ink-2">
@@ -20,22 +18,19 @@ export default function CallSchedule({ plan, flash }) {
       </p>
 
       {doses.length ? (
-        <ul className="mt-5">
+        <ul className="mt-6 flex flex-col gap-3">
           {doses.map((dose, index) => {
             const meta = doseMeta(dose.status)
             return (
               <li
                 key={dose.medication_id + dose.time}
-                className="enter-fade flex flex-wrap items-baseline gap-x-3 border-b border-line py-3"
+                className="enter-fade flex flex-wrap items-baseline gap-x-3 gap-y-1 rounded-card border-2 border-edge-strong bg-sunken px-4 py-3"
                 style={{ '--i': index }}
               >
-                <span
-                  aria-hidden="true"
-                  className={'text-micro leading-none ' + meta.tone}
-                >
+                <span aria-hidden="true" className={'leading-none ' + meta.tone}>
                   {meta.glyph}
                 </span>
-                <span className="numeric text-sm font-semibold text-ink">
+                <span className="numeric text-sm font-bold text-ink">
                   {clockLabel(dose.time)}
                 </span>
                 <span className="min-w-0 flex-1 truncate text-sm text-ink-2">
@@ -49,7 +44,7 @@ export default function CallSchedule({ plan, flash }) {
           })}
         </ul>
       ) : (
-        <p className="mt-5 text-sm text-ink-2">
+        <p className="mt-6 text-sm text-ink-2">
           No doses are on today's list yet.
         </p>
       )}

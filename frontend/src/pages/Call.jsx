@@ -1,7 +1,9 @@
 import { useCallback, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 
 import CheckIn from '../components/CheckIn.jsx'
+import Notice from '../components/Notice.jsx'
+import PhoneCallCard from '../components/PhoneCallCard.jsx'
 import Screen from '../components/Screen.jsx'
 import VoicePanel from '../components/VoicePanel.jsx'
 import { runLoop } from '../lib/api.js'
@@ -57,8 +59,6 @@ export default function CallPage() {
 
   return (
     <Screen
-      mark="03"
-      label="Step 3 of 5"
       title="The call CareLoop makes"
       lead={
         'When a dose comes due, CareLoop rings ' +
@@ -66,11 +66,11 @@ export default function CallPage() {
         ' and asks two things: did you take it, and how are you feeling. It decides what to do about the answer while the line is still open. Take that call now.'
       }
     >
-      <p className="measure mt-7 border-l-4 border-brand bg-brand-wash px-6 py-5 text-ink">
+      <Notice tone="info" word={due ? 'Due now' : 'Coming up'} className="measure">
         {next ? (
           due ? (
             <span>
-              <strong className="font-semibold">
+              <strong className="font-bold">
                 {next.medication}
                 {next.dosage ? ' ' + next.dosage : ''} is due now,
               </strong>{' '}
@@ -78,20 +78,13 @@ export default function CallPage() {
             </span>
           ) : (
             <span>
-              <strong className="font-semibold">
+              <strong className="font-bold">
                 The next call is at {clockLabel(next.time)},
               </strong>{' '}
               about {next.medication}
               {next.dosage ? ' ' + next.dosage : ''}. You do not have to wait
               for it. Answer now and CareLoop handles it exactly as it would on
-              the hour, or{' '}
-              <Link
-                to="/meds"
-                className="font-semibold text-brand-deep underline"
-              >
-                move the clock forward
-              </Link>{' '}
-              first.
+              the hour.
             </span>
           )
         ) : (
@@ -100,7 +93,9 @@ export default function CallPage() {
             will handle what you say exactly as it would on a scheduled call.
           </span>
         )}
-      </p>
+      </Notice>
+
+      <PhoneCallCard patientName={who} />
 
       <VoicePanel
         patientId={patientId}
@@ -123,10 +118,14 @@ export default function CallPage() {
 
       <div role="status" aria-live="polite" className="empty:hidden">
         {spoken && busy ? (
-          <p className="enter-fade mt-10 border-l-4 border-brand bg-brand-wash px-6 py-5 text-sm font-semibold text-brand-deep">
+          <Notice
+            tone="info"
+            word="On the call"
+            className="enter-fade measure mt-10"
+          >
             CareLoop is on the call. Listening, checking, and deciding what to
             do.
-          </p>
+          </Notice>
         ) : null}
       </div>
     </Screen>

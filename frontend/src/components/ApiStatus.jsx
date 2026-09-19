@@ -5,21 +5,24 @@ import { API_BASE, health } from '../lib/api.js'
 const STATES = {
   checking: {
     word: 'Checking the line',
-    glyph: '○',
-    light: 'text-muted',
+    glyph: String.fromCharCode(9675),
+    light: 'text-ink-2',
     dark: 'text-console-muted',
+    ocean: 'text-brand-ink-2',
   },
   ok: {
     word: 'CareLoop is online',
-    glyph: '●',
+    glyph: String.fromCharCode(9679),
     light: 'text-mild',
     dark: 'text-dark-mild',
+    ocean: 'text-sand',
   },
   down: {
     word: 'CareLoop is offline',
-    glyph: '△',
+    glyph: String.fromCharCode(9651),
     light: 'text-emergency',
     dark: 'text-dark-emergency',
+    ocean: 'text-dark-emergency',
   },
 }
 
@@ -46,18 +49,17 @@ export default function ApiStatus({ tone = 'light' }) {
     }
   }, [])
 
-  const dark = tone === 'dark'
   const meta = STATES[state]
+  const colour = meta[tone] || meta.light
 
   return (
     <span
       className={
-        'inline-flex items-center gap-2.5 text-2xs font-medium ' +
-        (dark ? meta.dark : meta.light)
+        'inline-flex items-center gap-3 text-2xs font-semibold ' + colour
       }
       title={API_BASE}
     >
-      <span aria-hidden="true" className="text-[0.75em] leading-none">
+      <span aria-hidden="true" className="text-[0.8em] leading-none">
         {meta.glyph}
       </span>
       <span>{meta.word}</span>

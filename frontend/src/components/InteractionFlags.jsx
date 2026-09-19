@@ -1,31 +1,29 @@
+import { Rule } from './Block.jsx'
+
 const SEVERITY = {
   contraindicated: {
     word: 'Should not be taken together',
     glyph: String.fromCharCode(9679),
     text: 'text-emergency',
-    border: 'border-emergency',
-    tint: 'bg-emergency-tint',
+    skin: 'border-emergency-edge bg-emergency-tint',
   },
   major: {
     word: 'Major interaction',
     glyph: String.fromCharCode(9670),
     text: 'text-severe',
-    border: 'border-severe',
-    tint: 'bg-severe-tint',
+    skin: 'border-severe-edge bg-severe-tint',
   },
   moderate: {
     word: 'Moderate interaction',
     glyph: String.fromCharCode(9651),
     text: 'text-moderate',
-    border: 'border-moderate',
-    tint: 'bg-moderate-tint',
+    skin: 'border-moderate-edge bg-moderate-tint',
   },
   minor: {
     word: 'Minor interaction',
     glyph: String.fromCharCode(9675),
     text: 'text-ink-2',
-    border: 'border-line-strong',
-    tint: 'bg-surface-2',
+    skin: 'border-edge-strong bg-sunken',
   },
 }
 
@@ -47,55 +45,46 @@ export default function InteractionFlags({ regimen, flash }) {
   return (
     <section
       aria-labelledby="flags-heading"
-      className={'mt-14 ' + (flash ? 'trace-flash' : '')}
+      className={'mt-20 ' + (flash ? 'trace-flash' : '')}
     >
-      <h2
-        id="flags-heading"
-        className="font-display border-b-2 border-line-ink pb-2 text-2xl font-semibold text-ink"
-      >
+      <h2 id="flags-heading" className="display text-2xl text-ink">
         {surfaced.length
           ? 'Something on this list is worth checking'
           : 'Nothing on this list conflicts'}
       </h2>
+      <Rule tone={surfaced.length ? 'clay' : 'sand'} />
 
       {surfaced.length ? (
-        <div className="mt-7">
-          <p className="measure text-ink">{regimen.patient_message}</p>
+        <div className="mt-8">
+          <p className="measure text-lg leading-[1.45] text-ink">
+            {regimen.patient_message}
+          </p>
 
-          <ul className="mt-7">
+          <ul className="mt-8 flex flex-col gap-6">
             {surfaced.map((finding, index) => {
               const meta = severityMeta(finding.severity)
               return (
                 <li
                   key={finding.ingredients.join('-')}
                   className={
-                    'enter-script mt-5 border-l-4 px-6 py-5 first:mt-0 ' +
-                    meta.border +
-                    ' ' +
-                    meta.tint
+                    'enter-script ledge ledge-strong rounded-card border-2 px-7 py-7 ' +
+                    meta.skin
                   }
                   style={{ '--i': index }}
                 >
-                  <p className="flex flex-wrap items-baseline gap-x-3">
-                    <span
-                      aria-hidden="true"
-                      className={'leading-none ' + meta.text}
-                    >
+                  <p className={'flex items-center gap-3 ' + meta.text}>
+                    <span aria-hidden="true" className="text-[1.15em] leading-none">
                       {meta.glyph}
                     </span>
-                    <span
-                      className={'smallcaps text-micro ' + meta.text}
-                    >
-                      {meta.word}
-                    </span>
+                    <span className="smallcaps text-micro">{meta.word}</span>
                   </p>
-                  <p className="font-display mt-2.5 text-xl font-semibold capitalize text-ink">
+                  <p className="display-tight mt-4 text-xl capitalize text-ink">
                     {pairLabel(finding.ingredients)}
                   </p>
-                  <p className="measure mt-2 text-ink-2">
+                  <p className="measure mt-3 text-ink">
                     Taken together these two carry {finding.concern}.
                   </p>
-                  <p className="measure mt-3 text-sm text-muted">
+                  <p className="measure mt-4 text-sm text-ink-2">
                     Source: {finding.source}.
                   </p>
                 </li>
@@ -104,26 +93,26 @@ export default function InteractionFlags({ regimen, flash }) {
           </ul>
         </div>
       ) : (
-        <p className="measure mt-7 text-ink-2">
+        <p className="measure mt-8 text-ink-2">
           CareLoop compared every pair of medicines on this list and found
           nothing that it checks for. That is not the same as nothing being
           wrong, which is what the next paragraph is about.
         </p>
       )}
 
-      <div className="mt-9 border-t border-line pt-6">
-        <h3 className="smallcaps text-micro text-muted">
+      <div className="mt-10">
+        <h3 className="smallcaps text-micro text-clay">
           What this check does not do
         </h3>
         <p className="measure mt-3 text-sm text-ink-2">{regimen.limitations}</p>
       </div>
 
-      <details className="mt-8 rounded-card border border-dashed border-line-strong bg-surface-2 px-6 py-5">
-        <summary className="cursor-pointer list-none marker:content-none">
-          <span className="smallcaps text-micro text-muted">
+      <details className="ledge ledge-night mt-10 overflow-hidden rounded-card border-2 border-ink bg-console-bg text-console-ink">
+        <summary className="console-scope cursor-pointer list-none px-6 py-6 marker:content-none sm:px-8">
+          <span className="smallcaps text-micro text-console-accent">
             For the clinical team, not shown to the patient
           </span>
-          <span className="mt-1.5 block text-sm font-semibold text-ink">
+          <span className="mt-2 block text-sm font-bold text-console-ink">
             {held.length
               ? held.length +
                 (held.length === 1
@@ -133,37 +122,39 @@ export default function InteractionFlags({ regimen, flash }) {
           </span>
         </summary>
 
-        <p className="measure mt-5 text-sm text-ink-2">
-          CareLoop only tells a patient about a finding at major severity or
-          above. Anything below that is recorded here for the prescriber or
-          pharmacist and is never raised on a call.
-        </p>
+        <div className="border-t-2 border-console-line px-6 py-6 sm:px-8">
+          <p className="measure text-sm text-console-ink-2">
+            CareLoop only tells a patient about a finding at major severity or
+            above. Anything below that is recorded here for the prescriber or
+            pharmacist and is never raised on a call.
+          </p>
 
-        {held.length ? (
-          <ul className="mt-5 border-t border-line">
-            {held.map((finding) => (
-              <li
-                key={finding.ingredients.join('-')}
-                className="border-b border-line py-4"
-              >
-                <p className="flex flex-wrap items-baseline gap-x-3 text-sm">
-                  <span className="smallcaps text-micro text-muted">
-                    {severityMeta(finding.severity).word}
-                  </span>
-                  <span className="font-semibold capitalize text-ink">
-                    {pairLabel(finding.ingredients)}
-                  </span>
-                </p>
-                <p className="measure mt-1.5 text-sm text-ink-2">
-                  {finding.concern}
-                </p>
-                <p className="measure mt-1 text-xs text-muted">
-                  Source: {finding.source}.
-                </p>
-              </li>
-            ))}
-          </ul>
-        ) : null}
+          {held.length ? (
+            <ul className="mt-6 flex flex-col gap-4">
+              {held.map((finding) => (
+                <li
+                  key={finding.ingredients.join('-')}
+                  className="rounded-card border-2 border-console-line bg-console-panel px-5 py-4"
+                >
+                  <p className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
+                    <span className="smallcaps text-micro text-console-accent">
+                      {severityMeta(finding.severity).word}
+                    </span>
+                    <span className="text-sm font-bold capitalize text-console-ink">
+                      {pairLabel(finding.ingredients)}
+                    </span>
+                  </p>
+                  <p className="measure mt-2 text-sm text-console-ink-2">
+                    {finding.concern}
+                  </p>
+                  <p className="measure mt-1.5 text-xs text-console-muted">
+                    Source: {finding.source}.
+                  </p>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+        </div>
       </details>
     </section>
   )

@@ -1,5 +1,8 @@
 import { useRef, useState } from 'react'
 
+import Notice from './Notice.jsx'
+import { BTN_HERO, BTN_QUIET, FIELD, PANEL } from '../lib/ui.js'
+
 export default function CheckIn({ busy, error, scenarios, onSubmit }) {
   const [text, setText] = useState('')
   const input = useRef(null)
@@ -17,31 +20,28 @@ export default function CheckIn({ busy, error, scenarios, onSubmit }) {
   }
 
   return (
-    <form onSubmit={submit} className="mt-8">
-      <div className="rounded-panel border-2 border-line-ink bg-surface p-6 shadow-raised sm:p-8">
-        <label
-          htmlFor="free-text"
-          className="font-display block text-xl font-semibold text-ink"
-        >
+    <form onSubmit={submit} className="mt-10">
+      <div className={PANEL + ' px-6 py-8 sm:px-10 sm:py-10'}>
+        <label htmlFor="free-text" className="display block text-xl text-ink">
           Answer in writing
         </label>
-        <p className="measure mt-2 text-sm text-ink-2">
+        <p className="measure mt-3 text-ink-2">
           Say how you are feeling in your own words. There is no right way to
           put it.
         </p>
 
         {scenarios && scenarios.length ? (
-          <div className="mt-6">
-            <p className="text-sm text-ink-2">
-              Not sure what to say? Borrow one of these.
+          <div className="mt-8">
+            <p className="smallcaps text-micro text-clay">
+              Not sure what to say? Borrow one of these
             </p>
-            <div className="mt-3 flex flex-wrap gap-3">
+            <div className="mt-4 flex flex-wrap gap-3">
               {scenarios.map((scenario) => (
                 <button
                   key={scenario.id}
                   type="button"
                   onClick={() => pick(scenario)}
-                  className="min-h-[44px] rounded-control border-2 border-line-strong bg-surface px-4 py-2 text-sm font-medium text-ink-2 transition-colors duration-150 hover:border-ink hover:text-ink"
+                  className={BTN_QUIET + ' min-h-[48px]'}
                 >
                   {scenario.label}
                 </button>
@@ -63,37 +63,32 @@ export default function CheckIn({ busy, error, scenarios, onSubmit }) {
           }}
           placeholder="I have been dizzy for two days and my ankles are swollen"
           autoComplete="off"
-          className="mt-6 block w-full resize-y rounded-card border-2 border-line-strong bg-surface-2 px-5 py-4 text-ink placeholder:text-muted focus:border-brand"
+          className={FIELD + ' mt-8 block resize-y'}
         />
 
-        <div className="mt-5 flex flex-wrap items-center gap-x-6 gap-y-4">
+        <div className="mt-7 flex flex-wrap items-center gap-x-8 gap-y-5">
           <button
             type="submit"
             disabled={busy || !text.trim()}
-            className="min-h-[60px] rounded-control bg-brand px-9 py-4 text-lg font-semibold text-white shadow-raised transition-[background-color,transform,box-shadow] duration-200 ease-out hover:bg-brand-deep hover:shadow-lift active:translate-y-px disabled:cursor-not-allowed disabled:bg-muted disabled:shadow-none"
+            className={BTN_HERO + ' disabled:cursor-not-allowed'}
           >
             {busy ? 'CareLoop is calling...' : 'Start the check-in'}
           </button>
-          <p className="text-sm text-muted">
+          <p className="max-w-[30ch] text-sm text-ink-2">
             Nothing is stored about you. These are made up records.
           </p>
         </div>
 
         {error ? (
-          <p
+          <Notice
             role="alert"
-            className="enter-fade mt-6 flex items-start gap-3 rounded-card border-2 border-emergency/50 bg-emergency-tint px-5 py-4 text-sm text-emergency"
+            tone="alarm"
+            word="CareLoop could not place the call"
+            className="enter-fade mt-8"
+            size="sm"
           >
-            <span aria-hidden="true" className="leading-[1.55]">
-              {String.fromCharCode(9651)}
-            </span>
-            <span>
-              <strong className="font-semibold">
-                CareLoop could not place the call.
-              </strong>{' '}
-              {error}
-            </span>
-          </p>
+            {error}
+          </Notice>
         ) : null}
       </div>
     </form>

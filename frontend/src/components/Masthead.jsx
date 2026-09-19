@@ -1,43 +1,41 @@
 import ApiStatus from './ApiStatus.jsx'
 
-function Wordmark() {
+function Mark() {
   return (
-    <span className="inline-flex items-baseline gap-3">
-      <svg
-        width="30"
-        height="30"
-        viewBox="0 0 24 24"
-        aria-hidden="true"
-        className="translate-y-[4px]"
-      >
-        <rect width="24" height="24" rx="5" fill="#0B5148" />
-        <path
-          d="M5 13h2.6l1.3-4 2.2 7.4 1.7-4.8 1 1.4H19"
-          fill="none"
-          stroke="#ffffff"
-          strokeWidth="1.9"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      </svg>
-      <span className="font-display text-xl font-semibold text-ink">
-        CareLoop
-      </span>
-    </span>
+    <svg
+      width="46"
+      height="46"
+      viewBox="0 0 44 44"
+      aria-hidden="true"
+      className="shrink-0"
+    >
+      <rect width="44" height="44" rx="14" fill="#F0C36B" />
+      <path
+        d="M30.5 16.5a10 10 0 1 0 2 9.5"
+        fill="none"
+        stroke="#0E3A4A"
+        strokeWidth="4.5"
+        strokeLinecap="round"
+      />
+      <circle cx="30.5" cy="14" r="4.5" fill="#8E2F16" />
+    </svg>
   )
 }
 
 export default function Masthead() {
   return (
-    <header className="border-b border-line bg-surface">
-      <div className="mx-auto flex max-w-[72rem] flex-wrap items-center justify-between gap-x-8 gap-y-2 px-6 py-4 sm:px-8">
-        <div className="flex flex-wrap items-baseline gap-x-5 gap-y-1">
-          <Wordmark />
-          <p className="text-sm text-muted">
+    <header className="on-ocean border-b-4 border-ink bg-brand text-brand-ink">
+      <div className="hold flex flex-wrap items-center justify-between gap-x-10 gap-y-4 py-6">
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
+          <span className="flex items-center gap-4">
+            <Mark />
+            <span className="display text-xl text-brand-ink">CareLoop</span>
+          </span>
+          <p className="text-sm text-brand-ink-2">
             Demo system. All patient data is synthetic.
           </p>
         </div>
-        <ApiStatus />
+        <ApiStatus tone="ocean" />
       </div>
     </header>
   )

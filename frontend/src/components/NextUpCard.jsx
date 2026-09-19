@@ -1,17 +1,18 @@
 import { clockLabel } from '../lib/format.js'
 import { doseMeta } from '../lib/dose.js'
+import { CARD } from '../lib/ui.js'
 
 export default function NextUpCard({ dose }) {
   if (!dose) {
     return (
       <section
         aria-labelledby="next-call-heading"
-        className="mt-10 rounded-panel border-2 border-line-strong bg-surface px-7 py-7 sm:px-9"
+        className={CARD + ' px-7 py-8 sm:px-10'}
       >
-        <h2 id="next-call-heading" className="smallcaps text-micro text-muted">
+        <h2 id="next-call-heading" className="smallcaps text-micro text-ink-2">
           The next call
         </h2>
-        <p className="measure mt-3 text-ink-2">
+        <p className="measure mt-4 text-ink-2">
           Every dose on today's list is behind you, so CareLoop has no reason to
           ring today. The next call is tomorrow morning.
         </p>
@@ -24,25 +25,25 @@ export default function NextUpCard({ dose }) {
   return (
     <section
       aria-labelledby="next-call-heading"
-      className="enter-rise mt-10 rounded-panel border-2 border-brand bg-surface px-7 py-8 shadow-raised sm:px-9"
+      className="enter-land ledge ledge-ink rounded-panel border-2 border-ink bg-sand px-7 py-9 text-ink sm:px-10 sm:py-11"
     >
-      <h2 id="next-call-heading" className="smallcaps text-micro text-brand-deep">
+      <h2 id="next-call-heading" className="smallcaps text-micro text-ink">
         CareLoop will phone you at
       </h2>
 
-      <p className="mt-3 flex flex-wrap items-baseline gap-x-6 gap-y-3">
-        <span className="numeric font-display text-4xl font-semibold text-ink">
+      <p className="mt-5 flex flex-wrap items-baseline gap-x-7 gap-y-4">
+        <span className="numeric display text-4xl text-ink">
           {clockLabel(dose.time)}
         </span>
-        <span className="inline-flex items-center gap-2.5 rounded-full border-2 border-brand/45 bg-brand-tint px-4 py-1.5 text-micro font-semibold text-brand-deep">
-          <span aria-hidden="true" className="text-[0.8em] leading-none">
+        <span className="inline-flex min-h-[48px] items-center gap-3 rounded-control border-2 border-ink bg-surface px-5 py-2 text-sm font-bold text-ink">
+          <span aria-hidden="true" className="leading-none">
             {meta.glyph}
           </span>
           {meta.label}
         </span>
       </p>
 
-      <p className="measure mt-5 text-ink">
+      <p className="measure mt-7 text-ink">
         It will ask whether you took {dose.medication}
         {dose.dosage ? ' ' + dose.dosage : ''} and how you are feeling. You did
         not set this time and you cannot forget it. CareLoop worked it out from

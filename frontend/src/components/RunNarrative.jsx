@@ -1,6 +1,5 @@
 import { narrateByStep } from '../lib/narrate.js'
 import { clockShort } from '../lib/trace.js'
-import { ROW_GRID } from './Section.jsx'
 
 const MARK = {
   said: String.fromCharCode(8213),
@@ -12,9 +11,9 @@ const MARK = {
 
 const TONE = {
   said: 'text-ink',
-  act: 'font-semibold text-brand-deep',
-  flag: 'font-semibold text-moderate',
-  alarm: 'font-semibold text-emergency',
+  act: 'font-bold text-brand',
+  flag: 'font-bold text-moderate',
+  alarm: 'font-bold text-emergency',
   plain: 'text-ink-2',
 }
 
@@ -25,41 +24,38 @@ export default function RunNarrative({ events, startIndex = 0 }) {
   let order = startIndex
 
   return (
-    <div className="mt-10">
+    <div className="mt-10 flex flex-col gap-8">
       {steps.map((step) => {
         const headIndex = order
         return (
-          <div key={step.id} className="mt-9 first:mt-0">
-            <div className={ROW_GRID}>
-              <div
-                aria-hidden="true"
-                className="numeric enter-step font-display mb-1 block text-left text-lg font-semibold text-brand sm:mb-0 sm:pt-1 sm:text-right"
-                style={{ '--i': headIndex }}
-              >
+          <div
+            key={step.id}
+            className="enter-step ledge ledge-strong rounded-card border-2 border-edge-strong bg-surface px-6 py-6 sm:px-8"
+            style={{ '--i': headIndex }}
+          >
+            <h4 className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
+              <span className="numeric display-tight text-lg text-clay">
                 {step.number}
-              </div>
-              <h4
-                className="enter-step smallcaps border-b border-line-strong pb-1.5 text-micro text-muted"
-                style={{ '--i': headIndex }}
-              >
+              </span>
+              <span className="smallcaps text-micro text-ink-2">
                 {step.title}
-              </h4>
-            </div>
+              </span>
+            </h4>
 
-            <ul>
+            <ul className="mt-5 flex flex-col gap-4">
               {step.lines.map((line) => {
                 const index = order
                 order += 1
                 return (
                   <li
                     key={line.seq}
-                    className={'enter-step pt-4 ' + ROW_GRID}
+                    className="enter-step flex flex-col gap-1 sm:flex-row sm:items-baseline sm:gap-5"
                     style={{ '--i': index }}
                   >
-                    <time className="numeric mb-1 block text-left text-micro text-muted sm:mb-0 sm:pt-1 sm:text-right">
+                    <time className="numeric shrink-0 text-2xs text-ink-2 sm:w-20">
                       {clockShort(line.at)}
                     </time>
-                    <p className="measure flex items-start gap-3.5 text-sm">
+                    <p className="measure flex items-start gap-4 text-sm">
                       <span
                         aria-hidden="true"
                         className={

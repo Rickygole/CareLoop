@@ -2,7 +2,9 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 
 import CheckIn from './CheckIn.jsx'
+import Notice from './Notice.jsx'
 import { clockLabel, dateTimeLabel } from '../lib/format.js'
+import { BTN_HERO, BTN_PRIMARY, BTN_QUIET, PANEL } from '../lib/ui.js'
 
 export const SIMULATION_DISCLOSURE =
   'Simulated call. CareLoop is not speaking to you; this is a scripted stand-in for the voice agent.'
@@ -81,43 +83,36 @@ function timeLabel(at) {
   return at.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })
 }
 
-function Notice({ children }) {
-  return (
-    <p className="mt-6 flex items-start gap-3 border-l-4 border-moderate bg-moderate-tint px-5 py-4 text-sm text-ink">
-      <span aria-hidden="true" className="leading-[1.6] text-moderate">
-        {String.fromCharCode(9651)}
-      </span>
-      <span className="measure">{children}</span>
-    </p>
-  )
-}
-
 function Turn({ turn, index }) {
   const mine = turn.speaker === 'patient'
+
   return (
     <li
-      className="enter-rise grid grid-cols-1 gap-x-8 gap-y-1.5 border-b border-line py-5 sm:grid-cols-[7rem_minmax(0,1fr)]"
+      className={
+        'enter-rise ledge ledge-strong rounded-card border-2 px-6 py-5 ' +
+        (mine
+          ? 'border-ink bg-sand sm:ml-10'
+          : 'border-edge-strong bg-surface sm:mr-10')
+      }
       style={{ '--i': index }}
     >
-      <div className="sm:text-right">
-        <p className={'text-xs font-semibold ' + (mine ? 'text-muted' : 'text-brand')}>
+      <p className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
+        <span className="smallcaps text-micro text-ink">
           {mine ? 'You' : 'CareLoop'}
-        </p>
-        <p className="numeric text-2xs text-muted">
+        </span>
+        <span className="numeric text-2xs text-ink-2">
           <time dateTime={turn.at.toISOString()}>{timeLabel(turn.at)}</time>
+        </span>
+      </p>
+      <p className="measure mt-3 text-ink">{turn.text}</p>
+      {turn.note ? (
+        <p className="measure mt-4 rounded-card border-2 border-moderate-edge bg-moderate-tint px-4 py-3 text-sm text-ink">
+          <span aria-hidden="true" className="mr-3 text-moderate">
+            {String.fromCharCode(9651)}
+          </span>
+          {turn.note}
         </p>
-      </div>
-      <div>
-        <p className="measure text-sm text-ink">{turn.text}</p>
-        {turn.note ? (
-          <p className="measure mt-3 flex items-start gap-3 border-l-4 border-moderate bg-moderate-tint px-4 py-3 text-xs text-ink">
-            <span aria-hidden="true" className="leading-[1.6] text-moderate">
-              {String.fromCharCode(9651)}
-            </span>
-            <span>{turn.note}</span>
-          </p>
-        ) : null}
-      </div>
+      ) : null}
     </li>
   )
 }
@@ -197,31 +192,27 @@ export default function SimulatedCall({
   const thinking = phase === 'thinking'
 
   return (
-    <div className="mt-8">
+    <div className="mt-10">
       <section
         aria-labelledby="simulated-call-heading"
-        className="rounded-panel border-2 border-line-ink bg-surface p-6 shadow-raised sm:p-8"
+        className={PANEL + ' px-6 py-8 sm:px-10 sm:py-10'}
       >
-        <h2
-          id="simulated-call-heading"
-          className="font-display text-xl font-semibold text-ink"
-        >
+        <h2 id="simulated-call-heading" className="display text-xl text-ink">
           A simulated check-in call
         </h2>
-        <p className="measure mt-2 text-sm text-ink-2">
-          The spoken version needs a voice service that is not switched on in
-          this build, so the call plays out here in writing, turn by turn. Every
-          decision in it comes from the real CareLoop service.
+        <p className="measure mt-3 text-ink-2">
+          The spoken version needs a voice service that is not switched on
+          here, so the call plays out in writing, turn by turn. Every decision
+          in it comes from the real CareLoop service.
         </p>
 
-        <Notice>{SIMULATION_DISCLOSURE}</Notice>
+        <Notice tone="caution" word="Simulated" className="mt-7">
+          {SIMULATION_DISCLOSURE}
+        </Notice>
 
-        <p className="measure mt-4 flex items-start gap-3 border-l-4 border-line-strong bg-surface-2 px-5 py-4 text-xs text-ink-2">
-          <span aria-hidden="true" className="leading-[1.6] text-muted">
-            {String.fromCharCode(9651)}
-          </span>
-          <span>{SAFETY}</span>
-        </p>
+        <Notice tone="quiet" word="Safety" className="mt-5" size="sm">
+          {SAFETY}
+        </Notice>
 
         {turns.length ? (
           <ol
@@ -229,25 +220,24 @@ export default function SimulatedCall({
             aria-live="polite"
             aria-relevant="additions"
             aria-label="Call transcript"
-            className="mt-8 border-t border-line"
+            className="mt-9 flex flex-col gap-5"
           >
             {turns.map((turn, index) => (
               <Turn key={turn.id} turn={turn} index={index} />
             ))}
           </ol>
         ) : (
-          <p className="measure mt-8 border-t border-line pt-6 text-sm text-muted">
-            No call has been placed yet. The transcript appears here, one turn
-            at a time, once you start it.
+          <p className="measure mt-9 text-ink-2">
+            No call has been placed yet.
           </p>
         )}
 
         <div role="status" aria-live="polite" className="empty:hidden">
           {speaking || thinking ? (
-            <p className="enter-fade mt-6 flex items-center gap-3 text-sm font-semibold text-brand-deep">
+            <p className="enter-fade mt-7 flex items-center gap-4 text-sm font-bold text-clay">
               <span
                 aria-hidden="true"
-                className="inline-block h-2.5 w-2.5 shrink-0 rounded-full bg-brand"
+                className="inline-block h-3.5 w-3.5 shrink-0 rounded-full bg-clay"
               />
               <span>
                 {thinking
@@ -259,28 +249,17 @@ export default function SimulatedCall({
         </div>
 
         {phase === 'idle' ? (
-          <button
-            type="button"
-            onClick={begin}
-            className="mt-8 min-h-[60px] rounded-control bg-brand px-9 py-4 text-lg font-semibold text-white shadow-raised transition-[background-color,transform,box-shadow] duration-200 ease-out hover:bg-brand-deep hover:shadow-lift active:translate-y-px"
-          >
+          <button type="button" onClick={begin} className={BTN_HERO + ' mt-9'}>
             Start the simulated call
           </button>
         ) : null}
 
         {phase === 'ended' ? (
-          <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-4">
-            <Link
-              to="/decision"
-              className="inline-flex min-h-[56px] items-center rounded-control bg-brand px-8 py-3.5 text-sm font-semibold text-white shadow-raised transition-[background-color,transform] duration-200 ease-out hover:bg-brand-deep active:translate-y-px"
-            >
+          <div className="mt-9 flex flex-wrap items-center gap-x-6 gap-y-4">
+            <Link to="/decision" className={BTN_PRIMARY}>
               See what CareLoop decided
             </Link>
-            <button
-              type="button"
-              onClick={begin}
-              className="min-h-[56px] rounded-control border-2 border-line-strong bg-surface px-6 py-3 text-sm font-semibold text-ink-2 transition-colors duration-150 hover:border-ink hover:text-ink"
-            >
+            <button type="button" onClick={begin} className={BTN_QUIET}>
               Run the call again
             </button>
           </div>

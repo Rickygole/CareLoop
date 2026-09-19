@@ -1,3 +1,5 @@
+import Notice from './Notice.jsx'
+import { Rule } from './Block.jsx'
 import { humanizeTimes } from '../lib/narrate.js'
 import { tierMeta } from './TierBadge.jsx'
 
@@ -11,14 +13,12 @@ export default function ClinicCall({ events, booking, tier }) {
     if (!level) return null
     const known = tierMeta(level)
     return (
-      <section aria-labelledby="clinic-heading" className="mt-14">
-        <h3
-          id="clinic-heading"
-          className="font-display border-b-2 border-line-ink pb-2 text-xl font-semibold text-ink"
-        >
+      <section aria-labelledby="clinic-heading" className="mt-16">
+        <h3 id="clinic-heading" className="display text-xl text-ink">
           No call to the clinic this time
         </h3>
-        <p className="measure mt-5 text-ink-2">
+        <Rule tone="sand" width="w-14" />
+        <p className="measure mt-6 text-ink-2">
           {level === 'emergency'
             ? 'CareLoop never books an appointment for an emergency. An appointment is too slow, so it tells you to get help now and alerts your care team instead.'
             : known
@@ -36,45 +36,40 @@ export default function ClinicCall({ events, booking, tier }) {
   )
 
   return (
-    <section aria-labelledby="clinic-heading" className="mt-14">
-      <h3
-        id="clinic-heading"
-        className="font-display border-b-2 border-line-ink pb-2 text-xl font-semibold text-ink"
-      >
+    <section aria-labelledby="clinic-heading" className="mt-16">
+      <h3 id="clinic-heading" className="display text-xl text-ink">
         The call CareLoop made for you
       </h3>
+      <Rule tone="sand" width="w-14" />
 
-      <p className="measure mt-5 text-ink-2">
-        You did not have to phone anyone. CareLoop rang{' '}
-        {booking.provider_name}, waited for the front desk, and booked the
-        appointment while you got on with your day.
+      <p className="measure mt-6 text-ink-2">
+        You did not have to phone anyone. CareLoop rang {booking.provider_name},
+        waited for the front desk, and booked the appointment while you got on
+        with your day.
       </p>
 
-      <p className="mt-6 flex items-start gap-3 border-l-4 border-moderate bg-moderate-tint px-5 py-4 text-sm text-ink">
-        <span aria-hidden="true" className="leading-[1.6] text-moderate">
-          {String.fromCharCode(9651)}
-        </span>
-        <span className="measure">{booking.disclosure}</span>
-      </p>
+      <Notice tone="caution" word="Disclosed on the call" className="mt-7">
+        {booking.disclosure}
+      </Notice>
 
-      <ol className="mt-8 border-t border-line">
+      <ol className="mt-8 flex flex-col gap-5">
         {turns.map((event, index) => {
           const desk = event.event_type === 'CLINIC_DESK_SPEECH'
           return (
             <li
               key={event.seq}
-              className="enter-rise grid grid-cols-1 gap-x-8 gap-y-1.5 border-b border-line py-5 sm:grid-cols-[7rem_minmax(0,1fr)]"
+              className={
+                'enter-rise ledge ledge-strong rounded-card border-2 px-6 py-5 ' +
+                (desk
+                  ? 'border-edge-strong bg-sunken sm:ml-10'
+                  : 'border-ink bg-surface sm:mr-10')
+              }
               style={{ '--i': index }}
             >
-              <p
-                className={
-                  'pt-0.5 text-xs font-semibold sm:text-right ' +
-                  (desk ? 'text-muted' : 'text-brand')
-                }
-              >
+              <p className="smallcaps text-micro text-ink">
                 {speakerLabel(event.event_type)}
               </p>
-              <p className="measure text-sm text-ink">
+              <p className="measure mt-3 text-ink">
                 {humanizeTimes(event.payload && event.payload.text)}
               </p>
             </li>

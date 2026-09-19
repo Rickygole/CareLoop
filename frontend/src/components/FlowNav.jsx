@@ -7,7 +7,9 @@ const CHECK = String.fromCharCode(10003)
 const HERE = String.fromCharCode(9679)
 const OPEN = String.fromCharCode(9675)
 const LOCKED = String.fromCharCode(8213)
-const CHEVRON = String.fromCharCode(8250)
+
+const CHIP =
+  'flex min-h-[52px] items-center gap-3 rounded-control px-5 py-2.5 text-sm font-bold'
 
 export default function FlowNav() {
   const location = useLocation()
@@ -17,9 +19,9 @@ export default function FlowNav() {
   return (
     <nav
       aria-label="The five steps, in order"
-      className="border-b-2 border-line-ink bg-surface"
+      className="border-b-4 border-ink bg-sand text-ink"
     >
-      <ol className="mx-auto flex max-w-[72rem] flex-wrap items-center px-6 sm:px-8">
+      <ol className="hold flex flex-wrap items-center gap-x-3 gap-y-3 py-5">
         {SCREENS.map((screen, position) => {
           const current = position === index
           const done = position < index
@@ -28,70 +30,58 @@ export default function FlowNav() {
 
           const inner = (
             <>
-              <span
-                aria-hidden="true"
-                className={
-                  'text-micro leading-none ' +
-                  (done ? 'text-mild' : current ? 'text-brand' : 'text-muted')
-                }
-              >
+              <span aria-hidden="true" className="text-[1.1em] leading-none">
                 {glyph}
               </span>
-              <span className="numeric text-micro text-muted">
-                {screen.mark}
-              </span>
-              <span className="text-sm">{screen.nav}</span>
+              <span className="numeric text-micro">{screen.mark}</span>
+              <span>{screen.nav}</span>
+              {locked ? (
+                <span className="smallcaps text-micro">Locked</span>
+              ) : null}
             </>
           )
 
-          return (
-            <li key={screen.path} className="flex items-center">
-              {locked ? (
+          if (locked) {
+            return (
+              <li key={screen.path}>
                 <span
                   aria-disabled="true"
-                  className="flex min-h-[56px] items-center gap-2.5 border-b-[3px] border-transparent px-3 py-3 text-muted"
+                  className={CHIP + ' text-ink-2 opacity-80'}
                 >
                   {inner}
                   <span className="sr-only">
                     , locked until you connect MyHealth
                   </span>
                 </span>
-              ) : (
-                <Link
-                  to={screen.path}
-                  aria-current={current ? 'step' : undefined}
-                  className={
-                    'flex min-h-[56px] items-center gap-2.5 border-b-[3px] px-3 py-3 first:pl-0 transition-colors duration-150 ' +
-                    (current
-                      ? 'border-brand font-semibold text-ink'
-                      : 'border-transparent text-ink-2 hover:text-ink')
-                  }
-                >
-                  {inner}
-                  {current ? (
-                    <span className="sr-only">, the step you are on</span>
-                  ) : null}
-                </Link>
-              )}
+              </li>
+            )
+          }
 
-              {position < SCREENS.length - 1 ? (
-                <span
-                  aria-hidden="true"
-                  className="px-1 text-micro text-muted"
-                >
-                  {CHEVRON}
-                </span>
-              ) : null}
+          return (
+            <li key={screen.path}>
+              <Link
+                to={screen.path}
+                aria-current={current ? 'step' : undefined}
+                className={
+                  CHIP +
+                  ' pressable ledge ' +
+                  (current
+                    ? 'ledge-ink bg-brand text-brand-ink'
+                    : done
+                      ? 'ledge-strong border-2 border-ink bg-surface text-ink hover:bg-sunken'
+                      : 'ledge-strong border-2 border-ink/40 bg-surface/70 text-ink-2 hover:border-ink hover:text-ink')
+                }
+              >
+                {inner}
+                {current ? (
+                  <span className="sr-only">, the step you are on</span>
+                ) : null}
+                {done ? <span className="sr-only">, finished</span> : null}
+              </Link>
             </li>
           )
         })}
       </ol>
-
-      {!connected ? (
-        <p className="mx-auto max-w-[72rem] px-6 pb-3 text-sm text-muted sm:px-8">
-          Steps 2 to 5 are shut until you connect MyHealth on this screen.
-        </p>
-      ) : null}
     </nav>
   )
 }
@@ -102,56 +92,45 @@ export function FlowPager() {
   const index = screenIndex(location.pathname)
   const back = index > 0 ? SCREENS[index - 1] : null
   const forward = index < SCREENS.length - 1 ? SCREENS[index + 1] : null
-  const held = Boolean(forward) && !connected && index === 0
+
+  if (!connected && index === 0) return null
 
   return (
-    <nav
-      aria-label="Move between the five steps"
-      className="mt-20 border-t-2 border-line-ink pt-7"
-    >
-      <p className="numeric smallcaps text-micro text-muted">
-        Step {index + 1} of {SCREENS.length}
-      </p>
-
-      {held ? (
-        <p className="measure mt-4 text-ink-2">
-          The next four steps open as soon as you press Connect MyHealth above.
-          There is nothing to see in them until CareLoop has your medicines.
-        </p>
-      ) : (
-        <div className="mt-5 flex flex-col gap-5 sm:flex-row sm:items-stretch sm:justify-between">
-          {back ? (
+    <nav aria-label="Move between the five steps" className="mt-24">
+      <div className="flex flex-col gap-6 sm:flex-row sm:items-stretch sm:justify-between">
+        {back ? (
             <Link
               to={back.path}
-              className="flex min-h-[56px] flex-col justify-center rounded-control border-2 border-line-strong bg-surface px-6 py-3 text-ink transition-colors duration-150 hover:border-ink"
+              className="pressable ledge ledge-strong flex min-h-[64px] flex-col justify-center rounded-card border-2 border-ink bg-surface px-7 py-4 text-ink hover:bg-sunken"
             >
-              <span className="smallcaps text-micro text-muted">Back to</span>
-              <span className="font-display text-lg font-semibold">
+              <span className="smallcaps text-micro text-ink-2">Back to</span>
+              <span className="display-tight mt-1 text-lg">
                 {back.mark}. {back.title}
               </span>
             </Link>
-          ) : (
-            <span />
-          )}
+        ) : (
+          <span />
+        )}
 
-          {forward ? (
+        {forward ? (
             <Link
               to={forward.path}
-              className="flex min-h-[56px] max-w-[26rem] flex-col justify-center rounded-control border-2 border-line-ink bg-surface px-6 py-4 text-ink shadow-raised transition-colors duration-150 hover:bg-sunken"
+              className="pressable ledge ledge-ink flex min-h-[64px] max-w-[30rem] flex-col justify-center rounded-card bg-brand px-7 py-5 text-brand-ink hover:bg-brand-deep"
             >
-              <span className="smallcaps text-micro text-brand-deep">
-                Next, step {index + 2}
+              <span className="smallcaps text-micro text-sand">
+                Next
               </span>
-              <span className="font-display text-lg font-semibold">
+              <span className="display-tight mt-1 text-lg">
                 {forward.title}
               </span>
-              <span className="mt-1 text-sm text-ink-2">{forward.blurb}</span>
+              <span className="mt-2 text-sm text-brand-ink-2">
+                {forward.blurb}
+              </span>
             </Link>
-          ) : (
-            <span />
-          )}
-        </div>
-      )}
+        ) : (
+          <span />
+        )}
+      </div>
     </nav>
   )
 }

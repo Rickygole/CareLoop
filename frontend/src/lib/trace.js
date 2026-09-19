@@ -1,25 +1,25 @@
 export const EVENT_STYLE = {
-  CALL_INITIATED: { color: '#7B8C9E', label: 'call' },
-  CALL_CONNECTED: { color: '#4FA8C9', label: 'call' },
-  CALL_ENDED: { color: '#778799', label: 'call' },
-  REMINDER_DUE: { color: '#E9E3D7', label: 'reminder' },
-  AGENT_SPEECH: { color: '#A695CB', label: 'speech' },
-  PATIENT_SPEECH: { color: '#E9E3D7', label: 'speech' },
-  TIER_0_CHECK: { color: '#8A9AAB', label: 'tier 0' },
-  TIER_0_MATCH: { color: '#E3A13B', label: 'tier 0', flash: true, accent: true },
-  NORMALIZE: { color: '#4FA8C9', label: 'tier 1' },
-  TIER_1_CLASSIFY: { color: '#63C9AC', label: 'tier 1', accent: true },
-  ACTION_DECIDED: { color: '#D2694B', label: 'action', accent: true },
-  TOOL_CALL: { color: '#9A8FBE', label: 'tool' },
-  CLINIC_CALL_INITIATED: { color: '#4FA8C9', label: 'clinic call' },
-  CLINIC_AGENT_SPEECH: { color: '#A695CB', label: 'clinic speech' },
-  CLINIC_DESK_SPEECH: { color: '#4FA8C9', label: 'clinic speech' },
-  CLINIC_CALL_ENDED: { color: '#778799', label: 'clinic call' },
-  BOOKING_CONFIRMED: { color: '#4FB89B', label: 'booking' },
-  PATIENT_CONFIRMED: { color: '#4FB89B', label: 'confirm' },
-  BACKBOARD_WRITE: { color: '#77839A', label: 'memory' },
+  CALL_INITIATED: { color: '#b9a88f', label: 'call' },
+  CALL_CONNECTED: { color: '#8fd2e8', label: 'call' },
+  CALL_ENDED: { color: '#b9a88f', label: 'call' },
+  REMINDER_DUE: { color: '#fbf0e2', label: 'reminder' },
+  AGENT_SPEECH: { color: '#e0cba8', label: 'speech' },
+  PATIENT_SPEECH: { color: '#fbf0e2', label: 'speech' },
+  TIER_0_CHECK: { color: '#c6b29a', label: 'tier 0' },
+  TIER_0_MATCH: { color: '#f2b441', label: 'tier 0', flash: true, accent: true },
+  NORMALIZE: { color: '#8fd2e8', label: 'tier 1' },
+  TIER_1_CLASSIFY: { color: '#7ed9a8', label: 'tier 1', accent: true },
+  ACTION_DECIDED: { color: '#ffa36b', label: 'action', accent: true },
+  TOOL_CALL: { color: '#d9c08e', label: 'tool' },
+  CLINIC_CALL_INITIATED: { color: '#8fd2e8', label: 'clinic call' },
+  CLINIC_AGENT_SPEECH: { color: '#e0cba8', label: 'clinic speech' },
+  CLINIC_DESK_SPEECH: { color: '#8fd2e8', label: 'clinic speech' },
+  CLINIC_CALL_ENDED: { color: '#b9a88f', label: 'clinic call' },
+  BOOKING_CONFIRMED: { color: '#7ed9a8', label: 'booking' },
+  PATIENT_CONFIRMED: { color: '#7ed9a8', label: 'confirm' },
+  BACKBOARD_WRITE: { color: '#c6b29a', label: 'memory' },
   EMERGENCY_ESCALATION: {
-    color: '#F2635A',
+    color: '#ff968c',
     label: 'emergency',
     bold: true,
     noFade: true,
@@ -27,7 +27,7 @@ export const EVENT_STYLE = {
   },
 }
 
-export const DEFAULT_STYLE = { color: '#8A9AAB', label: 'event' }
+export const DEFAULT_STYLE = { color: '#c6b29a', label: 'event' }
 
 export function styleFor(eventType) {
   return EVENT_STYLE[eventType] || DEFAULT_STYLE

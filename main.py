@@ -8,6 +8,8 @@ from copy import deepcopy
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, List, Optional
+from urllib.parse import parse_qsl, urlencode
+from xml.sax.saxutils import escape as xml_escape
 
 from dotenv import load_dotenv
 from fastapi import (
@@ -26,7 +28,8 @@ from pydantic import BaseModel, Field
 
 load_dotenv()
 
-from clinic import plan_clinic_call
+import telephony
+from clinic import FRONT_DESK_DISCLOSURE, plan_clinic_call
 from contradiction import LIMITATIONS, check_cross_call, check_regimen, patient_message
 from escalation import (
     ESCALATION_IS_A_RECORD_ONLY,
@@ -165,6 +168,7 @@ class SessionState:
         self.memory = InMemoryBackend()
         self.escalations: Dict[str, List[dict]] = {}
         self.bus = TraceBus()
+        self.call_limiter = telephony.CallLimiter()
         self.last_touched = time.monotonic()
 
 
@@ -446,7 +450,9 @@ class RunLoopRequest(BaseModel):
 
 
 @app.post("/loop/run")
-async def run_loop(body: RunLoopRequest, session: SessionState = Depends(get_session)):
+async def run_loop(
+    body: RunLoopRequest, request: Request, session: SessionState = Depends(get_session),
+):
     patient = session.patients.get(body.patient_id)
     if patient is None:
         raise HTTPException(404, "unknown_patient")
@@ -526,6 +532,32 @@ async def run_loop(body: RunLoopRequest, session: SessionState = Depends(get_ses
                 ),
             })
 
+            missing = telephony.missing_env_vars()
+            if missing:
+                await session.bus.emit("PHONE_CALL_NOT_CONFIGURED", {
+                    "leg": "clinic", "missing": missing,
+                })
+            elif not session.call_limiter.allow():
+                await session.bus.emit("PHONE_CALL_NOT_CONFIGURED", {
+                    "leg": "clinic", "reason": "rate_limited",
+                })
+            else:
+                params = {
+                    "specialty": specialty,
+                    "payer_id": patient["insurance_payer_id"] or "",
+                    "payer_display": patient.get("insurance_display_name", "their insurer"),
+                    "patient_name": patient["name"],
+                    "tier": result["tier"],
+                    "transcript": body.transcript,
+                    SESSION_QUERY_PARAM: session.session_id,
+                }
+                base_url = str(request.base_url).rstrip("/")
+                twiml_url = base_url + "/voice/clinic?" + urlencode(params)
+                to = telephony.demo_phone_number()
+                dial_result = telephony.place_call(to, twiml_url=twiml_url)
+                session.call_limiter.record()
+                await _emit_call_result(session, "clinic", to, dial_result)
+
     now = datetime.now(timezone.utc)
     escalation_record = record_escalation(
         body.patient_id, result["tier"], result["is_crisis"], now, store=session.escalations,
@@ -600,6 +632,10 @@ EXPECTED_ENV_KEYS = [
     "ELEVENLABS_API_KEY",
     "BACKBOARD_API_KEY",
     "CARELOOP_WEBHOOK_SECRET",
+    "TWILIO_ACCOUNT_SID",
+    "TWILIO_AUTH_TOKEN",
+    "TWILIO_FROM_NUMBER",
+    "DEMO_PHONE_NUMBER",
 ]
 
 
@@ -698,6 +734,207 @@ async def add_medication(body: AddMedicationRequest, session: SessionState = Dep
     }
 
 
+DEFAULT_DEMO_PATIENT_ID = "p1"
+
+CHECKIN_GREETING = (
+    "Hi {patient_first_name}, this is CareLoop calling to check in on your "
+    "{medication}. Quick note, I'm an automated check-in assistant, not a "
+    "medical professional, and this is a demonstration. Do you have a couple "
+    "of minutes?"
+)
+
+CLINIC_CALL_SELF_IDENTIFICATION = (
+    "This is an automated call placed by CareLoop, a medication check-in "
+    "assistant."
+)
+
+CARELOOP_VOICE = "Polly.Matthew"
+CLINIC_VOICE = "Polly.Joanna"
+
+
+def _twiml(inner: str) -> Response:
+    body = f'<?xml version="1.0" encoding="UTF-8"?><Response>{inner}</Response>'
+    return Response(content=body, media_type="application/xml")
+
+
+def _say(text: str, voice: str = CARELOOP_VOICE) -> str:
+    return f'<Say voice="{voice}">{xml_escape(text)}</Say>'
+
+
+def _demo_medication_name(patient: dict) -> str:
+    plan = build_day_plan(patient)
+    if plan["next_dose"]:
+        return plan["next_dose"]["medication"]
+    active = [m for m in patient["medication_requests"] if m.get("status") == "active"]
+    return active[0]["medication"] if active else "your medication"
+
+
+def _telephony_not_configured(missing: List[str]) -> dict:
+    return {
+        "configured": False,
+        "call_sid": None,
+        "missing_env": missing,
+        "detail": "Telephony is not configured. Set " + ", ".join(missing) + " to enable outbound calls.",
+    }
+
+
+async def _emit_call_result(session: SessionState, leg: str, to: str, result: dict) -> None:
+    event = "PHONE_CALL_DIALED" if result["ok"] else "PHONE_CALL_FAILED"
+    await session.bus.emit(event, {
+        "leg": leg,
+        "to": telephony.mask_phone(to),
+        "call_sid": result.get("call_sid"),
+        "error": result.get("error"),
+    })
+
+
+@app.api_route("/voice/checkin", methods=["GET", "POST"])
+async def voice_checkin(
+    patient_id: str = DEFAULT_DEMO_PATIENT_ID, session: SessionState = Depends(get_session),
+):
+    patient = session.patients.get(patient_id) or session.patients.get(DEFAULT_DEMO_PATIENT_ID)
+    await session.bus.emit("CALL_CONNECTED", {"patient_id": patient_id, "leg": "checkin"})
+
+    first_name = patient["name"].split()[0] if patient else "there"
+    medication = _demo_medication_name(patient) if patient else "your medication"
+    greeting = CHECKIN_GREETING.format(patient_first_name=first_name, medication=medication)
+
+    action = "/voice/checkin/respond?" + urlencode({
+        "patient_id": patient_id, SESSION_QUERY_PARAM: session.session_id,
+    })
+    gather = (
+        f'<Gather input="speech" action="{xml_escape(action)}" method="POST" '
+        'speechTimeout="auto" timeout="6" language="en-US">'
+        f"{_say(greeting)}"
+        "</Gather>"
+        f'{_say("Sorry, I did not hear a response. Goodbye.")}'
+    )
+    return _twiml(gather)
+
+
+@app.post("/voice/checkin/respond")
+async def voice_checkin_respond(
+    request: Request,
+    patient_id: str = DEFAULT_DEMO_PATIENT_ID,
+    session: SessionState = Depends(get_session),
+):
+    raw_body = (await request.body()).decode("utf-8")
+    fields = dict(parse_qsl(raw_body))
+    transcript = (fields.get("SpeechResult") or "").strip()
+    if not transcript:
+        return _twiml(_say("Sorry, I did not catch that. Goodbye.") + "<Hangup/>")
+
+    result = await run_triage(session, transcript, patient_id)
+    return _twiml(_say(result["suggested_agent_response"]) + "<Hangup/>")
+
+
+@app.api_route("/voice/clinic", methods=["GET", "POST"])
+async def voice_clinic(
+    specialty: str = "Internal Medicine",
+    payer_id: str = "",
+    payer_display: str = "their insurer",
+    patient_name: str = "the patient",
+    tier: str = "moderate",
+    transcript: str = "Routine follow-up requested from the CareLoop demo.",
+    session: SessionState = Depends(get_session),
+):
+    await session.bus.emit("CALL_CONNECTED", {"leg": "clinic"})
+
+    call = plan_clinic_call(specialty, payer_id or None, payer_display, patient_name, tier, transcript)
+    lines = [_say(CLINIC_CALL_SELF_IDENTIFICATION), _say(FRONT_DESK_DISCLOSURE)]
+    if call is None:
+        lines.append(_say("No appointment slot is currently available for this specialty."))
+    else:
+        for turn in call["turns"]:
+            voice = CARELOOP_VOICE if turn["speaker"] == "careloop" else CLINIC_VOICE
+            lines.append(_say(turn["text"], voice=voice))
+            event = "CLINIC_AGENT_SPEECH" if turn["speaker"] == "careloop" else "CLINIC_DESK_SPEECH"
+            await session.bus.emit(event, {"text": turn["text"]})
+    lines.append("<Hangup/>")
+    return _twiml("".join(lines))
+
+
+class CallStartRequest(BaseModel):
+    secret: Optional[str] = None
+    patient_id: Optional[str] = None
+
+
+@app.post("/call/start")
+async def call_start(
+    body: CallStartRequest, request: Request, session: SessionState = Depends(get_session),
+):
+    if WEBHOOK_SECRET and body.secret != WEBHOOK_SECRET:
+        raise HTTPException(401, "unauthorized")
+
+    missing = telephony.missing_env_vars()
+    if missing:
+        return _telephony_not_configured(missing)
+
+    if not session.call_limiter.allow():
+        raise HTTPException(429, "call_rate_limited")
+
+    patient_id = body.patient_id or DEFAULT_DEMO_PATIENT_ID
+    if patient_id not in session.patients:
+        raise HTTPException(404, "unknown_patient")
+
+    base_url = str(request.base_url).rstrip("/")
+    twiml_url = base_url + "/voice/checkin?" + urlencode({
+        "patient_id": patient_id, SESSION_QUERY_PARAM: session.session_id,
+    })
+
+    to = telephony.demo_phone_number()
+    result = telephony.place_call(to, twiml_url=twiml_url)
+    session.call_limiter.record()
+    await _emit_call_result(session, "checkin", to, result)
+
+    return {"configured": True, **result}
+
+
+class ClinicCallStartRequest(BaseModel):
+    secret: Optional[str] = None
+    patient_id: Optional[str] = None
+    specialty: Optional[str] = None
+
+
+@app.post("/call/clinic")
+async def call_clinic(
+    body: ClinicCallStartRequest, request: Request, session: SessionState = Depends(get_session),
+):
+    if WEBHOOK_SECRET and body.secret != WEBHOOK_SECRET:
+        raise HTTPException(401, "unauthorized")
+
+    missing = telephony.missing_env_vars()
+    if missing:
+        return _telephony_not_configured(missing)
+
+    if not session.call_limiter.allow():
+        raise HTTPException(429, "call_rate_limited")
+
+    patient_id = body.patient_id or DEFAULT_DEMO_PATIENT_ID
+    patient = session.patients.get(patient_id)
+    if patient is None:
+        raise HTTPException(404, "unknown_patient")
+
+    params = {
+        "specialty": body.specialty or "Internal Medicine",
+        "payer_id": patient.get("insurance_payer_id") or "",
+        "payer_display": patient.get("insurance_display_name", "their insurer"),
+        "patient_name": patient["name"],
+        "tier": "moderate",
+        "transcript": "Routine follow-up requested from the CareLoop demo.",
+        SESSION_QUERY_PARAM: session.session_id,
+    }
+    base_url = str(request.base_url).rstrip("/")
+    twiml_url = base_url + "/voice/clinic?" + urlencode(params)
+
+    to = telephony.demo_phone_number()
+    result = telephony.place_call(to, twiml_url=twiml_url)
+    session.call_limiter.record()
+    await _emit_call_result(session, "clinic", to, result)
+
+    return {"configured": True, **result}
+
+
 def describe_env(name: str) -> str:
     if name not in os.environ:
         return "absent"
@@ -719,5 +956,7 @@ def health():
         "gemini_key_length": len(key),
         "model": os.environ.get("GEMINI_MODEL") or DEFAULT_MODEL,
         "env": {name: describe_env(name) for name in EXPECTED_ENV_KEYS},
+        "telephony_configured": telephony.is_configured(),
+        "telephony_missing": telephony.missing_env_vars(),
         "runtime": os.environ.get("VERCEL_ENV", "local"),
     }

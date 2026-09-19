@@ -4,7 +4,7 @@ export const SCREENS = [
     mark: '01',
     nav: 'Connect',
     title: 'Connect MyHealth',
-    blurb: 'Where you start. One button, and CareLoop goes and gets your medicines.',
+    blurb: 'One press, and CareLoop goes and gets your medicines.',
   },
   {
     path: '/meds',

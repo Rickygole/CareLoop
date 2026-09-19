@@ -3,16 +3,16 @@ const TIERS = {
     term: 'Mild',
     label: 'Nothing urgent',
     headline: 'Nothing urgent today',
-    glyph: '○',
+    glyph: String.fromCharCode(9675),
     shape: 'a circle',
     text: 'text-mild',
     bg: 'bg-mild-tint',
-    border: 'border-mild/45',
-    rail: '#14472d',
+    border: 'border-mild-edge',
+    rail: '#124a32',
     darkText: 'text-dark-mild',
     darkBg: 'bg-dark-mild/12',
     darkBorder: 'border-dark-mild/40',
-    darkRail: '#5fd4b8',
+    darkRail: '#7ed9a8',
     meaning:
       'CareLoop found nothing that needs a clinician. It noted what you said and will ask again on the next call.',
   },
@@ -20,48 +20,48 @@ const TIERS = {
     term: 'Moderate',
     label: 'Worth a visit',
     headline: 'This is worth a visit',
-    glyph: '△',
+    glyph: String.fromCharCode(9651),
     shape: 'a triangle',
     text: 'text-moderate',
     bg: 'bg-moderate-tint',
-    border: 'border-moderate/45',
-    rail: '#5f3a04',
+    border: 'border-moderate-edge',
+    rail: '#663d04',
     darkText: 'text-dark-moderate',
     darkBg: 'bg-dark-moderate/12',
     darkBorder: 'border-dark-moderate/40',
-    darkRail: '#f0b757',
+    darkRail: '#f2b441',
     meaning: 'Someone should look at this, and not in a hurry.',
   },
   severe: {
     term: 'Severe',
     label: 'Needs a visit soon',
     headline: 'You need to be seen soon',
-    glyph: '◆',
+    glyph: String.fromCharCode(9670),
     shape: 'a diamond',
     text: 'text-severe',
     bg: 'bg-severe-tint',
-    border: 'border-severe/45',
-    rail: '#7a2804',
+    border: 'border-severe-edge',
+    rail: '#78290a',
     darkText: 'text-dark-severe',
     darkBg: 'bg-dark-severe/12',
     darkBorder: 'border-dark-severe/40',
-    darkRail: '#ffa06b',
+    darkRail: '#ffa36b',
     meaning: 'This should not wait. You need to be seen soon.',
   },
   emergency: {
     term: 'Emergency',
     label: 'Get help now',
     headline: 'Get help right now',
-    glyph: '●',
+    glyph: String.fromCharCode(9679),
     shape: 'a filled circle',
     text: 'text-emergency',
     bg: 'bg-emergency-tint',
-    border: 'border-emergency/50',
-    rail: '#86170f',
+    border: 'border-emergency-edge',
+    rail: '#8e1b12',
     darkText: 'text-dark-emergency',
     darkBg: 'bg-dark-emergency/14',
     darkBorder: 'border-dark-emergency/50',
-    darkRail: '#ff8a80',
+    darkRail: '#ff968c',
     meaning:
       'CareLoop never books an appointment for an emergency, because an appointment is too slow. It tells you to get help now and alerts your care team.',
   },
@@ -78,23 +78,29 @@ export const UNDECIDED = {
     'CareLoop did not come back with an answer it is willing to stand behind, so it is not guessing one. Please contact your clinic yourself. If this is an emergency, call 911. If you are in crisis, call or text 988.',
   glyph: String.fromCharCode(9633),
   shape: 'a square',
-  rail: '#14171a',
+  rail: '#241b15',
+}
+
+const SCALE = {
+  sm: 'min-h-[40px] px-4 py-1.5 text-2xs gap-2.5',
+  md: 'min-h-[48px] px-5 py-2 text-sm gap-3',
 }
 
 export default function TierBadge({ tier, size = 'md', tone = 'light' }) {
   const meta = tierMeta(tier)
   const dark = tone === 'dark'
+  const scale = SCALE[size] || SCALE.md
 
   if (!meta) {
     return (
       <span
         className={
-          'inline-flex items-center rounded-full border-2 border-line-ink font-semibold ' +
-          (size === 'sm'
-            ? 'text-micro px-3 py-1.5 gap-2'
-            : 'text-2xs px-4 py-2 gap-2.5') +
+          'inline-flex items-center rounded-control border-2 font-bold ' +
+          scale +
           ' ' +
-          (dark ? 'text-console-ink' : 'text-ink')
+          (dark
+            ? 'border-console-line-2 text-console-ink'
+            : 'border-ink text-ink')
         }
       >
         <span aria-hidden="true" className="text-[1.15em] leading-none">
@@ -105,23 +111,21 @@ export default function TierBadge({ tier, size = 'md', tone = 'light' }) {
     )
   }
 
-  const scale =
-    size === 'sm'
-      ? 'text-micro px-3 py-1.5 gap-2'
-      : 'text-2xs px-4 py-2 gap-2.5'
-
   return (
     <span
       className={
-        'inline-flex items-center rounded-full border-2 font-semibold ' +
+        'inline-flex items-center rounded-control border-2 font-bold ' +
         scale +
         ' ' +
         (dark
           ? meta.darkBg + ' ' + meta.darkText + ' ' + meta.darkBorder
-          : meta.bg + ' ' + meta.text + ' ' + meta.border)
+          : meta.bg + ' ' + meta.border + ' text-ink')
       }
     >
-      <span aria-hidden="true" className="text-[1.25em] leading-none">
+      <span
+        aria-hidden="true"
+        className={'text-[1.25em] leading-none ' + (dark ? '' : meta.text)}
+      >
         {meta.glyph}
       </span>
       {meta.label}

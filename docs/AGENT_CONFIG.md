@@ -358,7 +358,93 @@ medication name and dosage to the same `dynamicVariables` call in
 
 ### What this build intentionally does not do
 
-No outbound phone call is placed anywhere in this path. The agent only
-answers a browser mic session started by `VoiceAgent`. Nothing in this
-repository dials a real phone number, and nothing should be added that
-does.
+`VoiceAgent` itself still only answers a browser mic session; it never
+places a phone call. Section 6 below documents a separate path, in
+`main.py` and `telephony.py`, that does place real outbound phone calls
+through Twilio. That path dials exactly one number, `DEMO_PHONE_NUMBER`,
+never a number taken from a request, so it is the operator hearing both
+sides of the demo, not a real patient or a real clinic.
+
+---
+
+## 6. Real outbound phone calls (Twilio)
+
+This is separate from the ElevenLabs browser widget above. It exists so
+the person running the demo can hold their own phone and hear both legs
+of a call actually ring and connect: the check-in call to the patient
+side, and the clinic call CareLoop places once it books a follow-up. Both
+legs dial the same number on purpose, the operator's own phone, so there
+is one real call to listen to instead of two people needing two phones.
+
+### Environment variables
+
+Set these on the server (`.env` locally, the platform's environment
+variable settings when deployed). All four must be present and non empty
+before any call will place; an empty string counts as not set, the same
+rule `/health` already applies to every other key.
+
+```
+TWILIO_ACCOUNT_SID=ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+TWILIO_AUTH_TOKEN=your_twilio_auth_token
+TWILIO_FROM_NUMBER=+15551234567
+DEMO_PHONE_NUMBER=+15559876543
+```
+
+- `TWILIO_ACCOUNT_SID` and `TWILIO_AUTH_TOKEN` come from the Twilio
+  Console dashboard's Account Info panel.
+- `TWILIO_FROM_NUMBER` is a phone number owned by that Twilio account
+  (Console, Phone Numbers, Active Numbers), in E.164 format
+  (`+`, country code, number, no spaces or punctuation).
+- `DEMO_PHONE_NUMBER` is the operator's own phone, also in E.164 format.
+  This is the only number this codebase will ever dial; it is never
+  accepted from a request body.
+
+`GET /health` reports `telephony_configured` and, when false,
+`telephony_missing`, naming exactly which of the four variables are
+absent, the same pattern used for the Gemini and webhook keys.
+
+### Before a call will connect, in the Twilio Console
+
+- Create a Twilio account and a project if one does not exist yet.
+- Buy or claim a phone number and use it as `TWILIO_FROM_NUMBER`.
+- **Trial accounts only:** a trial account can only call phone numbers
+  that have been verified in the Console (Phone Numbers, Verified Caller
+  IDs). Verify `DEMO_PHONE_NUMBER` there before testing, or every call
+  attempt will be rejected by Twilio. A trial account also plays an
+  audible "this call is from a trial account" notice before the call
+  connects; that notice is Twilio's, not something this codebase can
+  suppress, and it is expected, not a bug.
+- Upgrading the account (adding a payment method) removes both the
+  verified-number restriction and the trial notice.
+
+### Endpoints
+
+- `POST /call/start` places the check-in leg to `DEMO_PHONE_NUMBER`.
+  Gated by `CARELOOP_WEBHOOK_SECRET`, sent as a `secret` field in the JSON
+  body, the same convention as `/webhook/elevenlabs`. Optional
+  `patient_id` in the body picks whose script is used; defaults to `p1`.
+- `POST /call/clinic` places the clinic leg the same way, gated the same
+  way, with an optional `specialty`.
+- Both return `{"configured": false, "missing_env": [...], "detail": ...}`
+  instead of an error when telephony is not set up, and a rate limited
+  request gets a `429`.
+- `GET`/`POST /voice/checkin` and `GET`/`POST /voice/clinic` are the TwiML
+  documents Twilio fetches once a call connects. They are intentionally
+  public; Twilio cannot send the shared secret. Both open by identifying
+  the call as automated, and the clinic leg additionally speaks
+  `clinic.FRONT_DESK_DISCLOSURE` out loud before anything else, the same
+  disclosure the text based simulation already carries.
+- `POST /loop/run` places the clinic leg automatically once it produces a
+  booking, if telephony is configured, using the same rate limiter. When
+  it is not configured, or the limiter is at capacity, it emits a
+  `PHONE_CALL_NOT_CONFIGURED` trace event instead of silently skipping.
+
+### Rate limits, and what is never logged
+
+Call placement is capped at a few calls per minute per session and a
+fixed number of calls for the lifetime of the running process (see
+`telephony.py`), because these endpoints sit on the public internet
+behind a single shared secret. No endpoint anywhere accepts a phone
+number in a request; `DEMO_PHONE_NUMBER` is the only number ever dialed.
+Trace events and API responses only ever carry a masked version of a
+phone number, for example `*******6543`, never the full number.

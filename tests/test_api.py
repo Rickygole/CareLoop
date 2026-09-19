@@ -1,5 +1,6 @@
 import os
 import sys
+import xml.etree.ElementTree as ET
 from pathlib import Path
 
 import pytest
@@ -7,6 +8,8 @@ from fastapi.testclient import TestClient
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+import telephony
+from clinic import FRONT_DESK_DISCLOSURE
 from main import SESSION_HEADER, app
 
 client = TestClient(app)
@@ -677,3 +680,182 @@ def test_request_with_no_session_id_still_works():
     assert triage_response.status_code == 200
     assert SESSION_HEADER in triage_response.headers
     assert triage_response.headers[SESSION_HEADER]
+
+
+TELEPHONY_VARS = ["TWILIO_ACCOUNT_SID", "TWILIO_AUTH_TOKEN", "TWILIO_FROM_NUMBER", "DEMO_PHONE_NUMBER"]
+
+
+def clear_telephony_env(monkeypatch):
+    for name in TELEPHONY_VARS:
+        monkeypatch.delenv(name, raising=False)
+
+
+def set_telephony_env(monkeypatch):
+    monkeypatch.setenv("TWILIO_ACCOUNT_SID", "ACtestsid")
+    monkeypatch.setenv("TWILIO_AUTH_TOKEN", "testtoken")
+    monkeypatch.setenv("TWILIO_FROM_NUMBER", "+15550001111")
+    monkeypatch.setenv("DEMO_PHONE_NUMBER", "+15550002222")
+
+
+def test_call_start_reports_missing_variables_when_not_configured(monkeypatch):
+    clear_telephony_env(monkeypatch)
+    r = client.post(
+        "/call/start", json=gated({"patient_id": "p1"}), headers=session_headers("tel-not-configured-1"),
+    )
+    body = r.json()
+    assert body["configured"] is False
+    assert set(body["missing_env"]) == set(TELEPHONY_VARS)
+    assert body["call_sid"] is None
+    for name in TELEPHONY_VARS:
+        assert name in body["detail"]
+
+
+def test_call_clinic_reports_missing_variables_when_not_configured(monkeypatch):
+    clear_telephony_env(monkeypatch)
+    r = client.post(
+        "/call/clinic", json=gated({"patient_id": "p1"}), headers=session_headers("tel-not-configured-2"),
+    )
+    body = r.json()
+    assert body["configured"] is False
+    assert "TWILIO_ACCOUNT_SID" in body["missing_env"]
+
+
+def test_call_start_reports_only_the_variables_still_missing(monkeypatch):
+    clear_telephony_env(monkeypatch)
+    monkeypatch.setenv("DEMO_PHONE_NUMBER", "+15550002222")
+    r = client.post(
+        "/call/start", json=gated({"patient_id": "p1"}), headers=session_headers("tel-partial-1"),
+    )
+    body = r.json()
+    assert body["configured"] is False
+    assert "DEMO_PHONE_NUMBER" not in body["missing_env"]
+    assert "TWILIO_ACCOUNT_SID" in body["missing_env"]
+
+
+def test_call_start_refuses_without_the_shared_secret(monkeypatch):
+    if not WEBHOOK_SECRET:
+        pytest.skip("no shared secret configured for this environment")
+    set_telephony_env(monkeypatch)
+    r = client.post("/call/start", json={"patient_id": "p1"}, headers=session_headers("tel-no-secret-1"))
+    assert r.status_code == 401
+
+
+def test_call_clinic_refuses_without_the_shared_secret(monkeypatch):
+    if not WEBHOOK_SECRET:
+        pytest.skip("no shared secret configured for this environment")
+    set_telephony_env(monkeypatch)
+    r = client.post("/call/clinic", json={"patient_id": "p1"}, headers=session_headers("tel-no-secret-2"))
+    assert r.status_code == 401
+
+
+def test_nothing_dials_when_telephony_is_not_configured(monkeypatch):
+    clear_telephony_env(monkeypatch)
+    calls = []
+    monkeypatch.setattr(telephony, "place_call", lambda *a, **kw: calls.append((a, kw)))
+
+    client.post("/call/start", json=gated({"patient_id": "p1"}), headers=session_headers("tel-no-dial-1"))
+    client.post("/call/clinic", json=gated({"patient_id": "p1"}), headers=session_headers("tel-no-dial-2"))
+
+    assert calls == []
+
+
+def test_loop_run_does_not_dial_when_telephony_is_not_configured(monkeypatch):
+    clear_telephony_env(monkeypatch)
+    calls = []
+    monkeypatch.setattr(telephony, "place_call", lambda *a, **kw: calls.append((a, kw)))
+
+    headers = session_headers("tel-loop-not-configured-1")
+    client.post("/admin/reset", json=gated(), headers=headers)
+    body = client.post("/loop/run", json={
+        "patient_id": "p1",
+        "transcript": "I have been throwing up after every dose for three days",
+    }, headers=headers).json()
+
+    assert body["booking"]["confirmed"] is True
+    assert calls == []
+    types = [e["event_type"] for e in body["events"]]
+    assert "PHONE_CALL_NOT_CONFIGURED" in types
+
+
+def test_call_start_places_a_call_when_configured(monkeypatch):
+    set_telephony_env(monkeypatch)
+    calls = []
+
+    def fake_place_call(to, twiml_url=None, twiml=None):
+        calls.append((to, twiml_url))
+        return {"ok": True, "call_sid": "CAtest123", "status": "queued"}
+
+    monkeypatch.setattr(telephony, "place_call", fake_place_call)
+    headers = session_headers("tel-dial-1")
+    r = client.post("/call/start", json=gated({"patient_id": "p1"}), headers=headers)
+    body = r.json()
+
+    assert body["configured"] is True
+    assert body["ok"] is True
+    assert body["call_sid"] == "CAtest123"
+    assert len(calls) == 1
+    assert calls[0][0] == "+15550002222"
+
+    types = [e["event_type"] for e in client.get("/trace/events?since=0", headers=headers).json()["events"]]
+    assert "PHONE_CALL_DIALED" in types
+
+
+def test_call_start_never_dials_an_arbitrary_number(monkeypatch):
+    set_telephony_env(monkeypatch)
+    calls = []
+    monkeypatch.setattr(
+        telephony, "place_call",
+        lambda to, twiml_url=None, twiml=None: calls.append(to) or {"ok": True, "call_sid": "CAtest124"},
+    )
+    r = client.post(
+        "/call/start",
+        json=gated({"patient_id": "p1", "to": "+19995550000"}),
+        headers=session_headers("tel-no-arbitrary-1"),
+    )
+    assert r.status_code == 200
+    assert calls == ["+15550002222"]
+
+
+def test_call_start_is_rate_limited_per_session(monkeypatch):
+    set_telephony_env(monkeypatch)
+    monkeypatch.setattr(
+        telephony, "place_call",
+        lambda to, twiml_url=None, twiml=None: {"ok": True, "call_sid": "CAlimit", "status": "queued"},
+    )
+    headers = session_headers("tel-rate-limit-1")
+    statuses = []
+    for _ in range(telephony.PER_MINUTE_LIMIT + 2):
+        r = client.post("/call/start", json=gated({"patient_id": "p1"}), headers=headers)
+        statuses.append(r.status_code)
+    assert 429 in statuses
+
+
+def test_voice_checkin_twiml_identifies_itself_as_automated():
+    r = client.get("/voice/checkin?patient_id=p1")
+    assert r.status_code == 200
+    assert "xml" in r.headers["content-type"]
+    root = ET.fromstring(r.text)
+    assert root.tag == "Response"
+    assert "automated" in r.text.lower()
+    assert "Maria" in r.text
+
+
+def test_voice_clinic_twiml_identifies_itself_and_discloses_the_simulation():
+    r = client.get("/voice/clinic")
+    assert r.status_code == 200
+    ET.fromstring(r.text)
+    assert "automated" in r.text.lower()
+    assert FRONT_DESK_DISCLOSURE in r.text
+
+
+def test_voice_checkin_respond_runs_triage_and_speaks_the_response_back():
+    r = client.post("/voice/checkin/respond?patient_id=p1", data={"SpeechResult": "I feel fine today"})
+    assert r.status_code == 200
+    ET.fromstring(r.text)
+    assert "<Say" in r.text
+
+
+def test_voice_checkin_respond_handles_an_empty_transcript_gracefully():
+    r = client.post("/voice/checkin/respond?patient_id=p1", data={})
+    assert r.status_code == 200
+    ET.fromstring(r.text)

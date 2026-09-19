@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef } from 'react'
 
+import { BTN_PRIMARY, BTN_SECONDARY } from '../lib/ui.js'
+
 const FOCUSABLE =
   'a[href], button:not([disabled]), input, select, textarea, [tabindex]:not([tabindex="-1"])'
 
@@ -60,7 +62,7 @@ export default function ConsentModal({ open, patientName, busy, onAllow, onDeny 
 
   return (
     <div
-      className="enter-fade fixed inset-0 z-50 flex max-h-dvh items-end justify-center overflow-y-auto overscroll-contain bg-ink/60 p-4 sm:items-center"
+      className="enter-fade fixed inset-0 z-50 flex max-h-dvh items-end justify-center overflow-y-auto overscroll-contain bg-ink/70 p-4 sm:items-center"
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) onDeny()
       }}
@@ -72,62 +74,57 @@ export default function ConsentModal({ open, patientName, busy, onAllow, onDeny 
         aria-labelledby="consent-title"
         aria-describedby="consent-body"
         onKeyDown={handleKey}
-        className="enter-rise my-auto w-full max-w-2xl overflow-hidden rounded-panel border-2 border-line-ink bg-surface shadow-modal"
+        className="enter-land my-auto w-full max-w-2xl overflow-hidden rounded-panel border-2 border-ink bg-surface shadow-modal"
       >
-        <div className="px-7 pb-8 pt-8 sm:px-10">
-          <p className="smallcaps text-micro text-brand-deep">
+        <div className="border-b-4 border-ink bg-sand px-7 py-7 sm:px-10">
+          <p className="smallcaps text-micro text-ink">
             We ask before we read anything
           </p>
-          <h2
-            id="consent-title"
-            className="font-display mt-3 border-b-2 border-line-ink pb-3 text-2xl font-semibold text-ink"
-          >
+          <h2 id="consent-title" className="display mt-3 text-xl text-ink">
             MyHealth wants to share four things
           </h2>
+        </div>
 
-          <div id="consent-body" className="mt-6 text-ink-2">
-            <p className="measure">
+        <div className="px-7 py-8 sm:px-10">
+          <div id="consent-body" className="text-ink-2">
+            <p className="measure text-ink">
               MyHealth will share with CareLoop
               {patientName ? ', from the record for ' + patientName : ''}:
             </p>
-            <ul className="mt-5 border-t border-line">
+            <ul className="mt-6 flex flex-col gap-3">
               {SHARED_ITEMS.map((item) => (
                 <li
                   key={item}
-                  className="flex items-baseline gap-4 border-b border-line py-3.5 text-ink"
+                  className="flex items-center gap-4 rounded-card border-2 border-edge-strong bg-sunken px-5 py-3.5 text-sm font-semibold text-ink"
                 >
-                  <span aria-hidden="true" className="text-muted">
-                    {String.fromCharCode(8213)}
+                  <span aria-hidden="true" className="text-brand">
+                    {String.fromCharCode(9679)}
                   </span>
                   <span>{item}</span>
                 </li>
               ))}
             </ul>
-            <p className="measure mt-6">
+            <p className="measure mt-7 text-ink-2">
               Nothing else is read, and nothing is shared back. CareLoop uses
               this to know when to call you and what to ask about.
             </p>
           </div>
 
-          <p className="measure mt-6 border-l-4 border-line-strong bg-surface-2 px-5 py-4 text-sm text-muted">
+          <p className="measure mt-7 text-sm text-ink-2">
             MyHealth is a fictional portal built for this demonstration, and
             every record behind it is made up.
           </p>
         </div>
 
-        <div className="flex flex-col-reverse gap-4 border-t border-line bg-surface-2 px-7 py-6 sm:flex-row sm:justify-end sm:px-10">
-          <button
-            type="button"
-            onClick={onDeny}
-            className="min-h-[52px] rounded-control border-2 border-line-strong bg-surface px-8 py-3 text-sm font-semibold text-ink-2 transition-colors duration-150 hover:border-ink hover:text-ink"
-          >
+        <div className="flex flex-col-reverse gap-4 border-t-2 border-edge-strong bg-sunken px-7 py-7 sm:flex-row sm:justify-end sm:px-10">
+          <button type="button" onClick={onDeny} className={BTN_SECONDARY}>
             Deny
           </button>
           <button
             type="button"
             onClick={onAllow}
             disabled={busy}
-            className="min-h-[52px] rounded-control bg-brand px-10 py-3 text-sm font-semibold text-white shadow-raised transition-[background-color,transform] duration-200 ease-out hover:bg-brand-deep active:translate-y-px disabled:bg-muted disabled:shadow-none"
+            className={BTN_PRIMARY}
           >
             {busy ? 'Connecting...' : 'Allow'}
           </button>

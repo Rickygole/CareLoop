@@ -2,14 +2,14 @@ import { tierMeta, UNDECIDED } from './TierBadge.jsx'
 import { dateTimeLabel } from '../lib/format.js'
 import { useCountUp } from '../lib/useCountUp.js'
 
-const OPEN = String.fromCharCode(8220)
-const CLOSE = String.fromCharCode(8221)
+const OPEN = String.fromCharCode(34)
+const CLOSE = String.fromCharCode(34)
 
 function Fact({ label, value }) {
   return (
     <div>
-      <dt className="text-micro font-semibold uppercase text-muted">{label}</dt>
-      <dd className="numeric mt-1.5 text-sm font-semibold text-ink">{value}</dd>
+      <dt className="smallcaps text-micro text-ink-2">{label}</dt>
+      <dd className="numeric mt-2 text-sm font-bold text-ink">{value}</dd>
     </div>
   )
 }
@@ -45,21 +45,19 @@ export default function TriageResult({ result, latencyMs, booking }) {
     return (
       <section
         aria-labelledby="verdict-heading"
-        className="enter-verdict overflow-hidden rounded-panel border-2 border-line-ink bg-surface px-6 py-8 shadow-lift sm:px-10 sm:py-10"
+        className="enter-verdict ledge ledge-ink overflow-hidden rounded-panel border-2 border-ink bg-surface px-6 py-9 sm:px-10 sm:py-12"
       >
-        <p className="text-micro font-semibold uppercase text-muted">
-          What CareLoop decided
-        </p>
+        <p className="smallcaps text-micro text-ink-2">What CareLoop decided</p>
         <h2
           id="verdict-heading"
-          className="font-display mt-3 flex flex-wrap items-baseline gap-x-5 gap-y-2 text-3xl font-semibold text-ink"
+          className="display mt-4 flex flex-wrap items-baseline gap-x-6 gap-y-2 text-2xl text-ink"
         >
           <span aria-hidden="true" className="text-[0.55em] leading-none">
             {UNDECIDED.glyph}
           </span>
           {UNDECIDED.headline}
         </h2>
-        <p className="measure mt-5 text-ink-2">{UNDECIDED.meaning}</p>
+        <p className="measure mt-6 text-ink-2">{UNDECIDED.meaning}</p>
       </section>
     )
   }
@@ -70,38 +68,38 @@ export default function TriageResult({ result, latencyMs, booking }) {
   return (
     <section
       aria-labelledby="verdict-heading"
-      className="enter-verdict relative overflow-hidden rounded-panel border-2 border-line-ink bg-surface shadow-lift"
+      className="enter-verdict ledge ledge-ink relative overflow-hidden rounded-panel border-2 border-ink bg-surface"
     >
       <span
         aria-hidden="true"
-        className="enter-rule absolute inset-x-0 top-0 h-[6px]"
+        className="enter-rule absolute inset-x-0 top-0 h-3"
         style={{ background: meta.rail }}
       />
 
-      <div className="px-6 py-8 sm:px-10 sm:py-10">
-        <p className="text-micro font-semibold uppercase text-muted">
-          What CareLoop decided
-        </p>
+      <div className="px-6 py-10 sm:px-10 sm:py-12">
+        <p className="smallcaps text-micro text-ink-2">What CareLoop decided</p>
 
         <h2
           id="verdict-heading"
-          className="font-display mt-3 flex flex-wrap items-baseline gap-x-5 gap-y-2 text-3xl font-semibold"
+          className="display mt-4 flex flex-wrap items-baseline gap-x-6 gap-y-2 text-3xl"
           style={{ color: meta.rail }}
         >
-          <span aria-hidden="true" className="text-[0.55em] leading-none">
+          <span aria-hidden="true" className="text-[0.5em] leading-none">
             {meta.glyph}
           </span>
           {meta.headline}
         </h2>
 
-        <p className="measure mt-5 text-ink-2">{meta.meaning}</p>
+        <p className="measure mt-6 text-lg leading-[1.45] text-ink">
+          {meta.meaning}
+        </p>
 
         {emergency ? (
           <p
-            className="mt-6 flex items-start gap-3 rounded-card border-2 px-5 py-4 font-semibold text-emergency"
-            style={{ borderColor: meta.rail }}
+            className="ledge mt-8 flex items-start gap-4 rounded-card border-2 px-6 py-5 text-lg font-bold text-ink"
+            style={{ borderColor: meta.rail, '--ledge': meta.rail }}
           >
-            <span aria-hidden="true" className="leading-[1.6]">
+            <span aria-hidden="true" className="leading-[1.5] text-emergency">
               {String.fromCharCode(9679)}
             </span>
             <span className="measure">
@@ -112,18 +110,18 @@ export default function TriageResult({ result, latencyMs, booking }) {
           </p>
         ) : null}
 
-        <blockquote className="mt-8 border-l-4 border-brand pl-6">
-          <p className="text-micro font-semibold uppercase text-muted">
+        <div className="ledge ledge-strong mt-9 rounded-card border-2 border-edge-strong bg-sunken px-6 py-6 sm:px-8">
+          <p className="smallcaps text-micro text-clay">
             What CareLoop said to you
           </p>
-          <p className="font-display measure mt-3 text-lg text-ink">
+          <p className="display-tight measure mt-4 text-lg text-ink">
             {OPEN}
             {result.suggested_agent_response}
             {CLOSE}
           </p>
-        </blockquote>
+        </div>
 
-        <p className="measure mt-7 font-semibold text-ink">
+        <p className="measure mt-8 text-lg font-bold leading-[1.45] text-ink">
           {bookingSentence(tier, booking)}
         </p>
 
@@ -132,8 +130,8 @@ export default function TriageResult({ result, latencyMs, booking }) {
         ) : null}
       </div>
 
-      <div className="border-t border-line bg-surface-2 px-6 py-6 sm:px-10">
-        <dl className="flex flex-wrap gap-x-14 gap-y-5">
+      <div className="border-t-2 border-edge-strong bg-sunken px-6 py-7 sm:px-10">
+        <dl className="flex flex-wrap gap-x-14 gap-y-6">
           <Fact
             label="Severity recorded"
             value={meta.term + ', shown as ' + meta.shape}
@@ -155,7 +153,7 @@ export default function TriageResult({ result, latencyMs, booking }) {
         </dl>
 
         {ruleOnly ? (
-          <p className="measure mt-5 text-xs text-brand-deep">
+          <p className="measure mt-6 text-sm text-ink-2">
             No model was asked. A fixed rule matched the words you used, which
             is why the answer came back instantly. The model can raise the
             severity of an answer but it is never allowed to lower it.

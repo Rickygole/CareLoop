@@ -2,20 +2,21 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 
 import ConsentModal, { SHARED_ITEMS } from '../components/ConsentModal.jsx'
+import Notice from '../components/Notice.jsx'
 import Screen from '../components/Screen.jsx'
 import { connectPatient, regimenState } from '../lib/api.js'
+import { BTN_HERO, BTN_PRIMARY, BTN_QUIET, SELECT } from '../lib/ui.js'
 import { useSession } from '../lib/session.jsx'
 import { PATIENTS, patientName } from '../data/patients.js'
 
-const STEP_MS = 260
-const MED_MS = 240
+const STEP_MS = 300
+const MED_MS = 340
 const MIN_SYNC_MS = 1200
-const TAIL_MS = 420
+const TAIL_MS = 520
 
 const DONE = String.fromCharCode(10003)
 const WAITING = String.fromCharCode(9675)
 const LIVE = String.fromCharCode(9679)
-const WARN = String.fromCharCode(9651)
 
 function wait(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms))
@@ -82,26 +83,21 @@ export default function ConnectPage() {
 
   return (
     <Screen
-      mark="01"
-      label="Step 1 of 5"
       title="Start here. Connect MyHealth once."
       lead="CareLoop then reads your medicines out of the portal, works out the hour every dose is due, and phones you at those hours to ask how you are. You never log in and you never type a medicine in."
     >
       {connected && !syncing ? (
-        <div className="mt-10 border-t-2 border-line-ink pt-8">
-          <p className="measure text-ink">
+        <div>
+          <p className="measure text-lg leading-[1.45] text-ink">
             MyHealth is connected for{' '}
-            <strong className="font-semibold">
+            <strong className="font-bold">
               {record ? record.name : patientName(patientId)}
             </strong>
             . The medicines came across and CareLoop has already worked out when
             to call.
           </p>
-          <div className="mt-8 flex flex-wrap items-center gap-6">
-            <Link
-              to="/meds"
-              className="inline-flex min-h-[60px] items-center rounded-control bg-brand px-9 py-4 text-lg font-semibold text-white shadow-raised transition-[background-color,transform] duration-200 ease-out hover:bg-brand-deep active:translate-y-px"
-            >
+          <div className="mt-9 flex flex-wrap items-center gap-6">
+            <Link to="/meds" className={BTN_PRIMARY}>
               See your medicines and call times
             </Link>
             <button
@@ -110,7 +106,7 @@ export default function ConnectPage() {
                 choosePatient(patientId)
                 setPhase('idle')
               }}
-              className="min-h-[52px] rounded-control border-2 border-line-strong bg-surface px-6 py-3 text-sm font-semibold text-ink-2 transition-colors duration-150 hover:border-ink hover:text-ink"
+              className={BTN_QUIET}
             >
               Disconnect and start again
             </button>
@@ -120,107 +116,102 @@ export default function ConnectPage() {
 
       {!connected && !syncing ? (
         <div>
-          <div className="mt-9">
-            <button
-              type="button"
-              onClick={() => setConsentOpen(true)}
-              className="min-h-[68px] w-full rounded-control bg-brand px-10 py-5 text-xl font-semibold text-white shadow-raised transition-[background-color,transform] duration-200 ease-out hover:bg-brand-deep active:translate-y-px sm:w-auto"
-            >
-              Connect MyHealth
-            </button>
-            <p className="measure mt-4 text-sm text-ink-2">
-              MyHealth is the portal your pharmacy and your clinic already use.
-              Nothing is read until you press Allow.
-            </p>
-          </div>
+          <button
+            type="button"
+            onClick={() => setConsentOpen(true)}
+            className={BTN_HERO + ' w-full sm:w-auto'}
+          >
+            Connect MyHealth
+          </button>
+          <p className="measure mt-5 text-ink-2">
+            MyHealth is the portal your pharmacy and your clinic already use.
+            Nothing is read until you press Allow.
+          </p>
 
           {phase === 'denied' ? (
-            <p
+            <Notice
               role="status"
-              className="measure enter-fade mt-9 border-l-4 border-line-strong bg-surface-2 px-6 py-5 text-ink-2"
+              tone="quiet"
+              word="Nothing happened"
+              className="enter-fade measure mt-10"
             >
               Nothing was shared. CareLoop cannot see any of your medicines and
               will not call you. You can connect whenever you are ready.
-            </p>
+            </Notice>
           ) : null}
 
           {phase === 'error' ? (
-            <p
+            <Notice
               role="alert"
-              className="measure enter-fade mt-9 flex items-start gap-3 border-l-4 border-emergency bg-emergency-tint px-6 py-5 text-emergency"
+              tone="alarm"
+              word="MyHealth did not answer"
+              className="enter-fade measure mt-10"
             >
-              <span aria-hidden="true" className="leading-[1.6]">
-                {WARN}
-              </span>
-              <span>
-                <strong className="font-semibold">
-                  MyHealth did not answer.
-                </strong>{' '}
-                Nothing was shared and nothing was changed. Press Connect
-                MyHealth to try again.
-              </span>
-            </p>
+              Nothing was shared and nothing was changed. Press Connect MyHealth
+              to try again.
+            </Notice>
           ) : null}
 
-          <div className="mt-14 border-t border-line pt-6">
-            <label
-              htmlFor="patient"
-              className="smallcaps block text-micro text-muted"
-            >
-              Set up for this demonstration
+          <div className="mt-16">
+            <label htmlFor="patient" className="smallcaps text-micro text-ink-2">
+              Record
             </label>
-            <div className="mt-3 flex flex-wrap items-center gap-x-6 gap-y-3">
-              <select
-                id="patient"
-                value={patientId}
-                onChange={(event) => choosePatient(event.target.value)}
-                className="field-select min-h-[52px] rounded-control border-2 border-line-strong bg-surface px-5 py-2.5 text-sm font-medium text-ink"
-              >
-                {PATIENTS.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name}
-                  </option>
-                ))}
-              </select>
-              <p className="max-w-[34ch] text-sm text-ink-2">
-                Four made up records sit behind the portal. This picks whose
-                record MyHealth hands over.
-              </p>
-            </div>
+            <select
+              id="patient"
+              value={patientId}
+              onChange={(event) => choosePatient(event.target.value)}
+              className={SELECT + ' mt-3'}
+            >
+              {PATIENTS.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
       ) : null}
 
       {syncing ? (
-        <div className="mt-10 border-t-2 border-line-ink pt-8">
+        <div className="on-ocean ledge ledge-ink rounded-panel border-2 border-ink bg-brand px-7 py-9 text-brand-ink sm:px-10 sm:py-12">
           <p
             aria-live="polite"
             aria-busy="true"
-            className="font-display flex items-center gap-4 text-xl font-semibold text-ink"
+            className="display flex items-start gap-4 text-xl text-brand-ink"
           >
             <span
               aria-hidden="true"
-              className="text-brand"
+              className="mt-2 text-[0.6em] text-sand"
               style={{ animation: 'live-pulse 1100ms ease-in-out infinite' }}
             >
               {LIVE}
             </span>
-            CareLoop is reading the record out of MyHealth
+            <span className="measure-tight">
+              CareLoop is reading the record out of MyHealth
+            </span>
           </p>
 
-          <ul className="mt-7 max-w-[34rem] border-t border-line">
+          <ul className="mt-8 max-w-[36rem]">
             {SHARED_ITEMS.map((item, index) => (
               <li
                 key={item}
-                className="flex items-baseline gap-4 border-b border-line py-3.5"
+                className="flex items-baseline gap-4 border-b-2 border-brand-ink/20 py-4 text-sm"
               >
                 <span
                   aria-hidden="true"
-                  className={index < landed ? 'text-mild' : 'text-line-strong'}
+                  className={
+                    index < landed ? 'text-sand' : 'text-brand-ink-2 opacity-60'
+                  }
                 >
                   {index < landed ? DONE : WAITING}
                 </span>
-                <span className={index < landed ? 'text-ink' : 'text-muted'}>
+                <span
+                  className={
+                    index < landed
+                      ? 'font-semibold text-brand-ink'
+                      : 'text-brand-ink-2'
+                  }
+                >
                   {item}
                   {index < landed ? ', received' : ', waiting'}
                 </span>
@@ -229,39 +220,34 @@ export default function ConnectPage() {
           </ul>
 
           {pulled.length ? (
-            <div className="enter-fade mt-9">
-              <h2 className="smallcaps text-micro text-brand-deep">
+            <div className="mt-10">
+              <h2 className="smallcaps text-micro text-sand">
                 Medicines pulled across, nobody typed these
               </h2>
-              <ul className="mt-4 max-w-[34rem] border-t border-line">
-                {pulled.map((name, index) => (
+
+              <ul className="mt-6 flex flex-col gap-4">
+                {pulled.slice(0, landedMeds).map((name, index) => (
                   <li
                     key={name + index}
-                    className="flex items-baseline gap-4 border-b border-line py-3.5"
+                    className="enter-land ledge ledge-sand flex min-h-[64px] items-center gap-4 rounded-card bg-surface px-6 py-4"
                   >
-                    <span
-                      aria-hidden="true"
-                      className={
-                        index < landedMeds ? 'text-mild' : 'text-line-strong'
-                      }
-                    >
-                      {index < landedMeds ? DONE : WAITING}
+                    <span aria-hidden="true" className="text-mild">
+                      {DONE}
                     </span>
-                    <span
-                      className={
-                        'font-display text-lg font-semibold ' +
-                        (index < landedMeds ? 'text-ink' : 'text-muted')
-                      }
-                    >
+                    <span className="display-tight text-lg text-ink">
                       {name}
                     </span>
                   </li>
                 ))}
               </ul>
-              <p aria-live="polite" className="mt-5 text-sm font-semibold text-brand-deep">
+
+              <p
+                aria-live="polite"
+                className="numeric mt-6 text-sm font-bold text-sand"
+              >
                 {landedMeds === pulled.length
-                  ? 'Working out the call times now.'
-                  : 'Receiving from MyHealth.'}
+                  ? 'All ' + pulled.length + ' received. Working out the call times now.'
+                  : landedMeds + ' of ' + pulled.length + ' received from MyHealth.'}
               </p>
             </div>
           ) : null}

@@ -6,9 +6,10 @@ import Screen from '../components/Screen.jsx'
 import TechnicalDetail from '../components/TechnicalDetail.jsx'
 import TierBadge from '../components/TierBadge.jsx'
 import TriageResult from '../components/TriageResult.jsx'
-import { MARK, ROW_GRID } from '../components/Section.jsx'
+import { Rule } from '../components/Block.jsx'
 import { dateTimeLabel } from '../lib/format.js'
 import { actionSentence, quoted } from '../lib/narrate.js'
+import { BTN_PRIMARY, CARD } from '../lib/ui.js'
 import { useTrace } from '../lib/useTrace.js'
 import { useSession } from '../lib/session.jsx'
 
@@ -23,15 +24,10 @@ export default function DecisionPage() {
   if (!run) {
     return (
       <Screen
-        mark="04"
-        label="Step 4 of 5"
-        title="Nothing has been decided yet"
-        lead="This screen holds what came back from a check-in call: what was said, what CareLoop made of it, and what it did about it. No check-in has happened in this session, so there is nothing to show."
+        title="No check-in call has happened yet"
+        lead="When CareLoop has spoken to you, what you said and what it did about it will be here."
       >
-        <Link
-          to="/call"
-          className="mt-9 inline-flex min-h-[56px] items-center rounded-control bg-brand px-8 py-3.5 text-sm font-semibold text-white shadow-raised transition-[background-color,transform] duration-200 ease-out hover:bg-brand-deep active:translate-y-px"
-        >
+        <Link to="/call" className={BTN_PRIMARY}>
           Go to the call and talk to CareLoop
         </Link>
       </Screen>
@@ -44,46 +40,41 @@ export default function DecisionPage() {
 
   return (
     <Screen
-      mark="04"
-      label="Step 4 of 5"
       title="What CareLoop did about it"
       lead="You have just been on a check-in call. This is what CareLoop made of your answer, what it did next, and the whole of its working."
     >
-      <div className="mt-10">
-        <TriageResult
-          result={triage}
-          latencyMs={run.latencyMs}
-          booking={run.booking}
-        />
-        <ClinicCall
-          events={run.events}
-          booking={run.booking}
-          tier={triage.tier}
-        />
-      </div>
+      <TriageResult
+        result={triage}
+        latencyMs={run.latencyMs}
+        booking={run.booking}
+      />
+      <ClinicCall
+        events={run.events}
+        booking={run.booking}
+        tier={triage.tier}
+      />
 
-      <section aria-labelledby="said-heading" className="mt-16">
-        <h2
-          id="said-heading"
-          className="font-display border-b-2 border-line-ink pb-2 text-2xl font-semibold text-ink"
-        >
+      <section aria-labelledby="said-heading" className="mt-20">
+        <h2 id="said-heading" className="display text-2xl text-ink">
           What you said
         </h2>
-        <blockquote className="mt-7 border-l-4 border-brand pl-6">
-          <p className="font-display measure text-lg text-ink">
+        <Rule tone="sand" />
+
+        <blockquote className={CARD + ' mt-8 px-7 py-7 sm:px-9'}>
+          <p className="display-tight measure text-xl text-ink">
             {quoted(triage.transcript)}
           </p>
+          <p className="numeric mt-5 text-sm text-ink-2">
+            Recorded {dateTimeLabel(run.at)}
+          </p>
         </blockquote>
-        <p className="numeric mt-5 text-sm text-muted">
-          Recorded {dateTimeLabel(run.at)}
-        </p>
 
         {triage.normalized_text ? (
-          <div className="mt-9">
-            <h3 className="smallcaps text-micro text-muted">
+          <div className="mt-10">
+            <h3 className="smallcaps text-micro text-clay">
               Written down in clinical terms as
             </h3>
-            <p className="font-display measure mt-3 border-l-4 border-line-strong bg-surface-2 px-6 py-5 text-lg text-ink">
+            <p className="display-tight measure mt-4 rounded-card border-2 border-edge-strong bg-sunken px-6 py-5 text-lg text-ink">
               {triage.normalized_text}
             </p>
             <p className="measure mt-4 text-sm text-ink-2">
@@ -94,22 +85,20 @@ export default function DecisionPage() {
         ) : null}
       </section>
 
-      <section aria-labelledby="working-heading" className="mt-16">
-        <h2
-          id="working-heading"
-          className="font-display border-b-2 border-line-ink pb-2 text-2xl font-semibold text-ink"
-        >
+      <section aria-labelledby="working-heading" className="mt-20">
+        <h2 id="working-heading" className="display text-2xl text-ink">
           How it got there
         </h2>
+        <Rule tone="sand" />
         {rules.length ? (
-          <p className="measure mt-7 text-ink-2">
+          <p className="measure mt-8 text-ink-2">
             A fixed safety rule matched on {ruleWords(rules)}. A matched rule
             settles the severity on its own, which is why the answer came back
             without waiting for a model. The model is allowed to raise a
             severity afterwards. It is never allowed to lower one.
           </p>
         ) : (
-          <p className="measure mt-7 text-ink-2">
+          <p className="measure mt-8 text-ink-2">
             No fixed safety rule matched these words, so the question went on to
             the model. Had a rule matched, it would have settled the severity on
             its own.
@@ -119,36 +108,31 @@ export default function DecisionPage() {
       </section>
 
       {history.length ? (
-        <section aria-labelledby="history-heading" className="mt-16">
-          <h2
-            id="history-heading"
-            className="font-display border-b-2 border-line-ink pb-2 text-2xl font-semibold text-ink"
-          >
+        <section aria-labelledby="history-heading" className="mt-20">
+          <h2 id="history-heading" className="display text-2xl text-ink">
             Calls before this one
           </h2>
-          <ul className="mt-2">
+          <Rule tone="sand" />
+          <ul className="mt-8 flex flex-col gap-5">
             {history.map((item, index) => (
               <li
                 key={item.call_id || index}
-                className={'enter-fade border-t border-line py-6 ' + ROW_GRID}
+                className={'enter-fade ' + CARD + ' px-6 py-6 sm:px-8'}
                 style={{ '--i': index }}
               >
-                <p aria-hidden="true" className={MARK + ' sm:pt-1.5'}>
-                  {String(index + 1).padStart(2, '0')}
-                </p>
-                <div className="flex flex-wrap items-start justify-between gap-x-8 gap-y-3">
+                <div className="flex flex-wrap items-start justify-between gap-x-8 gap-y-4">
                   <div className="min-w-0">
-                    <p className="numeric text-micro text-muted">
+                    <p className="numeric smallcaps text-micro text-ink-2">
                       {dateTimeLabel(item.timestamp)}
                     </p>
-                    <p className="measure mt-1.5 text-ink">
+                    <p className="measure mt-3 text-ink">
                       {item.symptom_reported
                         ? 'You said you had ' + item.symptom_reported + '.'
                         : item.outcome === 'no_answer'
                           ? 'You did not pick up.'
                           : 'You said you were feeling fine.'}
                     </p>
-                    <p className="mt-1.5 text-sm text-muted">
+                    <p className="measure mt-2 text-sm text-ink-2">
                       {actionSentence(item.action_taken, item.outcome)}
                     </p>
                   </div>
@@ -160,16 +144,14 @@ export default function DecisionPage() {
         </section>
       ) : null}
 
-      <section aria-labelledby="record-heading" className="mt-16">
-        <h2
-          id="record-heading"
-          className="font-display border-b-2 border-line-ink pb-2 text-2xl font-semibold text-ink"
-        >
+      <section aria-labelledby="record-heading" className="mt-20">
+        <h2 id="record-heading" className="display text-2xl text-ink">
           The machine record
         </h2>
-        <p className="measure mt-7 text-ink-2">
+        <Rule tone="sand" />
+        <p className="measure mt-8 text-ink-2">
           Nothing is hidden. Every step the system took is written down in the
-          order it happened, and this is that list.
+          order it happened.
         </p>
         <TechnicalDetail
           events={events}

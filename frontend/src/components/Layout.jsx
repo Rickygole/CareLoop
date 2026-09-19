@@ -32,10 +32,10 @@ export default function Layout() {
   }, [location.pathname])
 
   return (
-    <div className="min-h-dvh">
+    <div>
       <a
         href="#main"
-        className="sr-only focus:not-sr-only focus:absolute focus:left-5 focus:top-5 focus:z-50 focus:rounded-control focus:border-2 focus:border-line-ink focus:bg-surface focus:px-5 focus:py-3 focus:text-sm focus:font-semibold"
+        className="sr-only focus:not-sr-only focus:absolute focus:left-5 focus:top-5 focus:z-50 focus:rounded-control focus:bg-ink focus:px-7 focus:py-4 focus:text-sm focus:font-bold focus:text-canvas"
       >
         Skip to the main content
       </a>
@@ -43,14 +43,11 @@ export default function Layout() {
       <Masthead />
       <FlowNav />
 
-      <main
-        id="main"
-        ref={main}
-        tabIndex={-1}
-        className="mx-auto max-w-[72rem] px-6 pb-10 focus:outline-none sm:px-8"
-      >
+      <main id="main" ref={main} tabIndex={-1} className="focus:outline-none">
         <Outlet />
-        <FlowPager />
+        <div className="hold pb-24">
+          <FlowPager />
+        </div>
       </main>
 
       <DashboardFooter />
