@@ -42,7 +42,7 @@ export default function TimeTravel({ plan, shiftMs, onShift }) {
           disabled={!jump}
           className={
             BTN_SECONDARY +
-            ' mt-6 w-full disabled:border-edge-strong disabled:text-ink-2'
+            ' mt-6 w-full disabled:border-line disabled:text-ink-2'
           }
         >
           {jump

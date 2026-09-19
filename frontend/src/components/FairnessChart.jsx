@@ -20,7 +20,7 @@ function Row({ arm, entry, grown, placeholder }) {
       <span className="w-full text-sm font-semibold text-ink sm:w-48 sm:shrink-0">
         {arm.label}
       </span>
-      <div className="relative h-5 min-w-[6rem] flex-1 overflow-hidden rounded-control border-2 border-edge-strong bg-sunken">
+      <div className="relative h-5 min-w-[6rem] flex-1 overflow-hidden rounded-control border border-line bg-sunken">
         <div
           className="h-full rounded-control bg-brand transition-[width] duration-700 ease-out"
           style={{ width: width + '%' }}
@@ -155,7 +155,7 @@ export default function FairnessChart() {
         </section>
       ) : null}
 
-      <div className="ledge ledge-night mt-20 rounded-card border-2 border-ink bg-console-bg px-6 py-7 text-console-ink sm:px-9">
+      <div className="ledge ledge-night mt-20 rounded-card border border-console-line bg-console-bg px-6 py-7 text-console-ink sm:px-9">
         <p className="smallcaps text-micro text-console-accent">
           What this does not prove
         </p>

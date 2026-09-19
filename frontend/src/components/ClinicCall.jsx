@@ -59,10 +59,10 @@ export default function ClinicCall({ events, booking, tier }) {
             <li
               key={event.seq}
               className={
-                'enter-rise ledge ledge-strong rounded-card border-2 px-6 py-5 ' +
+                'enter-rise ledge ledge-strong rounded-card border px-6 py-5 ' +
                 (desk
-                  ? 'border-edge-strong bg-sunken sm:ml-10'
-                  : 'border-ink bg-surface sm:mr-10')
+                  ? 'border-line bg-sunken sm:ml-10'
+                  : 'border-line bg-surface sm:mr-10')
               }
               style={{ '--i': index }}
             >

@@ -23,10 +23,10 @@ function Channel({ live, heading, body, children }) {
   return (
     <div
       className={
-        'ledge rounded-card border-2 px-6 py-6 ' +
+        'ledge rounded-card border px-6 py-6 ' +
         (live
-          ? 'ledge-sand border-ink bg-surface'
-          : 'ledge-strong border-edge-strong bg-sunken')
+          ? 'ledge-strong border-line-strong bg-surface'
+          : 'ledge-strong border-line bg-sunken')
       }
     >
       <p
@@ -73,9 +73,9 @@ export default function PhoneCallCard({ patientName, onRing }) {
   return (
     <section
       aria-labelledby="channel-heading"
-      className="on-ocean ledge ledge-ink mt-10 rounded-panel border-2 border-ink bg-brand px-6 py-8 text-brand-ink sm:px-10 sm:py-10"
+      className="on-ocean ledge-strong mt-10 rounded-panel bg-brand px-6 py-8 text-brand-ink sm:px-10 sm:py-10"
     >
-      <p className="smallcaps text-micro text-sand">
+      <p className="smallcaps text-micro text-brand-ink-2">
         How this check-in reaches you
       </p>
       <h2 id="channel-heading" className="display mt-4 text-xl text-brand-ink">

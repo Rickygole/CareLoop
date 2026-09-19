@@ -30,7 +30,7 @@ export default function RunNarrative({ events, startIndex = 0 }) {
         return (
           <div
             key={step.id}
-            className="enter-step ledge ledge-strong rounded-card border-2 border-edge-strong bg-surface px-6 py-6 sm:px-8"
+            className="enter-step ledge ledge-strong rounded-card border border-line bg-surface px-6 py-6 sm:px-8"
             style={{ '--i': headIndex }}
           >
             <h4 className="flex flex-wrap items-baseline gap-x-4 gap-y-1">

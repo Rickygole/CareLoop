@@ -23,7 +23,7 @@ const SEVERITY = {
     word: 'Minor interaction',
     glyph: String.fromCharCode(9675),
     text: 'text-ink-2',
-    skin: 'border-edge-strong bg-sunken',
+    skin: 'border-line bg-sunken',
   },
 }
 
@@ -67,7 +67,7 @@ export default function InteractionFlags({ regimen, flash }) {
                 <li
                   key={finding.ingredients.join('-')}
                   className={
-                    'enter-script ledge ledge-strong rounded-card border-2 px-7 py-7 ' +
+                    'enter-script ledge ledge-strong rounded-card border px-7 py-7 ' +
                     meta.skin
                   }
                   style={{ '--i': index }}
@@ -107,7 +107,7 @@ export default function InteractionFlags({ regimen, flash }) {
         <p className="measure mt-3 text-sm text-ink-2">{regimen.limitations}</p>
       </div>
 
-      <details className="ledge ledge-night mt-10 overflow-hidden rounded-card border-2 border-ink bg-console-bg text-console-ink">
+      <details className="ledge ledge-night mt-10 overflow-hidden rounded-card border border-console-line bg-console-bg text-console-ink">
         <summary className="console-scope cursor-pointer list-none px-6 py-6 marker:content-none sm:px-8">
           <span className="smallcaps text-micro text-console-accent">
             For the clinical team, not shown to the patient
@@ -122,7 +122,7 @@ export default function InteractionFlags({ regimen, flash }) {
           </span>
         </summary>
 
-        <div className="border-t-2 border-console-line px-6 py-6 sm:px-8">
+        <div className="border-t border-console-line px-6 py-6 sm:px-8">
           <p className="measure text-sm text-console-ink-2">
             CareLoop only tells a patient about a finding at major severity or
             above. Anything below that is recorded here for the prescriber or
@@ -134,7 +134,7 @@ export default function InteractionFlags({ regimen, flash }) {
               {held.map((finding) => (
                 <li
                   key={finding.ingredients.join('-')}
-                  className="rounded-card border-2 border-console-line bg-console-panel px-5 py-4"
+                  className="rounded-card border border-console-line bg-console-panel px-5 py-4"
                 >
                   <p className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
                     <span className="smallcaps text-micro text-console-accent">

@@ -7,7 +7,7 @@ const SAFETY =
 
 function SafetyNotice() {
   return (
-    <p className="mt-6 flex items-start gap-4 rounded-card border-2 border-dark-moderate/45 bg-dark-moderate/10 px-5 py-4 text-sm text-console-ink">
+    <p className="mt-6 flex items-start gap-4 rounded-card border border-dark-moderate/45 bg-dark-moderate/10 px-5 py-4 text-sm text-console-ink">
       <span aria-hidden="true" className="leading-[1.6] text-dark-moderate">
         {String.fromCharCode(9651)}
       </span>
@@ -46,7 +46,7 @@ export default function VoicePanel({
   return (
     <section
       aria-labelledby="voice-heading"
-      className="console-scope ledge ledge-night mt-10 overflow-hidden rounded-panel border-2 border-ink bg-console-bg text-console-ink"
+      className="console-scope ledge ledge-night mt-10 overflow-hidden rounded-panel border border-console-line bg-console-bg text-console-ink"
     >
       <div className="px-6 py-8 sm:px-10">
         <h2 id="voice-heading" className="display text-xl text-console-ink">
@@ -60,7 +60,7 @@ export default function VoicePanel({
         <SafetyNotice />
       </div>
 
-      <div className="voice-mount border-t-2 border-console-line px-6 py-7 sm:px-10">
+      <div className="voice-mount border-t border-console-line px-6 py-7 sm:px-10">
         <VoiceAgent patientId={patientId} patientName={firstName} />
       </div>
     </section>

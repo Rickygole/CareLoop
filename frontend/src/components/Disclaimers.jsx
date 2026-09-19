@@ -3,16 +3,16 @@ export const DASHBOARD_DISCLAIMER =
 
 export function DashboardFooter() {
   return (
-    <footer className="console-scope border-t-4 border-ink bg-console-bg text-console-ink">
-      <div className="hold py-16">
+    <footer className="console-scope border-t border-line bg-console-bg text-console-ink">
+      <div className="hold py-12">
         <p className="smallcaps text-micro text-console-accent">
           Please read this
         </p>
         <span
           aria-hidden="true"
-          className="mt-5 block h-[6px] w-20 rounded-full bg-console-accent"
+          className="mt-4 block h-px w-full bg-console-line"
         />
-        <p className="measure mt-7 text-console-ink">
+        <p className="measure mt-6 text-console-ink">
           {DASHBOARD_DISCLAIMER}
         </p>
         <p className="measure mt-5 text-sm text-console-ink-2">

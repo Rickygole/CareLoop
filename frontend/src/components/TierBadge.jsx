@@ -8,7 +8,7 @@ const TIERS = {
     text: 'text-mild',
     bg: 'bg-mild-tint',
     border: 'border-mild',
-    rail: '#124a32',
+    rail: '#12503a',
     darkText: 'text-dark-mild',
     darkBg: 'bg-dark-mild/12',
     darkBorder: 'border-dark-mild/40',
@@ -25,11 +25,11 @@ const TIERS = {
     text: 'text-moderate',
     bg: 'bg-moderate-tint',
     border: 'border-moderate',
-    rail: '#663d04',
+    rail: '#66420a',
     darkText: 'text-dark-moderate',
     darkBg: 'bg-dark-moderate/12',
     darkBorder: 'border-dark-moderate/40',
-    darkRail: '#f2b441',
+    darkRail: '#f0bd5e',
     meaning: 'Someone should look at this, and not in a hurry.',
   },
   severe: {
@@ -41,7 +41,7 @@ const TIERS = {
     text: 'text-severe',
     bg: 'bg-severe-tint',
     border: 'border-severe',
-    rail: '#78290a',
+    rail: '#7a2d0d',
     darkText: 'text-dark-severe',
     darkBg: 'bg-dark-severe/12',
     darkBorder: 'border-dark-severe/40',
@@ -78,7 +78,7 @@ export const UNDECIDED = {
     'CareLoop did not come back with an answer it is willing to stand behind, so it is not guessing one. Please contact your clinic yourself. If this is an emergency, call 911. If you are in crisis, call or text 988.',
   glyph: String.fromCharCode(9633),
   shape: 'a square',
-  rail: '#241b15',
+  rail: '#111820',
 }
 
 const SCALE = {
@@ -95,12 +95,12 @@ export default function TierBadge({ tier, size = 'md', tone = 'light' }) {
     return (
       <span
         className={
-          'inline-flex items-center rounded-control border-2 font-bold ' +
+          'inline-flex items-center rounded-control border font-bold ' +
           scale +
           ' ' +
           (dark
             ? 'border-console-line-2 text-console-ink'
-            : 'border-ink text-ink')
+            : 'border-line-strong text-ink')
         }
       >
         <span aria-hidden="true" className="text-[1.15em] leading-none">
@@ -114,7 +114,7 @@ export default function TierBadge({ tier, size = 'md', tone = 'light' }) {
   return (
     <span
       className={
-        'inline-flex items-center rounded-control border-2 font-bold ' +
+        'inline-flex items-center rounded-control border font-bold ' +
         scale +
         ' ' +
         (dark

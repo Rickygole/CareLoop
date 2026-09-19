@@ -267,10 +267,10 @@ export default function MedsPage() {
                         <li
                           key={label}
                           className={
-                            'flex items-baseline gap-4 rounded-card border-2 px-5 py-3 ' +
+                            'flex items-baseline gap-4 rounded-card border px-5 py-3 ' +
                             (done
                               ? 'border-mild bg-mild-tint'
-                              : 'border-edge-strong bg-sunken')
+                              : 'border-line bg-sunken')
                           }
                         >
                           <span

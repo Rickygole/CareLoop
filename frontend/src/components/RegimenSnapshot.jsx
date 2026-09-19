@@ -5,7 +5,7 @@ export default function RegimenSnapshot({ hash, previousHash, count, flash }) {
     <section
       aria-labelledby="snapshot-heading"
       className={
-        'ledge ledge-night mt-10 rounded-card border-2 border-ink bg-console-bg px-6 py-6 text-console-ink sm:px-8 ' +
+        'ledge ledge-night mt-10 rounded-card border border-console-line bg-console-bg px-6 py-6 text-console-ink sm:px-8 ' +
         (flash ? 'trace-flash' : '')
       }
     >

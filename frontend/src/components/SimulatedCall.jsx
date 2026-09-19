@@ -96,10 +96,10 @@ function Turn({ turn, index }) {
   return (
     <li
       className={
-        'enter-rise ledge ledge-strong rounded-card border-2 px-6 py-5 ' +
+        'enter-rise ledge ledge-strong rounded-card border px-6 py-5 ' +
         (mine
-          ? 'border-ink bg-sand sm:ml-10'
-          : 'border-edge-strong bg-surface sm:mr-10')
+          ? 'border-line bg-sand sm:ml-10'
+          : 'border-line bg-surface sm:mr-10')
       }
       style={{ '--i': index }}
     >
@@ -113,7 +113,7 @@ function Turn({ turn, index }) {
       </p>
       <p className="measure mt-3 text-ink">{turn.text}</p>
       {turn.note ? (
-        <p className="measure mt-4 rounded-card border-2 border-moderate bg-moderate-tint px-4 py-3 text-sm text-ink">
+        <p className="measure mt-4 rounded-card border border-moderate bg-moderate-tint px-4 py-3 text-sm text-ink">
           <span aria-hidden="true" className="mr-3 text-moderate">
             {String.fromCharCode(9651)}
           </span>

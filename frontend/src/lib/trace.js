@@ -1,23 +1,23 @@
 export const EVENT_STYLE = {
-  CALL_INITIATED: { color: '#b9a88f', label: 'call' },
-  CALL_CONNECTED: { color: '#8fd2e8', label: 'call' },
-  CALL_ENDED: { color: '#b9a88f', label: 'call' },
-  REMINDER_DUE: { color: '#fbf0e2', label: 'reminder' },
-  AGENT_SPEECH: { color: '#e0cba8', label: 'speech' },
-  PATIENT_SPEECH: { color: '#fbf0e2', label: 'speech' },
-  TIER_0_CHECK: { color: '#c6b29a', label: 'tier 0' },
-  TIER_0_MATCH: { color: '#f2b441', label: 'tier 0', flash: true, accent: true },
-  NORMALIZE: { color: '#8fd2e8', label: 'tier 1' },
+  CALL_INITIATED: { color: '#a9b6c6', label: 'call' },
+  CALL_CONNECTED: { color: '#8ecbe8', label: 'call' },
+  CALL_ENDED: { color: '#a9b6c6', label: 'call' },
+  REMINDER_DUE: { color: '#f1f5f9', label: 'reminder' },
+  AGENT_SPEECH: { color: '#cdd8e4', label: 'speech' },
+  PATIENT_SPEECH: { color: '#f1f5f9', label: 'speech' },
+  TIER_0_CHECK: { color: '#b3c0cf', label: 'tier 0' },
+  TIER_0_MATCH: { color: '#f0bd5e', label: 'tier 0', flash: true, accent: true },
+  NORMALIZE: { color: '#8ecbe8', label: 'tier 1' },
   TIER_1_CLASSIFY: { color: '#7ed9a8', label: 'tier 1', accent: true },
   ACTION_DECIDED: { color: '#ffa36b', label: 'action', accent: true },
-  TOOL_CALL: { color: '#d9c08e', label: 'tool' },
-  CLINIC_CALL_INITIATED: { color: '#8fd2e8', label: 'clinic call' },
-  CLINIC_AGENT_SPEECH: { color: '#e0cba8', label: 'clinic speech' },
-  CLINIC_DESK_SPEECH: { color: '#8fd2e8', label: 'clinic speech' },
-  CLINIC_CALL_ENDED: { color: '#b9a88f', label: 'clinic call' },
+  TOOL_CALL: { color: '#c8cfdb', label: 'tool' },
+  CLINIC_CALL_INITIATED: { color: '#8ecbe8', label: 'clinic call' },
+  CLINIC_AGENT_SPEECH: { color: '#cdd8e4', label: 'clinic speech' },
+  CLINIC_DESK_SPEECH: { color: '#8ecbe8', label: 'clinic speech' },
+  CLINIC_CALL_ENDED: { color: '#a9b6c6', label: 'clinic call' },
   BOOKING_CONFIRMED: { color: '#7ed9a8', label: 'booking' },
   PATIENT_CONFIRMED: { color: '#7ed9a8', label: 'confirm' },
-  BACKBOARD_WRITE: { color: '#c6b29a', label: 'memory' },
+  BACKBOARD_WRITE: { color: '#b3c0cf', label: 'memory' },
   EMERGENCY_ESCALATION: {
     color: '#ff968c',
     label: 'emergency',
@@ -27,7 +27,7 @@ export const EVENT_STYLE = {
   },
 }
 
-export const DEFAULT_STYLE = { color: '#c6b29a', label: 'event' }
+export const DEFAULT_STYLE = { color: '#b3c0cf', label: 'event' }
 
 export function styleFor(eventType) {
   return EVENT_STYLE[eventType] || DEFAULT_STYLE

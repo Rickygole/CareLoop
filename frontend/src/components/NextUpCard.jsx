@@ -25,17 +25,17 @@ export default function NextUpCard({ dose }) {
   return (
     <section
       aria-labelledby="next-call-heading"
-      className="enter-land ledge ledge-ink rounded-panel border-2 border-ink bg-sand px-7 py-9 text-ink sm:px-10 sm:py-11"
+      className="enter-land ledge-strong rounded-panel border border-line bg-brand-wash px-7 py-8 text-ink sm:px-10 sm:py-9"
     >
-      <h2 id="next-call-heading" className="smallcaps text-micro text-ink">
+      <h2 id="next-call-heading" className="smallcaps text-micro text-brand">
         CareLoop will phone you at
       </h2>
 
       <p className="mt-5 flex flex-wrap items-baseline gap-x-7 gap-y-4">
-        <span className="numeric display text-4xl text-ink">
+        <span className="numeric display text-3xl text-ink">
           {clockLabel(dose.time)}
         </span>
-        <span className="inline-flex min-h-[48px] items-center gap-3 rounded-control border-2 border-ink bg-surface px-5 py-2 text-sm font-bold text-ink">
+        <span className="inline-flex min-h-[48px] items-center gap-3 rounded-control border border-line bg-surface px-5 py-2 text-sm font-semibold text-ink">
           <span aria-hidden="true" className="leading-none">
             {meta.glyph}
           </span>

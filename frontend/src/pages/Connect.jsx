@@ -120,22 +120,22 @@ export default function ConnectPage() {
             <legend className="display text-xl text-ink">
               Who is this check-in for?
             </legend>
-            <p className="measure mt-3 text-ink-2">
-              CareLoop does not know yet. Pick the record it should read, and
-              every screen after this one belongs to that person.
+            <p className="measure mt-2 text-ink-2">
+              Pick the record CareLoop should read. Every screen after this one
+              belongs to that person.
             </p>
 
-            <div className="mt-8 grid gap-5 sm:grid-cols-2">
+            <div className="mt-6 grid gap-4 sm:grid-cols-2">
               {PATIENTS.map((person) => {
                 const chosen = person.id === patientId
                 return (
                   <label
                     key={person.id}
                     className={
-                      'pressable ledge block cursor-pointer rounded-card border-2 px-6 py-6 ' +
+                      'pressable block cursor-pointer rounded-card border px-6 py-5 ' +
                       (chosen
-                        ? 'ledge-ink border-ink bg-sand'
-                        : 'ledge-strong border-edge-strong bg-surface')
+                        ? 'ledge-strong border-brand bg-brand-wash'
+                        : 'ledge border-line bg-surface hover:border-line-strong')
                     }
                   >
                     <span className="flex items-baseline justify-between gap-4">
@@ -148,10 +148,10 @@ export default function ConnectPage() {
                         value={person.id}
                         checked={chosen}
                         onChange={() => choosePatient(person.id)}
-                        className="h-6 w-6 shrink-0 accent-[var(--ink)]"
+                        className="h-6 w-6 shrink-0 accent-[var(--color-brand)]"
                       />
                     </span>
-                    <span className="mt-4 block text-sm text-ink-2">
+                    <span className="mt-3 block text-sm text-ink-2">
                       Insured with {person.insurer}
                     </span>
                     <span className="mt-1 block text-sm text-ink-2">
@@ -161,11 +161,14 @@ export default function ConnectPage() {
                     </span>
                     <span
                       className={
-                        'smallcaps mt-5 block text-micro ' +
-                        (chosen ? 'text-ink' : 'text-ink-2 opacity-0')
+                        'smallcaps mt-4 flex items-center gap-2 text-micro ' +
+                        (chosen ? 'text-brand' : 'text-ink-2 opacity-0')
                       }
                       aria-hidden={!chosen}
                     >
+                      <span aria-hidden="true">
+                        {String.fromCharCode(10003)}
+                      </span>
                       Chosen
                     </span>
                   </label>
@@ -177,11 +180,11 @@ export default function ConnectPage() {
           <button
             type="button"
             onClick={() => setConsentOpen(true)}
-            className={BTN_HERO + ' mt-12 w-full sm:w-auto'}
+            className={BTN_HERO + ' mt-10 w-full sm:w-auto'}
           >
             Connect MyHealth for {patientName(patientId)}
           </button>
-          <p className="measure mt-5 text-ink-2">
+          <p className="measure mt-4 text-ink-2">
             MyHealth is the portal your pharmacy and your clinic already use.
             Nothing is read until you press Allow.
           </p>
@@ -214,7 +217,7 @@ export default function ConnectPage() {
       ) : null}
 
       {syncing ? (
-        <div className="on-ocean ledge ledge-ink rounded-panel border-2 border-ink bg-brand px-7 py-9 text-brand-ink sm:px-10 sm:py-12">
+        <div className="on-ocean ledge-strong rounded-panel bg-brand px-7 py-8 text-brand-ink sm:px-10 sm:py-10">
           <p
             aria-live="polite"
             aria-busy="true"
@@ -222,7 +225,7 @@ export default function ConnectPage() {
           >
             <span
               aria-hidden="true"
-              className="mt-2 text-[0.6em] text-sand"
+              className="mt-2 text-[0.6em] text-brand-ink"
               style={{ animation: 'live-pulse 1100ms ease-in-out infinite' }}
             >
               {LIVE}
@@ -236,12 +239,12 @@ export default function ConnectPage() {
             {SHARED_ITEMS.map((item, index) => (
               <li
                 key={item}
-                className="flex items-baseline gap-4 border-b-2 border-brand-ink/20 py-4 text-sm"
+                className="flex items-baseline gap-4 border-b border-brand-ink/25 py-4 text-sm"
               >
                 <span
                   aria-hidden="true"
                   className={
-                    index < landed ? 'text-sand' : 'text-brand-ink-2 opacity-60'
+                    index < landed ? 'text-brand-ink' : 'text-brand-ink-2 opacity-70'
                   }
                 >
                   {index < landed ? DONE : WAITING}
@@ -262,7 +265,7 @@ export default function ConnectPage() {
 
           {pulled.length ? (
             <div className="mt-10">
-              <h2 className="smallcaps text-micro text-sand">
+              <h2 className="smallcaps text-micro text-brand-ink-2">
                 Medicines pulled across, nobody typed these
               </h2>
 
@@ -270,7 +273,7 @@ export default function ConnectPage() {
                 {pulled.slice(0, landedMeds).map((name, index) => (
                   <li
                     key={name + index}
-                    className="enter-land ledge ledge-sand flex min-h-[64px] items-center gap-4 rounded-card bg-surface px-6 py-4"
+                    className="enter-land flex min-h-[64px] items-center gap-4 rounded-card bg-surface px-6 py-4"
                   >
                     <span aria-hidden="true" className="text-mild">
                       {DONE}
@@ -284,7 +287,7 @@ export default function ConnectPage() {
 
               <p
                 aria-live="polite"
-                className="numeric mt-6 text-sm font-bold text-sand"
+                className="numeric mt-6 text-sm font-semibold text-brand-ink"
               >
                 {landedMeds === pulled.length
                   ? 'All ' + pulled.length + ' received. Working out the call times now.'

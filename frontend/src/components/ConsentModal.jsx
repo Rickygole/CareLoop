@@ -74,9 +74,9 @@ export default function ConsentModal({ open, patientName, busy, onAllow, onDeny 
         aria-labelledby="consent-title"
         aria-describedby="consent-body"
         onKeyDown={handleKey}
-        className="enter-land my-auto w-full max-w-2xl overflow-hidden rounded-panel border-2 border-ink bg-surface shadow-modal"
+        className="enter-land my-auto w-full max-w-2xl overflow-hidden rounded-panel border border-line bg-surface shadow-modal"
       >
-        <div className="border-b-4 border-ink bg-sand px-7 py-7 sm:px-10">
+        <div className="border-b border-line bg-brand-wash px-7 py-6 sm:px-10">
           <p className="smallcaps text-micro text-ink">
             We ask before we read anything
           </p>
@@ -95,7 +95,7 @@ export default function ConsentModal({ open, patientName, busy, onAllow, onDeny 
               {SHARED_ITEMS.map((item) => (
                 <li
                   key={item}
-                  className="flex items-center gap-4 rounded-card border-2 border-edge-strong bg-sunken px-5 py-3.5 text-sm font-semibold text-ink"
+                  className="flex items-center gap-4 rounded-card border border-line bg-sunken px-5 py-3.5 text-sm font-semibold text-ink"
                 >
                   <span aria-hidden="true" className="text-brand">
                     {String.fromCharCode(9679)}
@@ -116,7 +116,7 @@ export default function ConsentModal({ open, patientName, busy, onAllow, onDeny 
           </p>
         </div>
 
-        <div className="flex flex-col-reverse gap-4 border-t-2 border-edge-strong bg-sunken px-7 py-7 sm:flex-row sm:justify-end sm:px-10">
+        <div className="flex flex-col-reverse gap-4 border-t border-line bg-sunken px-7 py-7 sm:flex-row sm:justify-end sm:px-10">
           <button type="button" onClick={onDeny} className={BTN_SECONDARY}>
             Deny
           </button>

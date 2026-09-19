@@ -9,7 +9,7 @@ const OPEN = String.fromCharCode(9675)
 const LOCKED = String.fromCharCode(8213)
 
 const CHIP =
-  'flex min-h-[52px] items-center gap-3 rounded-control px-5 py-2.5 text-sm font-bold'
+  'flex min-h-[48px] items-center gap-3 rounded-control px-4 py-2 text-sm font-semibold'
 
 export default function FlowNav() {
   const location = useLocation()
@@ -19,9 +19,9 @@ export default function FlowNav() {
   return (
     <nav
       aria-label="The five steps, in order"
-      className="border-b-4 border-ink bg-sand text-ink"
+      className="border-b border-line bg-surface text-ink"
     >
-      <ol className="hold flex flex-wrap items-center gap-x-3 gap-y-3 py-5">
+      <ol className="hold flex flex-wrap items-center gap-x-2 gap-y-2 py-3">
         {SCREENS.map((screen, position) => {
           const current = position === index
           const done = position < index
@@ -64,12 +64,12 @@ export default function FlowNav() {
                 aria-current={current ? 'step' : undefined}
                 className={
                   CHIP +
-                  ' pressable ledge ' +
+                  ' pressable ' +
                   (current
-                    ? 'ledge-ink bg-brand text-brand-ink'
+                    ? 'bg-brand text-brand-ink'
                     : done
-                      ? 'ledge-strong border-2 border-ink bg-surface text-ink hover:bg-sunken'
-                      : 'ledge-strong border-2 border-ink/40 bg-surface/70 text-ink-2 hover:border-ink hover:text-ink')
+                      ? 'border border-line bg-surface text-ink hover:bg-sunken'
+                      : 'border border-line bg-surface text-ink-2 hover:border-line-strong hover:text-ink')
                 }
               >
                 {inner}
@@ -96,12 +96,12 @@ export function FlowPager() {
   if (!connected && index === 0) return null
 
   return (
-    <nav aria-label="Move between the five steps" className="mt-24">
+    <nav aria-label="Move between the five steps" className="mt-16">
       <div className="flex flex-col gap-6 sm:flex-row sm:items-stretch sm:justify-between">
         {back ? (
             <Link
               to={back.path}
-              className="pressable ledge ledge-strong flex min-h-[64px] flex-col justify-center rounded-card border-2 border-ink bg-surface px-7 py-4 text-ink hover:bg-sunken"
+              className="pressable ledge flex min-h-[64px] flex-col justify-center rounded-card border border-line bg-surface px-6 py-4 text-ink hover:bg-sunken"
             >
               <span className="smallcaps text-micro text-ink-2">Back to</span>
               <span className="display-tight mt-1 text-lg">
@@ -115,9 +115,9 @@ export function FlowPager() {
         {forward ? (
             <Link
               to={forward.path}
-              className="pressable ledge ledge-ink flex min-h-[64px] max-w-[30rem] flex-col justify-center rounded-card bg-brand px-7 py-5 text-brand-ink hover:bg-brand-deep"
+              className="pressable ledge flex min-h-[64px] max-w-[30rem] flex-col justify-center rounded-card bg-brand px-6 py-5 text-brand-ink hover:bg-brand-deep"
             >
-              <span className="smallcaps text-micro text-sand">
+              <span className="smallcaps text-micro text-brand-ink-2">
                 Next
               </span>
               <span className="display-tight mt-1 text-lg">

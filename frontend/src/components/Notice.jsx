@@ -30,7 +30,7 @@ const TONES = {
   quiet: {
     word: '',
     glyph: String.fromCharCode(8213),
-    skin: 'border-edge-strong bg-sunken',
+    skin: 'border-line bg-sunken',
     ledge: 'ledge-strong',
     accent: 'text-ink-2',
   },
@@ -51,7 +51,7 @@ export default function Notice({
     <div
       role={role}
       className={
-        'ledge rounded-card border-2 px-6 py-5 ' +
+        'ledge rounded-card border px-6 py-5 ' +
         meta.skin +
         ' ' +
         meta.ledge +

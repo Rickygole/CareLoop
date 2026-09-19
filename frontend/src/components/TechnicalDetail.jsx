@@ -23,7 +23,7 @@ export default function TechnicalDetail({ events, status, retries, maxRetries })
   const hidden = events.length - visible.length
 
   return (
-    <details className="console-scope ledge ledge-night mt-10 overflow-hidden rounded-panel border-2 border-ink bg-console-bg text-console-ink">
+    <details className="console-scope ledge ledge-night mt-10 overflow-hidden rounded-panel border border-console-line bg-console-bg text-console-ink">
       <summary className="cursor-pointer list-none px-6 py-6 marker:content-none sm:px-9">
         <span className="smallcaps text-micro text-console-accent">
           For the engineers
@@ -36,7 +36,7 @@ export default function TechnicalDetail({ events, status, retries, maxRetries })
         </span>
       </summary>
 
-      <div className="border-t-2 border-console-line px-3 py-5 sm:px-6">
+      <div className="border-t border-console-line px-3 py-5 sm:px-6">
         {hidden > 0 ? (
           <p className="numeric px-4 pb-4 font-mono text-trace text-console-muted">
             {hidden} earlier entries not shown

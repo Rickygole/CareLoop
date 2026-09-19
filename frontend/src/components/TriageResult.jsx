@@ -45,7 +45,7 @@ export default function TriageResult({ result, latencyMs, booking }) {
     return (
       <section
         aria-labelledby="verdict-heading"
-        className="enter-verdict ledge ledge-ink overflow-hidden rounded-panel border-2 border-ink bg-surface px-6 py-9 sm:px-10 sm:py-12"
+        className="enter-verdict ledge ledge-ink overflow-hidden rounded-panel border border-line bg-surface px-6 py-9 sm:px-10 sm:py-12"
       >
         <p className="smallcaps text-micro text-ink-2">What CareLoop decided</p>
         <h2
@@ -68,7 +68,7 @@ export default function TriageResult({ result, latencyMs, booking }) {
   return (
     <section
       aria-labelledby="verdict-heading"
-      className="enter-verdict ledge ledge-ink relative overflow-hidden rounded-panel border-2 border-ink bg-surface"
+      className="enter-verdict ledge ledge-ink relative overflow-hidden rounded-panel border border-line bg-surface"
     >
       <span
         aria-hidden="true"
@@ -96,7 +96,7 @@ export default function TriageResult({ result, latencyMs, booking }) {
 
         {emergency ? (
           <p
-            className="ledge mt-8 flex items-start gap-4 rounded-card border-2 px-6 py-5 text-lg font-bold text-ink"
+            className="ledge mt-8 flex items-start gap-4 rounded-card border px-6 py-5 text-lg font-bold text-ink"
             style={{ borderColor: meta.rail, '--ledge': meta.rail }}
           >
             <span aria-hidden="true" className="leading-[1.5] text-emergency">
@@ -110,7 +110,7 @@ export default function TriageResult({ result, latencyMs, booking }) {
           </p>
         ) : null}
 
-        <div className="ledge ledge-strong mt-9 rounded-card border-2 border-edge-strong bg-sunken px-6 py-6 sm:px-8">
+        <div className="ledge ledge-strong mt-9 rounded-card border border-line bg-sunken px-6 py-6 sm:px-8">
           <p className="smallcaps text-micro text-clay">
             What CareLoop said to you
           </p>
@@ -130,7 +130,7 @@ export default function TriageResult({ result, latencyMs, booking }) {
         ) : null}
       </div>
 
-      <div className="border-t-2 border-edge-strong bg-sunken px-6 py-7 sm:px-10">
+      <div className="border-t border-line bg-sunken px-6 py-7 sm:px-10">
         <dl className="flex flex-wrap gap-x-14 gap-y-6">
           <Fact
             label="Severity recorded"

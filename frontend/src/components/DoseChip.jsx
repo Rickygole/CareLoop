@@ -4,9 +4,9 @@ import { doseMeta } from '../lib/dose.js'
 const SKIN = {
   taken: 'border-mild bg-mild-tint',
   due_now: 'border-brand bg-brand-tint',
-  due_soon: 'border-edge-strong bg-sunken',
+  due_soon: 'border-line bg-sunken',
   missed: 'border-severe bg-severe-tint',
-  upcoming: 'border-edge-strong bg-sunken',
+  upcoming: 'border-line bg-sunken',
 }
 
 export default function DoseChip({ dose, size = 'base' }) {
@@ -16,7 +16,7 @@ export default function DoseChip({ dose, size = 'base' }) {
   return (
     <span
       className={
-        'inline-flex items-center gap-3 rounded-control border-2 font-semibold text-ink ' +
+        'inline-flex items-center gap-3 rounded-control border font-semibold text-ink ' +
         skin +
         ' ' +
         (size === 'sm'

@@ -24,7 +24,7 @@ export default function CallSchedule({ plan, flash }) {
             return (
               <li
                 key={dose.medication_id + dose.time}
-                className="enter-fade flex flex-wrap items-baseline gap-x-3 gap-y-1 rounded-card border-2 border-edge-strong bg-sunken px-4 py-3"
+                className="enter-fade flex flex-wrap items-baseline gap-x-3 gap-y-1 rounded-card border border-line bg-sunken px-4 py-3"
                 style={{ '--i': index }}
               >
                 <span aria-hidden="true" className={'leading-none ' + meta.tone}>

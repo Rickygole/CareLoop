@@ -74,7 +74,7 @@ export default function DecisionPage() {
             <h3 className="smallcaps text-micro text-clay">
               Written down in clinical terms as
             </h3>
-            <p className="display-tight measure mt-4 rounded-card border-2 border-edge-strong bg-sunken px-6 py-5 text-lg text-ink">
+            <p className="display-tight measure mt-4 rounded-card border border-line bg-sunken px-6 py-5 text-lg text-ink">
               {triage.normalized_text}
             </p>
             <p className="measure mt-4 text-sm text-ink-2">
