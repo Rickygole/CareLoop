@@ -66,7 +66,7 @@ export const LOOP_STEPS = [
     title: 'Confirm and remember',
     detail: 'The next call starts knowing what happened on this one.',
     patientDetail: 'The next call starts knowing what happened on this one.',
-    events: ['BACKBOARD_WRITE', 'PATIENT_CONFIRMED', 'CALL_ENDED'],
+    events: ['MEMORY_WRITE', 'PATIENT_CONFIRMED', 'CALL_ENDED'],
   },
 ]
 

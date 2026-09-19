@@ -143,7 +143,7 @@ EVENT_TYPES = {
     "ACTION_DECIDED",
     "TOOL_CALL",
     "BOOKING_CONFIRMED",
-    "BACKBOARD_WRITE",
+    "MEMORY_WRITE",
     "EMERGENCY_ESCALATION",
 }
 
@@ -714,7 +714,7 @@ async def run_loop(
     }
     session.memory.append_episode(body.patient_id, episode)
 
-    await session.bus.emit("BACKBOARD_WRITE", {
+    await session.bus.emit("MEMORY_WRITE", {
         "patient_id": body.patient_id, "tier": result["tier"],
     })
     await session.bus.emit("CALL_ENDED", {"patient_id": body.patient_id})
@@ -759,8 +759,6 @@ def patient_escalations(patient_id: str, session: SessionState = Depends(get_ses
 EXPECTED_ENV_KEYS = [
     "GEMINI_API_KEY",
     "GEMINI_MODEL",
-    "ELEVENLABS_API_KEY",
-    "BACKBOARD_API_KEY",
     "CARELOOP_WEBHOOK_SECRET",
     "TWILIO_ACCOUNT_SID",
     "TWILIO_AUTH_TOKEN",

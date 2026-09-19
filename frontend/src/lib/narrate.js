@@ -110,7 +110,7 @@ export function sentenceFor(event) {
       }
     case 'PATIENT_CONFIRMED':
       return { text: 'CareLoop told you ' + quoted(humanizeTimes(p.text)), tone: 'said' }
-    case 'BACKBOARD_WRITE':
+    case 'MEMORY_WRITE':
       return { text: 'Saved to your record, so the next call already knows.' }
     case 'CALL_ENDED':
       return { text: 'The call ended.' }

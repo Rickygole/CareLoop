@@ -17,7 +17,7 @@ export const EVENT_STYLE = {
   CLINIC_CALL_ENDED: { color: '#a9b6c6', label: 'clinic call' },
   BOOKING_CONFIRMED: { color: '#7ed9a8', label: 'booking' },
   PATIENT_CONFIRMED: { color: '#7ed9a8', label: 'confirm' },
-  BACKBOARD_WRITE: { color: '#b3c0cf', label: 'memory' },
+  MEMORY_WRITE: { color: '#b3c0cf', label: 'memory' },
   EMERGENCY_ESCALATION: {
     color: '#ff968c',
     label: 'emergency',
