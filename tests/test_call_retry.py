@@ -29,9 +29,10 @@ def wires(monkeypatch):
 
 
 def report(client, session, status, call_sid, attempt=1, sign=True):
-    query = f"/voice/checkin/status?patient_id=p1&attempt={attempt}"
+    nonce = main._issue_callback_nonce(main.SESSIONS.get(session), attempt)
+    query = f"/voice/checkin/status?patient_id=p1&attempt={attempt}&nonce={nonce}"
     if sign:
-        query += "&sig=" + main._callback_signature("p1", session, attempt)
+        query += "&sig=" + main._callback_signature("p1", session, attempt, nonce)
     return client.post(
         query,
         data={"CallStatus": status, "CallDuration": "4", "CallSid": call_sid},
@@ -102,9 +103,10 @@ def test_an_unsigned_callback_sends_nothing_at_all(configured, wires):
 
 def test_a_callback_signed_for_another_session_sends_nothing(configured, wires):
     client = TestClient(main.app)
-    sig = main._callback_signature("p1", "some-other-session", 1)
+    nonce = main._issue_callback_nonce(main.SESSIONS.get("retry-wrong-session"), 1)
+    sig = main._callback_signature("p1", "some-other-session", 1, nonce)
     r = client.post(
-        f"/voice/checkin/status?patient_id=p1&attempt=1&sig={sig}",
+        f"/voice/checkin/status?patient_id=p1&attempt=1&nonce={nonce}&sig={sig}",
         data={"CallStatus": "no-answer"},
         headers={"X-CareLoop-Session": "retry-wrong-session"},
     )

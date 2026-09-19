@@ -1,6 +1,7 @@
 import asyncio
 import json
 import os
+import secrets
 import threading
 import time
 import uuid
@@ -45,7 +46,7 @@ import portal
 from providers import find_provider, specialties
 from scheduler import build_day_plan
 from responses import suggested_response
-from triage_engine import Severity, triage
+from triage_engine import CRISIS_RULES, Severity, detect_emergency, triage
 
 app = FastAPI(
     title="CareLoop API",
@@ -68,6 +69,19 @@ SESSION_HEADER = "X-CareLoop-Session"
 SESSION_QUERY_PARAM = "session_id"
 SESSION_CAPACITY = 200
 SESSION_IDLE_SECONDS = 1800
+ANSWERED_CALL_CAPACITY = 64
+CALLBACK_NONCE_CAPACITY = 64
+CONSUMED_CALLBACK_CAPACITY = 64
+SMS_MAX_CHARS = 320
+SMS_MAX_NAME_CHARS = 24
+MAX_DOSE_HOURS_PER_MEDICATION = 6
+
+
+def _remember_bounded(store: Dict[str, bool], key: str, capacity: int) -> None:
+    store.pop(key, None)
+    store[key] = True
+    while len(store) > capacity:
+        store.pop(next(iter(store)))
 
 
 def load_patients() -> Dict[str, dict]:
@@ -170,7 +184,9 @@ class SessionState:
         self.memory = InMemoryBackend()
         self.escalations: Dict[str, List[dict]] = {}
         self.regimen_snapshots: Dict[str, List[dict]] = {}
-        self.answered_calls: set = set()
+        self.answered_calls: Dict[str, bool] = {}
+        self.callback_nonces: Dict[str, bool] = {}
+        self.consumed_callbacks: Dict[str, bool] = {}
         self.call_state: Dict[str, dict] = {}
         self.bus = TraceBus()
         self.call_limiter = telephony.CallLimiter()
@@ -769,6 +785,16 @@ async def add_medication(body: AddMedicationRequest, session: SessionState = Dep
     if patient is None:
         raise HTTPException(404, "unknown_patient")
 
+    hours = list(body.preferred_hours or [8])
+    if len(hours) > MAX_DOSE_HOURS_PER_MEDICATION or any(
+        not isinstance(hour, int) or hour < 0 or hour > 23 for hour in hours
+    ):
+        raise HTTPException(
+            400,
+            "preferred_hours must be at most "
+            f"{MAX_DOSE_HOURS_PER_MEDICATION} whole hours between 0 and 23",
+        )
+
     before_hash = regimen_hash(patient["medication_requests"])
     new_id = f"med-{len(patient['medication_requests']) + 1}-{body.patient_id}"
     patient["medication_requests"] = patient["medication_requests"] + [{
@@ -776,8 +802,7 @@ async def add_medication(body: AddMedicationRequest, session: SessionState = Dep
         "medication": body.medication,
         "dosage_text": body.dosage_text,
         "frequency": body.frequency,
-        "timing": {"times_per_day": len(body.preferred_hours),
-                   "preferred_hours": body.preferred_hours},
+        "timing": {"times_per_day": len(hours), "preferred_hours": hours},
         "prescriber": body.prescriber,
         "status": "active",
         "start_date": datetime.now(timezone.utc).date().isoformat(),
@@ -842,6 +867,14 @@ CHECKIN_NO_ANSWER = (
     "remember to take your {medication}. Goodbye for now."
 )
 
+CHECKIN_NO_ANSWER_FLAGGED = (
+    "I did not hear anything, so I will send you a text instead. I am not "
+    "asking you to take your {medication} right now, because something on "
+    "your medication list is worth asking your prescriber or pharmacist "
+    "about first. Please do not start, stop or change anything because of "
+    "this call. Goodbye for now."
+)
+
 CHECKIN_SMS = (
     "Hi {patient_first_name}, this is CareLoop. We could not reach you by "
     "phone. This is a reminder to take your {medication}. Automated message "
@@ -869,6 +902,12 @@ CHECKIN_CRISIS_HOLD = (
 
 CHECKIN_EMERGENCY_CLOSING = (
     "Please do that now. I am ending this call so your line is free."
+)
+
+CHECKIN_TRIAGE_UNAVAILABLE = (
+    "Thank you. I could not finish checking that just now, so I have not "
+    "made a note of it. If you feel unwell, please contact your prescriber. "
+    "In an emergency call 911. Goodbye for now."
 )
 
 MAX_CALL_ATTEMPTS = 3
@@ -1053,9 +1092,23 @@ async def voice_checkin(
             )
         )
         + "</Gather>"
-        + _say(CHECKIN_NO_ANSWER.format(medication=medication))
+        + _say(
+            (CHECKIN_NO_ANSWER_FLAGGED if flagged else CHECKIN_NO_ANSWER).format(
+                medication=medication,
+            )
+        )
         + "<Hangup/>"
     )
+
+
+def _fallback_twiml_body(transcript: str) -> str:
+    if CRISIS_RULES.intersection(detect_emergency(transcript)):
+        return (
+            _say(CHECKIN_CRISIS_HOLD)
+            + '<Pause length="10"/>'
+            + _say(CHECKIN_CRISIS_HOLD)
+        )
+    return _say(CHECKIN_TRIAGE_UNAVAILABLE) + "<Hangup/>"
 
 
 async def _record_voice_escalation(session: SessionState, patient_id: str, result: dict) -> None:
@@ -1091,20 +1144,29 @@ async def voice_checkin_respond(
     fields = dict(parse_qsl(raw_body))
     transcript = (fields.get("SpeechResult") or "").strip()
     if not transcript:
+        silent_template = (
+            CHECKIN_NO_ANSWER_FLAGGED if _next_dose_is_flagged(patient) else CHECKIN_NO_ANSWER
+        )
         return _twiml(
-            _say(CHECKIN_NO_ANSWER.format(medication=_spoken_medication(patient)))
+            _say(silent_template.format(medication=_spoken_medication(patient)))
             + "<Hangup/>"
         )
 
     call_sid = (fields.get("CallSid") or "").strip()
     if call_sid:
-        session.answered_calls.add(call_sid)
+        _remember_bounded(session.answered_calls, call_sid, ANSWERED_CALL_CAPACITY)
     _set_call_state(session, "checkin", phase=CALL_PHASE_ANSWERED, call_sid=call_sid or None)
 
-    result = await run_triage(session, transcript, patient_id)
+    try:
+        result = await run_triage(session, transcript, patient_id)
+    except Exception:
+        return _twiml(_fallback_twiml_body(transcript))
 
     if result["is_crisis"]:
-        await _record_voice_escalation(session, patient_id, result)
+        try:
+            await _record_voice_escalation(session, patient_id, result)
+        except Exception:
+            pass
         return _twiml(
             _say(result["suggested_agent_response"])
             + '<Pause length="3"/>'
@@ -1114,7 +1176,10 @@ async def voice_checkin_respond(
         )
 
     if result["is_emergency"]:
-        await _record_voice_escalation(session, patient_id, result)
+        try:
+            await _record_voice_escalation(session, patient_id, result)
+        except Exception:
+            pass
         return _twiml(
             _say(result["suggested_agent_response"])
             + '<Pause length="1"/>'
@@ -1136,9 +1201,10 @@ async def voice_checkin_status(
     patient_id: str = DEFAULT_DEMO_PATIENT_ID,
     attempt: int = 1,
     sig: str = "",
+    nonce: str = "",
     session: SessionState = Depends(get_session),
 ):
-    if not _callback_signature_valid(patient_id, session.session_id, attempt, sig):
+    if not _callback_signature_valid(patient_id, session.session_id, attempt, nonce, sig):
         raise HTTPException(403, "bad_callback_signature")
 
     attempt = max(1, min(int(attempt), MAX_CALL_ATTEMPTS))
@@ -1151,6 +1217,9 @@ async def voice_checkin_status(
         duration = int(fields.get("CallDuration") or 0)
     except ValueError:
         duration = 0
+
+    if not _consume_callback(session, nonce, call_sid, attempt):
+        return Response(status_code=204)
 
     engaged = bool(call_sid) and call_sid in session.answered_calls
     picked_up = engaged and not answered_by.startswith("machine")
@@ -1170,16 +1239,22 @@ async def voice_checkin_status(
     first_name = _first_name(patient)
     medication = _spoken_medication(patient)
     flagged = _next_dose_is_flagged(patient)
-    template = CHECKIN_SMS_FLAGGED if flagged else CHECKIN_SMS
-    body = template.format(patient_first_name=first_name, medication=medication)
+    body = _sms_body(
+        CHECKIN_SMS_FLAGGED if flagged else CHECKIN_SMS, first_name, medication,
+    )
 
     to = telephony.demo_phone_number()
-    sent = telephony.send_sms(to, body)
+    if not session.call_limiter.allow():
+        sent = {"ok": False, "sid": None, "error": "text_rate_limited"}
+    else:
+        sent = telephony.send_sms(to, body)
+        session.call_limiter.record()
 
     _set_call_state(
         session, "checkin",
         phase=CALL_PHASE_TEXTED if sent["ok"] else CALL_PHASE_GAVE_UP,
         attempt=attempt, last_status=status, message_sid=sent.get("sid"),
+        error=sent.get("error"),
     )
     await session.bus.emit(
         "TEXT_MESSAGE_SENT" if sent["ok"] else "TEXT_MESSAGE_FAILED",
@@ -1226,19 +1301,61 @@ def _authorize_call(supplied: Optional[str]) -> None:
         raise HTTPException(401, "unauthorized")
 
 
-def _callback_signature(patient_id: str, session_id: str, attempt: int) -> str:
+EPHEMERAL_CALLBACK_SECRET = secrets.token_hex(32)
+
+
+def _callback_secret() -> bytes:
+    return (CALL_TOKEN or WEBHOOK_SECRET or EPHEMERAL_CALLBACK_SECRET).encode("utf-8")
+
+
+def callback_signing_mode() -> str:
+    return "configured" if (CALL_TOKEN or WEBHOOK_SECRET) else "ephemeral"
+
+
+def _callback_signature(patient_id: str, session_id: str, attempt: int, nonce: str) -> str:
     import hashlib
     import hmac
 
-    secret = (CALL_TOKEN or WEBHOOK_SECRET or "careloop-unsigned").encode("utf-8")
-    basis = f"{patient_id}|{session_id}|{attempt}".encode("utf-8")
-    return hmac.new(secret, basis, hashlib.sha256).hexdigest()[:32]
+    basis = f"{patient_id}|{session_id}|{attempt}|{nonce}".encode("utf-8")
+    return hmac.new(_callback_secret(), basis, hashlib.sha256).hexdigest()[:32]
 
 
-def _callback_signature_valid(patient_id: str, session_id: str, attempt: int, sig: str) -> bool:
+def _callback_signature_valid(
+    patient_id: str, session_id: str, attempt: int, nonce: str, sig: str,
+) -> bool:
     import hmac
 
-    return hmac.compare_digest(_callback_signature(patient_id, session_id, attempt), sig or "")
+    expected = _callback_signature(patient_id, session_id, attempt, nonce)
+    return hmac.compare_digest(expected, sig or "")
+
+
+def _issue_callback_nonce(session: SessionState, attempt: int) -> str:
+    nonce = secrets.token_urlsafe(12)
+    _remember_bounded(session.callback_nonces, nonce, CALLBACK_NONCE_CAPACITY)
+    return nonce
+
+
+def _consume_callback(session: SessionState, nonce: str, call_sid: str, attempt: int) -> bool:
+    key = f"{call_sid}|{attempt}"
+    if key in session.consumed_callbacks:
+        return False
+    if not nonce or nonce not in session.callback_nonces:
+        return False
+    session.callback_nonces.pop(nonce, None)
+    _remember_bounded(session.consumed_callbacks, key, CONSUMED_CALLBACK_CAPACITY)
+    return True
+
+
+def _one_line(text: str) -> str:
+    return " ".join((text or "").split())
+
+
+def _sms_body(template: str, first_name: str, medication: str) -> str:
+    skeleton = len(template.format(patient_first_name="", medication=""))
+    room = max(0, SMS_MAX_CHARS - skeleton)
+    name = _one_line(first_name)[: min(SMS_MAX_NAME_CHARS, room)]
+    medication = _one_line(medication)[: max(0, room - len(name))]
+    return template.format(patient_first_name=name, medication=medication)
 
 
 def _dial_checkin(
@@ -1247,10 +1364,12 @@ def _dial_checkin(
     twiml_url = base_url + "/voice/checkin?" + urlencode({
         "patient_id": patient_id, SESSION_QUERY_PARAM: session.session_id,
     })
+    nonce = _issue_callback_nonce(session, attempt)
     status_url = base_url + "/voice/checkin/status?" + urlencode({
         "patient_id": patient_id,
         "attempt": attempt,
-        "sig": _callback_signature(patient_id, session.session_id, attempt),
+        "nonce": nonce,
+        "sig": _callback_signature(patient_id, session.session_id, attempt, nonce),
         SESSION_QUERY_PARAM: session.session_id,
     })
     return telephony.place_call(to, twiml_url=twiml_url, status_callback=status_url)
@@ -1489,6 +1608,7 @@ def health():
         "gemini_key_length": len(key),
         "model": os.environ.get("GEMINI_MODEL") or DEFAULT_MODEL,
         "env": {name: describe_env(name) for name in EXPECTED_ENV_KEYS},
+        "callback_signing": callback_signing_mode(),
         "telephony_configured": telephony.is_configured(),
         "telephony_missing": telephony.missing_env_vars(),
         "runtime": os.environ.get("VERCEL_ENV", "local"),

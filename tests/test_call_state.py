@@ -37,9 +37,10 @@ def ring(client, session):
 
 
 def report(client, session, attempt, status, call_sid):
-    sig = main._callback_signature("p1", session, attempt)
+    nonce = main._issue_callback_nonce(main.SESSIONS.get(session), attempt)
+    sig = main._callback_signature("p1", session, attempt, nonce)
     return client.post(
-        f"/voice/checkin/status?patient_id=p1&attempt={attempt}&sig={sig}",
+        f"/voice/checkin/status?patient_id=p1&attempt={attempt}&nonce={nonce}&sig={sig}",
         data={"CallStatus": status, "CallDuration": "4", "CallSid": call_sid},
         headers={"X-CareLoop-Session": session},
     )
