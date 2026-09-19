@@ -50,6 +50,18 @@ function runLabel(stamp) {
 
 export default function FairnessChart() {
   const [grown, setGrown] = useState(false)
+  const headline = (() => {
+    const rows = (evalResults.results || []).filter(
+      (r) => String(r.category || '').toLowerCase().includes('casual and dialect'),
+    )
+    if (rows.length < 2) return null
+    const full = rows.find((r) => r.arm === 'full')
+    const others = rows.filter((r) => r.arm !== 'full').map((r) => r.value)
+    if (!full || !others.length) return null
+    if (full.value <= Math.min(...others)) return null
+    return { full: full.value, best: Math.min(...others) }
+  })()
+
   const placeholder = Boolean(evalResults.placeholder)
 
   useEffect(() => {
@@ -92,7 +104,26 @@ export default function FairnessChart() {
         </h2>
         <Rule tone="sand" />
 
-        <p className="measure mt-8 text-ink-2">{evalResults.metric_label}</p>
+        {headline ? (
+          <div className="mt-8 rounded-card border-l-8 border border-l-moderate border-line bg-surface px-7 py-6">
+            <p className="smallcaps flex items-center gap-3 text-micro text-moderate">
+              <span aria-hidden="true">{String.fromCharCode(9670)}</span>
+              <span>What the test found, against us</span>
+            </p>
+            <p className="display-tight measure mt-4 text-2xl text-ink">
+              On casual and dialect phrasing CareLoop raised{' '}
+              {Math.round(headline.full * 100)} percent of moderate cases too
+              high, against {Math.round(headline.best * 100)} percent for the
+              simpler baselines.
+            </p>
+            <p className="measure mt-4 text-ink-2">
+              We wrote down what would count as failure before we looked, so we
+              report this. It is also why the emergency floor is a fixed rule
+              and not a model: the rule can raise what the model says and can
+              never lower it.
+            </p>
+          </div>
+        ) : null}
         {placeholder ? (
           <p className="mt-4 text-sm font-semibold text-moderate">
             The test has not been run yet, so every bar is empty on purpose.
