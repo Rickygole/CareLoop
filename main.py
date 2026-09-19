@@ -547,4 +547,9 @@ def health():
         "gemini_key_length": len(key),
         "model": os.environ.get("GEMINI_MODEL") or DEFAULT_MODEL,
         "env_keys_present": [k for k in EXPECTED_ENV_KEYS if os.environ.get(k)],
+        "env_namespace": sorted(
+            k for k in os.environ
+            if not k.startswith(("AWS_", "LAMBDA_", "_", "LD_", "PATH", "LANG", "TZ"))
+        )[:40],
+        "runtime": os.environ.get("VERCEL_ENV", "local"),
     }
