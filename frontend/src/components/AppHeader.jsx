@@ -4,40 +4,48 @@ import ApiStatus from './ApiStatus.jsx'
 
 function Wordmark() {
   return (
-    <span className="inline-flex items-center gap-2.5">
-      <svg width="26" height="26" viewBox="0 0 32 32" aria-hidden="true">
-        <rect width="32" height="32" rx="8" fill="#0F766E" />
+    <span className="inline-flex items-baseline gap-2.5">
+      <svg
+        width="22"
+        height="22"
+        viewBox="0 0 24 24"
+        aria-hidden="true"
+        className="translate-y-[3px]"
+      >
+        <rect width="24" height="24" rx="6" fill="#0F766E" />
         <path
-          d="M9 17.5h3.2l1.6-4.4 2.6 8 2-5.2h4.6"
+          d="M5 13h2.6l1.3-4 2.2 7.4 1.7-4.8 1 1.4H19"
           fill="none"
-          stroke="#fff"
-          strokeWidth="2.2"
+          stroke="#ffffff"
+          strokeWidth="1.8"
           strokeLinecap="round"
           strokeLinejoin="round"
         />
       </svg>
-      <span className="text-base font-semibold tracking-tight">CareLoop</span>
+      <span className="font-display text-xl font-semibold tracking-[-0.01em] text-ink">
+        CareLoop
+      </span>
     </span>
   )
 }
 
 export default function AppHeader({ right }) {
   return (
-    <header className="sticky top-0 z-30 border-b border-line bg-surface/85 backdrop-blur">
-      <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-6 py-3.5">
+    <header className="sticky top-0 z-30 border-b border-line bg-surface">
+      <div className="mx-auto flex h-16 max-w-5xl items-center justify-between gap-4 px-6">
         <div className="flex items-center gap-4">
           <Wordmark />
-          <span className="hidden rounded-full bg-sunken px-2 py-0.5 text-2xs font-medium uppercase tracking-wide text-muted sm:inline">
+          <span className="hidden border-l border-line pl-4 text-micro font-semibold uppercase text-muted sm:inline">
             Research prototype
           </span>
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-5">
           {right}
           <ApiStatus />
           <Link
             to="/admin-demo"
-            className="rounded-[8px] px-2 py-1 text-sm font-medium text-brand transition-colors duration-150 hover:bg-brand-tint"
+            className="rounded-control px-2.5 py-1.5 text-sm font-medium text-brand underline decoration-brand/30 decoration-1 underline-offset-4 transition-colors duration-150 hover:bg-brand-tint hover:decoration-brand"
           >
             Judge console
           </Link>

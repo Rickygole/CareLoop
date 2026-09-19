@@ -6,9 +6,12 @@ export const CONSOLE_DISCLAIMER =
 
 export function DashboardFooter() {
   return (
-    <footer className="border-t border-line bg-surface">
-      <div className="mx-auto max-w-5xl px-6 py-5">
-        <p className="max-w-[70ch] text-xs leading-relaxed text-muted">
+    <footer className="mt-16 border-t border-line bg-surface">
+      <div className="mx-auto max-w-5xl px-6 py-7">
+        <p className="text-micro font-semibold uppercase text-muted">
+          Important
+        </p>
+        <p className="mt-2 max-w-[72ch] text-2xs leading-relaxed text-muted">
           {DASHBOARD_DISCLAIMER}
         </p>
       </div>
@@ -18,8 +21,11 @@ export function DashboardFooter() {
 
 export function ConsoleNotice() {
   return (
-    <p className="flex items-start gap-2 text-xs leading-relaxed text-console-muted">
-      <span aria-hidden="true" className="font-mono text-moderate">
+    <p className="flex items-center gap-2.5 rounded-control border border-dark-moderate/25 bg-dark-moderate/8 px-3.5 py-2.5 text-2xs leading-relaxed text-console-ink-2">
+      <span
+        aria-hidden="true"
+        className="shrink-0 font-mono text-2xs font-bold text-dark-moderate"
+      >
         [!]
       </span>
       <span>{CONSOLE_DISCLAIMER}</span>

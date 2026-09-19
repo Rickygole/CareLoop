@@ -1,26 +1,27 @@
 export const EVENT_STYLE = {
-  CALL_INITIATED: { color: '#7DD3FC', label: 'call' },
-  CALL_CONNECTED: { color: '#38BDF8', label: 'call' },
-  CALL_ENDED: { color: '#64748B', label: 'call' },
-  AGENT_SPEECH: { color: '#A78BFA', label: 'speech' },
-  PATIENT_SPEECH: { color: '#E5E7EB', label: 'speech' },
-  TIER_0_CHECK: { color: '#94A3B8', label: 'tier 0' },
-  TIER_0_MATCH: { color: '#FBBF24', label: 'tier 0', flash: true },
-  NORMALIZE: { color: '#22D3EE', label: 'tier 1' },
-  TIER_1_CLASSIFY: { color: '#4ADE80', label: 'tier 1' },
-  ACTION_DECIDED: { color: '#F472B6', label: 'action' },
-  TOOL_CALL: { color: '#C084FC', label: 'tool' },
-  BOOKING_CONFIRMED: { color: '#2DD4BF', label: 'booking' },
-  BACKBOARD_WRITE: { color: '#A3A3A3', label: 'memory' },
+  CALL_INITIATED: { color: '#7B8C9E', label: 'call' },
+  CALL_CONNECTED: { color: '#4FA8C9', label: 'call' },
+  CALL_ENDED: { color: '#778799', label: 'call' },
+  AGENT_SPEECH: { color: '#A695CB', label: 'speech' },
+  PATIENT_SPEECH: { color: '#E9E3D7', label: 'speech' },
+  TIER_0_CHECK: { color: '#8A9AAB', label: 'tier 0' },
+  TIER_0_MATCH: { color: '#E3A13B', label: 'tier 0', flash: true, accent: true },
+  NORMALIZE: { color: '#4FA8C9', label: 'tier 1' },
+  TIER_1_CLASSIFY: { color: '#63C9AC', label: 'tier 1', accent: true },
+  ACTION_DECIDED: { color: '#D2694B', label: 'action', accent: true },
+  TOOL_CALL: { color: '#9A8FBE', label: 'tool' },
+  BOOKING_CONFIRMED: { color: '#4FB89B', label: 'booking' },
+  BACKBOARD_WRITE: { color: '#77839A', label: 'memory' },
   EMERGENCY_ESCALATION: {
-    color: '#FF5A5A',
+    color: '#F2635A',
     label: 'emergency',
     bold: true,
     noFade: true,
+    accent: true,
   },
 }
 
-export const DEFAULT_STYLE = { color: '#8B8B8B', label: 'event' }
+export const DEFAULT_STYLE = { color: '#8A9AAB', label: 'event' }
 
 export function styleFor(eventType) {
   return EVENT_STYLE[eventType] || DEFAULT_STYLE

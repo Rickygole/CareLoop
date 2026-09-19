@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom'
 import ApiStatus from '../components/ApiStatus.jsx'
 import FairnessChart from '../components/FairnessChart.jsx'
 import FreeTextTriage from '../components/FreeTextTriage.jsx'
+import LoopStatus from '../components/LoopStatus.jsx'
 import TraceLegend from '../components/TraceLegend.jsx'
 import TracePanel from '../components/TracePanel.jsx'
 import TriageResult from '../components/TriageResult.jsx'
@@ -72,22 +73,22 @@ export default function AdminDemo() {
   }, [patientId, result])
 
   return (
-    <div className="min-h-dvh bg-console-2 text-console-ink">
-      <header className="sticky top-0 z-30 border-b border-console-line bg-console-2/95 backdrop-blur">
-        <div className="flex items-center justify-between gap-4 px-5 py-3">
+    <div className="console-scope min-h-dvh bg-console-bg text-console-ink">
+      <header className="sticky top-0 z-30 border-b border-console-line bg-console-chrome">
+        <div className="flex h-14 items-center justify-between gap-4 px-5">
           <div className="flex items-baseline gap-3">
-            <h1 className="text-base font-semibold tracking-tight">
-              CareLoop judge console
+            <h1 className="font-display text-lg font-semibold tracking-[-0.01em] text-console-ink">
+              CareLoop
             </h1>
-            <span className="hidden font-mono text-2xs text-console-muted sm:inline">
-              live pipeline trace
+            <span className="font-mono text-2xs uppercase tracking-[0.16em] text-console-muted">
+              judge console
             </span>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-5">
             <ApiStatus tone="dark" />
             <Link
               to="/dashboard"
-              className="rounded-[8px] px-2 py-1 text-sm font-medium text-[#2DD4BF] transition-colors duration-150 hover:bg-console"
+              className="rounded-control px-2.5 py-1.5 text-sm font-medium text-console-accent underline decoration-console-accent/30 decoration-1 underline-offset-4 transition-colors duration-150 hover:bg-console-accent/10 hover:decoration-console-accent"
             >
               Patient portal
             </Link>
@@ -96,8 +97,9 @@ export default function AdminDemo() {
       </header>
 
       <main className="px-5 py-5">
-        <div className="grid min-h-[600px] gap-5 lg:h-[calc(100dvh-8.5rem)] lg:grid-cols-[30%_1fr]">
-          <div className="flex min-h-0 flex-col gap-5 overflow-y-auto">
+        <div className="grid min-h-[620px] gap-5 lg:h-[calc(100dvh-7.5rem)] lg:grid-cols-[21rem_1fr]">
+          <div className="flex min-h-0 flex-col gap-5 overflow-y-auto pr-1">
+            <LoopStatus events={events} />
             <ControlPanel
               patientId={patientId}
               onPatientChange={setPatientId}
@@ -146,70 +148,78 @@ function ControlPanel({
   onCall,
 }) {
   return (
-    <section className="rounded-card border border-console-line bg-console p-5">
-      <h2 className="text-sm font-semibold">Run a check-in</h2>
+    <section className="overflow-hidden rounded-card border border-console-line bg-console-panel">
+      <h2 className="border-b border-console-line bg-console-chrome px-5 py-2.5 font-mono text-2xs font-bold uppercase tracking-[0.18em] text-console-ink">
+        Run a check-in
+      </h2>
 
-      <label
-        htmlFor="console-patient"
-        className="mt-4 block font-mono text-2xs uppercase tracking-wide text-console-muted"
-      >
-        Patient
-      </label>
-      <select
-        id="console-patient"
-        value={patientId}
-        onChange={(event) => onPatientChange(event.target.value)}
-        className="mt-2 w-full rounded-[10px] border border-console-line bg-console-2 px-3 py-2.5 text-sm text-console-ink transition-colors duration-150 hover:border-console-muted"
-      >
-        {PATIENTS.map((p) => (
-          <option key={p.id} value={p.id}>
-            {p.name} ({p.id})
-          </option>
-        ))}
-      </select>
+      <div className="p-5">
+        <label
+          htmlFor="console-patient"
+          className="block font-mono text-micro uppercase text-console-muted"
+        >
+          Patient
+        </label>
+        <select
+          id="console-patient"
+          value={patientId}
+          onChange={(event) => onPatientChange(event.target.value)}
+          className="field-select mt-2 w-full rounded-control border border-console-line bg-console-inset px-3 py-2.5 text-sm text-console-ink transition-colors duration-150 hover:border-console-line-2"
+        >
+          {PATIENTS.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.name} ({p.id})
+            </option>
+          ))}
+        </select>
 
-      <button
-        type="button"
-        onClick={onCall}
-        disabled={busy}
-        className="mt-5 w-full rounded-[10px] bg-[#14B8A6] px-4 py-3.5 text-base font-semibold text-[#06201D] transition-[background-color,transform] duration-150 ease-out hover:bg-[#2DD4BF] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
-      >
-        {busy ? 'Calling...' : 'Call Now'}
-      </button>
-      <p className="mt-2 font-mono text-2xs leading-relaxed text-console-muted">
-        Simulated check-in call. Sends the selected scenario transcript to POST
-        /triage for the selected patient.
-      </p>
+        <h3 className="mt-5 font-mono text-micro uppercase text-console-muted">
+          Scenario
+        </h3>
+        <div
+          role="radiogroup"
+          aria-label="Scenario"
+          className="mt-2 flex flex-wrap gap-1.5"
+        >
+          {SCENARIOS.map((item) => {
+            const active = item.id === scenario.id
+            return (
+              <button
+                key={item.id}
+                type="button"
+                role="radio"
+                aria-checked={active}
+                onClick={() => onScenarioChange(item.id)}
+                className={
+                  'rounded-full border px-2.5 py-1 text-2xs font-medium transition-[background-color,border-color,color] duration-150 ease-out ' +
+                  (active
+                    ? 'border-console-accent/60 bg-console-accent/12 text-console-accent'
+                    : 'border-console-line text-console-muted hover:border-console-line-2 hover:text-console-ink')
+                }
+              >
+                {item.label}
+              </button>
+            )
+          })}
+        </div>
 
-      <h3 className="mt-6 font-mono text-2xs uppercase tracking-wide text-console-muted">
-        Scenario
-      </h3>
-      <div role="radiogroup" aria-label="Scenario" className="mt-2 flex flex-wrap gap-2">
-        {SCENARIOS.map((item) => {
-          const active = item.id === scenario.id
-          return (
-            <button
-              key={item.id}
-              type="button"
-              role="radio"
-              aria-checked={active}
-              onClick={() => onScenarioChange(item.id)}
-              className={
-                'rounded-full border px-3 py-1.5 text-xs font-medium transition-[background-color,border-color,transform] duration-150 ease-out active:scale-[0.98] ' +
-                (active
-                  ? 'border-[#2DD4BF] bg-[#2DD4BF]/15 text-[#2DD4BF]'
-                  : 'border-console-line text-console-muted hover:border-console-muted hover:text-console-ink')
-              }
-            >
-              {item.label}
-            </button>
-          )
-        })}
+        <p className="mt-3 border-l-2 border-console-line-2 bg-console-inset py-2.5 pl-3 pr-3 font-mono text-xs leading-relaxed text-console-ink-2">
+          {scenario.transcript}
+        </p>
+
+        <button
+          type="button"
+          onClick={onCall}
+          disabled={busy}
+          className="mt-4 w-full rounded-control border border-console-accent/50 bg-console-accent/10 px-4 py-3 text-sm font-bold uppercase tracking-[0.04em] text-console-accent transition-[background-color,transform] duration-150 ease-out hover:bg-console-accent/20 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {busy ? 'Calling...' : 'Call Now'}
+        </button>
+        <p className="mt-2.5 text-2xs leading-relaxed text-console-muted">
+          Simulated reminder call. Sends the selected transcript to POST
+          /triage for the selected patient.
+        </p>
       </div>
-
-      <p className="mt-4 rounded-[10px] border border-console-line bg-console-2 px-3 py-2.5 font-mono text-xs leading-relaxed text-console-ink">
-        {scenario.transcript}
-      </p>
     </section>
   )
 }
