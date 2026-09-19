@@ -40,6 +40,7 @@ from escalation import (
     unacknowledged_for_patient,
 )
 from memory import InMemoryBackend, summarize_episode
+import portal
 from providers import find_provider, specialties
 from scheduler import build_day_plan
 from responses import suggested_response
@@ -167,6 +168,7 @@ class SessionState:
         self.patients: Dict[str, dict] = deepcopy(BASELINE_PATIENTS)
         self.memory = InMemoryBackend()
         self.escalations: Dict[str, List[dict]] = {}
+        self.regimen_snapshots: Dict[str, List[dict]] = {}
         self.bus = TraceBus()
         self.call_limiter = telephony.CallLimiter()
         self.last_touched = time.monotonic()
@@ -352,6 +354,81 @@ async def run_triage(session: SessionState, transcript: str, patient_id: Optiona
         )
     await session.bus.emit("ACTION_DECIDED", {"tier": payload["tier"]})
     return payload
+
+
+class PortalSyncRequest(BaseModel):
+    patient_id: str = Field(..., examples=["p1"])
+    accept_portal_changes: bool = False
+
+
+@app.post("/portal/sync")
+async def portal_sync(body: PortalSyncRequest, session: SessionState = Depends(get_session)):
+    patient = session.patients.get(body.patient_id)
+    if patient is None:
+        raise HTTPException(404, "unknown_patient")
+
+    previous = session.regimen_snapshots.get(body.patient_id)
+    before_hash = regimen_hash(patient["medication_requests"]) if previous else None
+
+    arriving = portal.apply_portal_changes(patient) if body.accept_portal_changes else []
+
+    current = patient["medication_requests"]
+    diff = portal.diff_regimen(previous, current)
+    session.regimen_snapshots[body.patient_id] = deepcopy(current)
+
+    synced_at = datetime.now(timezone.utc).isoformat()
+    patient["connected"] = True
+    patient["connected_at"] = patient.get("connected_at") or synced_at
+    patient["last_synced_at"] = synced_at
+
+    regimen = evaluate_regimen(patient)
+    plan = build_day_plan(patient)
+
+    await session.bus.emit("PORTAL_SYNC", {
+        "patient_id": body.patient_id,
+        "source": portal.PORTAL_NAME,
+        "resources": len(current) + len(patient.get("allergies", [])) + 1,
+        "changed": diff["changed"],
+    })
+
+    if diff["changed"] or diff["first_sync"]:
+        await session.bus.emit("REGIMEN_SNAPSHOT", {
+            "patient_id": body.patient_id,
+            "previous_hash": before_hash,
+            "content_hash": regimen["content_hash"],
+            "added": [r.get("medication") for r in diff["added"]],
+            "removed": [r.get("medication") for r in diff["removed"]],
+        })
+        await session.bus.emit("SCHEDULE_RECOMPUTED", {
+            "patient_id": body.patient_id,
+            "doses_total": plan["doses_total"],
+            "next_dose": plan["next_dose"]["time"] if plan["next_dose"] else None,
+        })
+        for finding in regimen["surfaced"]:
+            await session.bus.emit("CONTRADICTION_FLAGGED", {
+                "ingredients": finding["ingredients"],
+                "severity": finding["severity"],
+                "concern": finding["concern"],
+                "source": finding["source"],
+            })
+
+    return {
+        "patient_id": body.patient_id,
+        "synced_at": synced_at,
+        "source": portal.PORTAL_NAME,
+        "shared": portal.SHARED_CATEGORIES,
+        "bundle": portal.build_bundle(patient, synced_at),
+        "medications": current,
+        "allergies": patient.get("allergies", []),
+        "preferred_contact_window": patient.get("preferred_contact_window"),
+        "schedule": plan,
+        "regimen": regimen,
+        "diff": diff,
+        "diff_summary": portal.describe_diff(diff),
+        "portal_has_pending_change": bool(patient.get("portal_pending")),
+        "applied": [r.get("medication") for r in arriving],
+        "limitations": portal.LIMITATIONS,
+    }
 
 
 @app.post("/triage")

@@ -24,7 +24,8 @@
           "prescriber": "Dr. Elena Vance",
           "status": "active",
           "start_date": "2026-08-01",
-          "indication": "to keep your blood sugar steady"
+          "indication": "to keep your blood sugar steady",
+          "authored_on": "2026-08-01"
         }
       ],
       "care_plan_notes": [
@@ -45,6 +46,38 @@
           "symptom_reported": "mild nausea",
           "tier": "mild",
           "action_taken": "logged"
+        }
+      ],
+      "allergies": [
+        {
+          "substance": "Penicillin",
+          "reaction": "hives",
+          "criticality": "low",
+          "recorded_on": "2021-03-14"
+        }
+      ],
+      "preferred_contact_window": {
+        "start": "08:00",
+        "end": "19:00",
+        "timezone": "America/New_York"
+      },
+      "portal_pending": [
+        {
+          "medication_id": "p1-mr-portal-1",
+          "medication": "Aspirin",
+          "dosage_text": "81mg",
+          "frequency": "once daily",
+          "timing": {
+            "times_per_day": 1,
+            "preferred_hours": [
+              9
+            ]
+          },
+          "prescriber": "Dr. Ana Reyes",
+          "status": "active",
+          "start_date": "2026-09-19",
+          "indication": "to lower your risk of a clot",
+          "authored_on": "2026-09-19"
         }
       ]
     },
@@ -72,7 +105,8 @@
           "prescriber": "Dr. Raj Patel",
           "status": "active",
           "start_date": "2026-05-20",
-          "indication": "to keep your blood sugar steady"
+          "indication": "to keep your blood sugar steady",
+          "authored_on": "2026-05-20"
         },
         {
           "medication_id": "med5",
@@ -88,7 +122,8 @@
           "prescriber": "Dr. Raj Patel",
           "status": "active",
           "start_date": "2026-05-20",
-          "indication": "to keep your blood pressure down"
+          "indication": "to keep your blood pressure down",
+          "authored_on": "2026-05-20"
         }
       ],
       "care_plan_notes": [
@@ -117,6 +152,44 @@
           "symptom_reported": null,
           "tier": null,
           "action_taken": "missed_dose_logged"
+        }
+      ],
+      "allergies": [
+        {
+          "substance": "Sulfa drugs",
+          "reaction": "rash",
+          "criticality": "low",
+          "recorded_on": "2019-08-02"
+        },
+        {
+          "substance": "Latex",
+          "reaction": "contact dermatitis",
+          "criticality": "low",
+          "recorded_on": "2017-11-20"
+        }
+      ],
+      "preferred_contact_window": {
+        "start": "09:00",
+        "end": "17:00",
+        "timezone": "America/New_York"
+      },
+      "portal_pending": [
+        {
+          "medication_id": "p2-mr-portal-1",
+          "medication": "Spironolactone",
+          "dosage_text": "25mg",
+          "frequency": "once daily",
+          "timing": {
+            "times_per_day": 1,
+            "preferred_hours": [
+              9
+            ]
+          },
+          "prescriber": "Dr. Ana Reyes",
+          "status": "active",
+          "start_date": "2026-09-19",
+          "indication": "to help your heart and blood pressure",
+          "authored_on": "2026-09-19"
         }
       ]
     }
