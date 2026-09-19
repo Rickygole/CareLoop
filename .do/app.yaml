@@ -1,5 +1,25 @@
-name: careloop-api
+name: careloop
 region: nyc
+
+features:
+  - buildpack-stack=ubuntu-22
+
+alerts:
+  - rule: DEPLOYMENT_FAILED
+  - rule: DOMAIN_FAILED
+
+ingress:
+  rules:
+    - match:
+        path:
+          prefix: /api
+      component:
+        name: api
+    - match:
+        path:
+          prefix: /
+      component:
+        name: web
 
 services:
   - name: api
@@ -7,24 +27,26 @@ services:
       repo: Rickygole/CareLoop
       branch: main
       deploy_on_push: true
-
     source_dir: /
     environment_slug: python
-
     run_command: uvicorn main:app --host 0.0.0.0 --port $PORT
-
+    http_port: 8080
     instance_count: 1
     instance_size_slug: basic-xxs
-
-    http_port: 8080
-
     health_check:
       http_path: /health
-
+      initial_delay_seconds: 10
+      period_seconds: 10
+      timeout_seconds: 5
+      failure_threshold: 3
     envs:
       - key: GEMINI_API_KEY
         scope: RUN_TIME
         type: SECRET
+      - key: GEMINI_MODEL
+        scope: RUN_TIME
+        type: GENERAL
+        value: gemini-flash-lite-latest
       - key: ELEVENLABS_API_KEY
         scope: RUN_TIME
         type: SECRET
@@ -34,6 +56,61 @@ services:
       - key: CARELOOP_WEBHOOK_SECRET
         scope: RUN_TIME
         type: SECRET
-      - key: GEMINI_MODEL
+      - key: CARELOOP_CALL_TOKEN
         scope: RUN_TIME
-        value: gemini-3.6-flash
+        type: SECRET
+      - key: TWILIO_ACCOUNT_SID
+        scope: RUN_TIME
+        type: SECRET
+      - key: TWILIO_AUTH_TOKEN
+        scope: RUN_TIME
+        type: SECRET
+      - key: TWILIO_FROM_NUMBER
+        scope: RUN_TIME
+        type: SECRET
+      - key: DEMO_PHONE_NUMBER
+        scope: RUN_TIME
+        type: SECRET
+      - key: CARELOOP_UTC_OFFSET_HOURS
+        scope: RUN_TIME
+        type: GENERAL
+        value: "-4"
+      - key: CARELOOP_MEMORY_PATH
+        scope: RUN_TIME
+        type: GENERAL
+        value: /tmp/careloop_memory.json
+
+static_sites:
+  - name: web
+    github:
+      repo: Rickygole/CareLoop
+      branch: main
+      deploy_on_push: true
+    source_dir: /frontend
+    environment_slug: node-js
+    build_command: npm ci && npm run build
+    output_dir: dist
+    index_document: index.html
+    catchall_document: index.html
+    envs:
+      - key: VITE_API_BASE
+        scope: BUILD_TIME
+        type: GENERAL
+        value: /api
+      - key: VITE_TELEPHONY_ENABLED
+        scope: BUILD_TIME
+        type: GENERAL
+        value: "true"
+      - key: VITE_CALL_TOKEN
+        scope: BUILD_TIME
+        type: SECRET
+      - key: VITE_TRACE_TOKEN
+        scope: BUILD_TIME
+        type: SECRET
+      - key: VITE_ELEVENLABS_AGENT_ID
+        scope: BUILD_TIME
+        type: SECRET
+      - key: VITE_TRACE_TRANSPORT
+        scope: BUILD_TIME
+        type: GENERAL
+        value: poll
