@@ -56,7 +56,7 @@ function Visit({ visit }) {
 
       {reminders.length ? (
         <div className="mt-6 rounded-card border border-line bg-sunken px-5 py-4">
-          <p className="smallcaps text-micro text-clay">Reminder calls</p>
+          <p className="smallcaps text-micro text-clay">Reminder calls scheduled</p>
           <ul className="mt-3 flex flex-col gap-3">
             {reminders.map((reminder) => (
               <li key={reminder.kind} className="flex items-baseline gap-3">
@@ -67,8 +67,8 @@ function Visit({ visit }) {
                   <span className="font-semibold">
                     {reminderLabel(reminder.kind)}
                   </span>
-                  , CareLoop phones you at {dateTimeLabel(reminder.fire_at)}{' '}
-                  about {reminder.provider_name}.
+                  , scheduled for {dateTimeLabel(reminder.fire_at)} about{' '}
+                  {reminder.provider_name}.
                 </span>
               </li>
             ))}
@@ -76,7 +76,7 @@ function Visit({ visit }) {
         </div>
       ) : (
         <p className="mt-6 text-sm text-ink-2">
-          Both reminder calls for this visit have already gone out.
+          No reminder call is scheduled for this visit.
         </p>
       )}
     </li>

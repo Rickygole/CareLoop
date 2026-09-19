@@ -39,7 +39,7 @@ export default function TodayPage() {
   } = useSession()
 
   const { portal, loading, loadFailed, reload } = usePortal(connected)
-  const { data: visits } = useFollowups(patientId, connected)
+  const { data: visits, failed: visitsFailed } = useFollowups(patientId, connected)
 
   const plan = useMemo(
     () => applyClockShift(schedule, clockShiftMs),
@@ -146,6 +146,11 @@ export default function TodayPage() {
                       {next.slot_local}
                     </p>
                   </div>
+                ) : visitsFailed ? (
+                  <p className="mt-4 text-sm font-semibold text-severe">
+                    CareLoop could not read your appointments just now, so this
+                    is not a statement that you have none.
+                  </p>
                 ) : (
                   <p className="mt-4 text-sm text-ink-2">
                     No visit is booked at the moment.
