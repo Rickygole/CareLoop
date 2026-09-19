@@ -11,9 +11,6 @@
     />
     <title>CareLoop</title>
     <script>
-      // Deep links like /dashboard are rewritten to the hash route before
-      // React loads, so a judge typing the path by hand still lands correctly
-      // on hosts that serve index.html for unknown paths.
       (function () {
         var p = window.location.pathname
         var m = p.match(/\/(dashboard|admin-demo)\/?$/)
