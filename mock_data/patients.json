@@ -27,6 +27,16 @@
           "indication": "to keep your blood sugar steady"
         }
       ],
+      "care_plan_notes": [
+        {
+          "note_id": "cpn1",
+          "authored_on": "2026-06-22",
+          "prescriber": "Dr. Elena Vance",
+          "specialty": "Endocrinology",
+          "status": "active",
+          "text": "Continue metformin 500mg twice daily. Recheck A1c in 3 months with a metabolic panel for kidney function."
+        }
+      ],
       "history": [
         {
           "call_id": "call_001",
@@ -79,6 +89,24 @@
           "status": "active",
           "start_date": "2026-05-20",
           "indication": "to keep your blood pressure down"
+        }
+      ],
+      "care_plan_notes": [
+        {
+          "note_id": "cpn2",
+          "authored_on": "2026-08-24",
+          "prescriber": "Dr. Raj Patel",
+          "specialty": "Cardiology",
+          "status": "active",
+          "text": "Blood pressure review in 4 weeks on lisinopril 10mg, with electrolytes and creatinine at that visit."
+        },
+        {
+          "note_id": "cpn3",
+          "authored_on": "2026-06-15",
+          "prescriber": "Dr. Raj Patel",
+          "specialty": "Endocrinology",
+          "status": "active",
+          "text": "Recheck A1c every 3 months while on metformin."
         }
       ],
       "history": [
