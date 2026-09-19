@@ -1256,6 +1256,13 @@ async def voice_checkin_respond(
                 "medication_id": noted["medication_id"],
                 "at": noted["timestamp"],
             })
+        _record_episode(
+            session, patient_id, transcript, result,
+            "logged" if not noted else "dose_confirmed",
+        )
+        await session.bus.emit("MEMORY_WRITE", {
+            "patient_id": patient_id, "tier": result["tier"],
+        })
 
     if result["is_crisis"]:
         try:
@@ -1528,7 +1535,11 @@ TOOK_IT = re.compile(
     re.IGNORECASE,
 )
 DID_NOT_TAKE = re.compile(
-    r"\b(not|haven'?t|have not|didn'?t|did not|skipped|missed|forgot|no)\b",
+    r"\b(haven'?t|have not|didn'?t|did not|hadn'?t|had not)\b"
+    r"[^.!?]{0,15}\b(took|taken|take|it|dose|pill|medicine|medication)\b"
+    r"|\b(skipped|missed|forgot)\b[^.!?]{0,15}\b(it|dose|pill|medicine|medication)\b"
+    r"|\bnot\s+(yet|today|this morning|this evening)\b"
+    r"|^\s*no\b[\s,.!]*$",
     re.IGNORECASE,
 )
 
@@ -1538,6 +1549,23 @@ def _said_they_took_it(transcript: str) -> bool:
     if not text or DID_NOT_TAKE.search(text):
         return False
     return bool(TOOK_IT.search(text))
+
+
+def _record_episode(
+    session: SessionState, patient_id: str, transcript: str, result: dict,
+    action_taken: str,
+) -> dict:
+    episode = {
+        "call_id": uuid.uuid4().hex,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "transcript": transcript,
+        "tier": result["tier"],
+        "action_taken": action_taken,
+        "summary": summarize_episode(transcript, result["tier"], action_taken),
+        "is_crisis": result["is_crisis"],
+    }
+    session.memory.append_episode(patient_id, episode)
+    return episode
 
 
 def _record_dose_taken(session: SessionState, patient_id: str, transcript: str) -> Optional[dict]:

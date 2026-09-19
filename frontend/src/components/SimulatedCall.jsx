@@ -95,7 +95,7 @@ function bookingLine(booking) {
   const provider = booking.provider_name || 'the clinic'
   const when = booking.time ? ' at ' + dateTimeLabel(booking.time) : ''
   return (
-    'I have rung the clinic for you and booked a follow-up with ' +
+    'I ran the booking call and got you a follow-up with ' +
     provider +
     when +
     '.'
