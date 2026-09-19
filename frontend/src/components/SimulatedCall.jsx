@@ -76,15 +76,15 @@ function greetingLine(first) {
 function doseLine(first, dose) {
   const named = dose && dose.medication ? dose.medication : 'medication'
   const amount = dose && dose.dosage ? ', ' + dose.dosage : ''
-  const why = dose && dose.indication ? ' ' + dose.indication : ''
+  const why = dose && dose.indication ? ', the one ' + dose.indication : ''
   return (
     first +
-    ", your prescriber's schedule has your " +
+    ', this is a reminder to take your ' +
     named +
     amount +
     why +
-    ' at about this time. Have you been able to take it? Tell me yes or no, ' +
-    'and tell me how you have been feeling since.'
+    '. Please take it now if you have not already. When you have, tell me ' +
+    'you took it, and tell me how you have been feeling since.'
   )
 }
 
@@ -99,14 +99,24 @@ function bookingLine(booking) {
   )
 }
 
-function closingLine(triage) {
+function closingLine(triage, first) {
   if (triage.is_crisis) {
-    return 'I am staying on the line with you. This call does not end here, and I am not going anywhere.'
+    return (
+      'I am staying on the line with you. I am not going to hang up. If you ' +
+      'can, please call or text 988 now, and stay with me until someone is ' +
+      'with you.'
+    )
   }
   if (triage.is_emergency) {
-    return 'I am alerting your care team now. Please do what I said as soon as we hang up.'
+    return 'Please do that now. I am ending this call so your line is free.'
   }
-  return 'That is everything I needed for this check-in. Take care, and I will call again next time.'
+  return (
+    'Thank you, ' +
+    first +
+    '. I have made a note of that on your record. Please keep taking your ' +
+    'medication as your prescriber directed. I will check in with you ' +
+    'again. Take care.'
+  )
 }
 
 function timeLabel(at) {
@@ -297,7 +307,7 @@ export default function SimulatedCall({
       }
       await pause(GAP)
       if (!alive.current) return
-      say('careloop', closingLine(triage))
+      say('careloop', closingLine(triage, firstNameOf(patientName)))
       setPhase('ended')
     },
     [onReply, say],
