@@ -1,13 +1,13 @@
 {
-  "placeholder": true,
-  "placeholder_note": "No eval has been run. Every value is zero. Run eval/score.py with a live API key to replace this file with measured results.",
+  "placeholder": false,
+  "placeholder_note": "",
   "metric": "paraphrase_invariance",
   "metric_label": "Share of paraphrases given the same tier",
-  "generated_at": null,
-  "model": null,
-  "temperature": null,
-  "repeats_per_case": 0,
-  "cases": 0,
+  "generated_at": "2026-09-19T04:13:51.501916+00:00",
+  "model": "gemini-flash-lite-latest",
+  "temperature": 0.0,
+  "repeats_per_case": 5,
+  "cases": 9,
   "arms": [
     {
       "id": "naive",
@@ -35,86 +35,171 @@
     {
       "category": "Clinical",
       "arm": "naive",
-      "value": 0,
+      "value": 1.0,
       "stderr": 0,
-      "n": 0
+      "n": 45
     },
     {
       "category": "Clinical",
       "arm": "cot",
-      "value": 0,
+      "value": 1.0,
       "stderr": 0,
-      "n": 0
+      "n": 45
     },
     {
       "category": "Clinical",
       "arm": "normalize",
-      "value": 0,
+      "value": 1.0,
       "stderr": 0,
-      "n": 0
+      "n": 45
     },
     {
       "category": "Casual",
       "arm": "naive",
-      "value": 0,
+      "value": 1.0,
       "stderr": 0,
-      "n": 0
+      "n": 45
     },
     {
       "category": "Casual",
       "arm": "cot",
-      "value": 0,
+      "value": 1.0,
       "stderr": 0,
-      "n": 0
+      "n": 45
     },
     {
       "category": "Casual",
       "arm": "normalize",
-      "value": 0,
+      "value": 1.0,
       "stderr": 0,
-      "n": 0
+      "n": 45
     },
     {
       "category": "Understated",
       "arm": "naive",
-      "value": 0,
+      "value": 0.667,
       "stderr": 0,
-      "n": 0
+      "n": 45
     },
     {
       "category": "Understated",
       "arm": "cot",
-      "value": 0,
+      "value": 0.667,
       "stderr": 0,
-      "n": 0
+      "n": 45
     },
     {
       "category": "Understated",
       "arm": "normalize",
-      "value": 0,
+      "value": 0.556,
       "stderr": 0,
-      "n": 0
+      "n": 45
     },
     {
       "category": "Mixed-language",
       "arm": "naive",
-      "value": 0,
+      "value": 1.0,
       "stderr": 0,
-      "n": 0
+      "n": 45
     },
     {
       "category": "Mixed-language",
       "arm": "cot",
-      "value": 0,
+      "value": 1.0,
       "stderr": 0,
-      "n": 0
+      "n": 45
     },
     {
       "category": "Mixed-language",
       "arm": "normalize",
-      "value": 0,
+      "value": 1.0,
       "stderr": 0,
-      "n": 0
+      "n": 45
     }
-  ]
+  ],
+  "overall": {
+    "naive": 83.3,
+    "cot": 83.3,
+    "normalize": 77.8
+  },
+  "directionality": {
+    "naive": {
+      "lower": 3,
+      "higher": 0,
+      "examples": [
+        {
+          "scenario_id": "severe_persistent_fever",
+          "register": "understated",
+          "register_tier": "MODERATE",
+          "majority_tier": "SEVERE"
+        },
+        {
+          "scenario_id": "severe_worst_headache",
+          "register": "understated",
+          "register_tier": "MODERATE",
+          "majority_tier": "SEVERE"
+        },
+        {
+          "scenario_id": "severe_spreading_wound_infection",
+          "register": "understated",
+          "register_tier": "MODERATE",
+          "majority_tier": "SEVERE"
+        }
+      ]
+    },
+    "cot": {
+      "lower": 3,
+      "higher": 0,
+      "examples": [
+        {
+          "scenario_id": "severe_persistent_fever",
+          "register": "understated",
+          "register_tier": "MODERATE",
+          "majority_tier": "SEVERE"
+        },
+        {
+          "scenario_id": "severe_worst_headache",
+          "register": "understated",
+          "register_tier": "MODERATE",
+          "majority_tier": "SEVERE"
+        },
+        {
+          "scenario_id": "severe_spreading_wound_infection",
+          "register": "understated",
+          "register_tier": "MODERATE",
+          "majority_tier": "SEVERE"
+        }
+      ]
+    },
+    "normalize": {
+      "lower": 4,
+      "higher": 0,
+      "examples": [
+        {
+          "scenario_id": "moderate_leg_swelling",
+          "register": "understated",
+          "register_tier": "MILD",
+          "majority_tier": "MODERATE"
+        },
+        {
+          "scenario_id": "severe_persistent_fever",
+          "register": "understated",
+          "register_tier": "MODERATE",
+          "majority_tier": "SEVERE"
+        },
+        {
+          "scenario_id": "severe_worst_headache",
+          "register": "understated",
+          "register_tier": "MODERATE",
+          "majority_tier": "SEVERE"
+        },
+        {
+          "scenario_id": "severe_spreading_wound_infection",
+          "register": "understated",
+          "register_tier": "MODERATE",
+          "majority_tier": "SEVERE"
+        }
+      ]
+    }
+  }
 }

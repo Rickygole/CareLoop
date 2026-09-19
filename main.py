@@ -1,6 +1,7 @@
 import asyncio
 import json
 import os
+import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, List, Optional
@@ -87,6 +88,12 @@ class TraceBus:
         self._clients: List[WebSocket] = []
         self._capacity = capacity
         self._seq = 0
+        self.boot_id = uuid.uuid4().hex[:12]
+
+    def reset(self) -> None:
+        self._events.clear()
+        self._seq = 0
+        self.boot_id = uuid.uuid4().hex[:12]
 
     async def emit(self, event_type: str, payload: Optional[dict] = None) -> dict:
         self._seq += 1
@@ -141,7 +148,21 @@ async def trace_socket(ws: WebSocket, token: str = Query(default="")):
 
 @app.get("/trace/events")
 def trace_events(since: int = 0):
-    return {"events": bus.since(since)}
+    return {"events": bus.since(since), "boot_id": bus.boot_id}
+
+
+class ResetRequest(BaseModel):
+    secret: Optional[str] = None
+
+
+@app.post("/admin/reset")
+async def admin_reset(body: ResetRequest):
+    if WEBHOOK_SECRET and body.secret != WEBHOOK_SECRET:
+        raise HTTPException(401, "unauthorized")
+    global PATIENTS
+    PATIENTS = load_patients()
+    bus.reset()
+    return {"reset": True, "boot_id": bus.boot_id, "patients_loaded": len(PATIENTS)}
 
 
 class ConnectRequest(BaseModel):

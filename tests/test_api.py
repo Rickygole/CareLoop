@@ -181,3 +181,19 @@ def test_health_reports_key_status():
     assert body["status"] == "ok"
     assert body["patients_loaded"] == 4
     assert "gemini_configured" in body
+
+
+def test_admin_reset_clears_the_trace_and_rotates_boot_id():
+    before = client.get("/trace/events?since=0").json()
+    client.post("/triage", json={"transcript": "hello", "patient_id": "p1"})
+    body = client.post("/admin/reset", json={}).json()
+    assert body["reset"] is True
+    assert body["boot_id"] != before["boot_id"]
+    after = client.get("/trace/events?since=0").json()
+    assert after["events"] == []
+    assert after["boot_id"] == body["boot_id"]
+
+
+def test_trace_events_expose_a_boot_id_for_restart_detection():
+    body = client.get("/trace/events?since=0").json()
+    assert isinstance(body["boot_id"], str) and body["boot_id"]
