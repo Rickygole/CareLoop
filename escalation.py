@@ -174,6 +174,7 @@ def assigned_provider(patient: dict) -> dict:
 
 def _snippet(transcript: str) -> str:
     said = " ".join((transcript or "").split())
+    said = said.replace('"', "'")
     if len(said) <= ALERT_SNIPPET_CHARS:
         return said
     return said[:ALERT_SNIPPET_CHARS].rstrip() + "..."

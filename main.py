@@ -591,11 +591,21 @@ async def _maybe_alert_provider(
         return
 
     provider = escalation.assigned_provider(patient)
+
+    if not session.call_limiter.allow():
+        escalation_record["notification_transport"] = "sms_rate_limited"
+        escalation_record["alert_sms"] = {
+            "ok": False, "sid": None, "error": "rate_limited",
+            "provider_name": provider["name"], "provider_id": provider["provider_id"],
+        }
+        return
+
     fired_at = datetime.now(timezone.utc)
     message = escalation.compose_alert(
         patient.get("name", "the patient"), provider["name"], kind, transcript, fired_at,
     )
     result = await _offload(telephony.send_sms, phone, message)
+    session.call_limiter.record()
 
     escalation_record["notification_transport"] = "sms"
     escalation_record["notification_delivered"] = bool(result.get("ok"))
@@ -994,12 +1004,12 @@ CHECKIN_DOSE_PROMPT_FLAGGED = (
 )
 
 CHECKIN_NO_ANSWER = (
-    "I did not hear anything, so I will send you a text instead. Please "
+    "I did not hear anything, so I have made a note of this call. Please "
     "remember to take your {medication}. Goodbye for now."
 )
 
 CHECKIN_NO_ANSWER_FLAGGED = (
-    "I did not hear anything, so I will send you a text instead. I am not "
+    "I did not hear anything, so I have made a note of this call. I am not "
     "asking you to take your {medication} right now, because something on "
     "your medication list is worth asking your prescriber or pharmacist "
     "about first. Please do not start, stop or change anything because of "
@@ -1282,11 +1292,13 @@ async def _keep_talking(
     if reply is None:
         return hang_up(lead)
 
-    said = (lead + " " + reply["say"]).strip() if lead else reply["say"]
-    _remember_turn(session, patient_id, "agent", said)
-
     if reply["end_call"]:
+        said = (lead + " " + reply["say"]).strip() if lead else reply["say"]
+        _remember_turn(session, patient_id, "agent", said)
         return _say(said) + closing
+
+    said = reply["say"]
+    _remember_turn(session, patient_id, "agent", said)
 
     if reply["offer_booking"] and patient_id not in session.pending_bookings:
         recent = [
@@ -1354,6 +1366,7 @@ async def voice_checkin(
 
     opener = _checkin_opener(patient)
     session.conversations.pop(patient_id, None)
+    session.pending_bookings.pop(patient_id, None)
     _remember_turn(
         session, patient_id, "agent",
         CHECKIN_GREETING.format(patient_first_name=first_name) + " " + opener,
@@ -1482,6 +1495,7 @@ async def voice_checkin_respond(
         })
 
     if result["is_crisis"]:
+        session.pending_bookings.pop(patient_id, None)
         try:
             await _record_voice_escalation(session, patient_id, result, transcript)
         except Exception:
@@ -1496,6 +1510,7 @@ async def voice_checkin_respond(
         )
 
     if result["is_emergency"]:
+        session.pending_bookings.pop(patient_id, None)
         try:
             await _record_voice_escalation(session, patient_id, result, transcript)
         except Exception:
@@ -1548,6 +1563,21 @@ async def voice_checkin_respond(
         ))
 
     if result["tier"] in ("moderate", "severe"):
+        if pending is None:
+            try:
+                await _record_voice_escalation(session, patient_id, result, transcript)
+            except Exception:
+                pass
+
+        if _agent_turns(session, patient_id) >= conversation.MAX_TURNS:
+            session.pending_bookings.pop(patient_id, None)
+            _remember_turn(session, patient_id, "agent", result["suggested_agent_response"])
+            return _twiml(
+                _say(result["suggested_agent_response"])
+                + _say(CHECKIN_CLOSING.format(patient_first_name=first_name))
+                + "<Hangup/>"
+            )
+
         session.pending_bookings[patient_id] = {
             "specialty": "Internal Medicine",
             "tier": result["tier"],
@@ -1868,11 +1898,17 @@ def _record_dose_taken(session: SessionState, patient_id: str, transcript: str) 
     return entry
 
 
-BOOKING_YES = re.compile(
-    r"\b(yes|yeah|yep|yup|sure|okay|ok|please|that works|sounds good|"
-    r"go ahead|book it|let'?s do it|works for me)\b",
+BOOKING_YES_STRONG = re.compile(
+    r"\b(yes|yeah|yep|yup|book it|let'?s do it)\b",
     re.IGNORECASE,
 )
+BOOKING_YES_WEAK = re.compile(
+    r"\b(sure|okay|ok|please|that works|sounds good|"
+    r"go ahead|works for me)\b",
+    re.IGNORECASE,
+)
+BOOKING_YES_SHORT_ANSWER_WORDS = 3
+
 BOOKING_NO = re.compile(
     r"\b(no|nope|nah|not now|not today|not necessary|not needed|"
     r"i'?ll pass|rather not|don'?t book|do not book|no thanks|"
@@ -1887,17 +1923,36 @@ NEGATED_YES = re.compile(
     re.IGNORECASE,
 )
 
+FILLER_NO = re.compile(
+    r"\b(yeah|yep|yup|sure|totally),?\s+no\b|"
+    r"\bno\s+problem\b|\bno\s+worries\b|"
+    r"\bno,?\s+(that'?d|that\s+would|that'?s|that\s+is)\b",
+    re.IGNORECASE,
+)
+
+
+def _strip_filler_no(text: str) -> str:
+    return FILLER_NO.sub(" ", text)
+
 
 def _confirms_appointment(transcript: str) -> bool:
     text = (transcript or "").strip()
-    if not text or BOOKING_NO.search(text) or NEGATED_YES.search(text):
+    if not text:
         return False
-    return bool(BOOKING_YES.search(text))
+    scrubbed = _strip_filler_no(text)
+    if BOOKING_NO.search(scrubbed) or NEGATED_YES.search(scrubbed):
+        return False
+    if BOOKING_YES_STRONG.search(text):
+        return True
+    is_short_answer = len(text.split()) <= BOOKING_YES_SHORT_ANSWER_WORDS
+    return is_short_answer and bool(BOOKING_YES_WEAK.search(text))
 
 
 def _declines_appointment(transcript: str) -> bool:
     text = (transcript or "").strip()
-    return bool(text) and bool(BOOKING_NO.search(text))
+    if not text:
+        return False
+    return bool(BOOKING_NO.search(_strip_filler_no(text)))
 
 
 def _remember_booking(
