@@ -44,12 +44,12 @@ export default function CallPage() {
   return (
     <Screen
       mark="03"
-      label="The call"
-      title="Talk to CareLoop"
+      label="Step 3 of 5"
+      title="The call CareLoop makes"
       lead={
-        'This is the call itself. CareLoop asks ' +
+        'When a dose comes due, CareLoop rings ' +
         who +
-        ' whether the dose went down and how they are feeling, and it decides what to do while the line is still open.'
+        ' and asks two things: did you take it, and how are you feeling. It decides what to do about the answer while the line is still open. Take that call now.'
       }
     >
       <p className="measure mt-7 border-l-4 border-brand bg-brand-wash px-6 py-5 text-ink">
@@ -58,22 +58,26 @@ export default function CallPage() {
             <span>
               <strong className="font-semibold">
                 {next.medication}
-                {next.dosage ? ' ' + next.dosage : ''} is due now.
+                {next.dosage ? ' ' + next.dosage : ''} is due now,
               </strong>{' '}
-              This is the call CareLoop would place.
+              so this is the call CareLoop would be placing.
             </span>
           ) : (
             <span>
-              The next dose, {next.medication}
-              {next.dosage ? ' ' + next.dosage : ''}, is due at{' '}
-              {clockLabel(next.time)}. You do not have to wait for it:{' '}
+              <strong className="font-semibold">
+                The next call is at {clockLabel(next.time)},
+              </strong>{' '}
+              about {next.medication}
+              {next.dosage ? ' ' + next.dosage : ''}. You do not have to wait
+              for it. Answer now and CareLoop handles it exactly as it would on
+              the hour, or{' '}
               <Link
                 to="/meds"
                 className="font-semibold text-brand-deep underline"
               >
-                move the clock forward on the medicines screen
+                move the clock forward
               </Link>{' '}
-              and come back.
+              first.
             </span>
           )
         ) : (
@@ -94,7 +98,6 @@ export default function CallPage() {
             : null
         }
         scenarios={SCENARIOS}
-        patientId={patientId}
         onSubmit={start}
       />
 

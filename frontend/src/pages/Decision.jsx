@@ -24,7 +24,7 @@ export default function DecisionPage() {
     return (
       <Screen
         mark="04"
-        label="The decision"
+        label="Step 4 of 5"
         title="Nothing has been decided yet"
         lead="This screen holds what came back from a check-in call: what was said, what CareLoop made of it, and what it did about it. No check-in has happened in this session, so there is nothing to show."
       >
@@ -45,94 +45,24 @@ export default function DecisionPage() {
   return (
     <Screen
       mark="04"
-      label="The decision"
+      label="Step 4 of 5"
       title="What CareLoop did about it"
-      lead="Everything below came out of the call you just made, in the order it happened."
+      lead="You have just been on a check-in call. This is what CareLoop made of your answer, what it did next, and the whole of its working."
     >
-      <p className="numeric mt-7 text-sm text-muted">
-        Check-in recorded {dateTimeLabel(run.at)}
-      </p>
-
-      <section aria-labelledby="said-heading" className="mt-10">
+      <section aria-labelledby="verdict-heading" className="mt-10">
         <h2
-          id="said-heading"
+          id="verdict-heading"
           className="font-display border-b-2 border-line-ink pb-2 text-2xl font-semibold text-ink"
         >
-          What was said
+          The decision
         </h2>
-        <blockquote className="mt-6 border-l-4 border-brand pl-6">
-          <p className="font-display measure text-lg text-ink">
-            {quoted(triage.transcript)}
-          </p>
-        </blockquote>
-      </section>
-
-      {triage.normalized_text ? (
-        <section aria-labelledby="normalized-heading" className="mt-12">
-          <h2
-            id="normalized-heading"
-            className="font-display border-b-2 border-line-ink pb-2 text-2xl font-semibold text-ink"
-          >
-            What CareLoop wrote down
-          </h2>
-          <p className="measure mt-6 text-ink-2">
-            Before anything is judged, what was said is rewritten in plain
-            clinical terms. The rules and the model both work from this line
-            rather than from the raw words.
-          </p>
-          <p className="font-display measure mt-5 border-l-4 border-line-strong bg-surface-2 px-6 py-5 text-lg text-ink">
-            {triage.normalized_text}
-          </p>
-        </section>
-      ) : null}
-
-      <section aria-labelledby="rules-heading" className="mt-12">
-        <h2
-          id="rules-heading"
-          className="font-display border-b-2 border-line-ink pb-2 text-2xl font-semibold text-ink"
-        >
-          The fixed rules ran first
-        </h2>
-        {rules.length ? (
-          <p className="measure mt-6 text-ink-2">
-            A fixed safety rule matched on {ruleWords(rules)}. A matched rule
-            settles the severity on its own, which is why the answer came back
-            without waiting for a model. The model is allowed to raise a
-            severity afterwards. It is never allowed to lower one.
-          </p>
-        ) : (
-          <p className="measure mt-6 text-ink-2">
-            No fixed safety rule matched these words, so the question went on to
-            the model. Had a rule matched, it would have settled the severity on
-            its own.
-          </p>
-        )}
-      </section>
-
-      <section aria-labelledby="verdict-section" className="mt-12">
-        <h2
-          id="verdict-section"
-          className="font-display border-b-2 border-line-ink pb-2 text-2xl font-semibold text-ink"
-        >
-          The verdict
-        </h2>
-        <div className="mt-6">
+        <div className="mt-7">
           <TriageResult
             result={triage}
             latencyMs={run.latencyMs}
             booking={run.booking}
           />
         </div>
-      </section>
-
-      <section aria-labelledby="action-heading" className="mt-12">
-        <h2
-          id="action-heading"
-          className="font-display border-b-2 border-line-ink pb-2 text-2xl font-semibold text-ink"
-        >
-          Step by step, what happened
-        </h2>
-        <RunNarrative events={run.events} startIndex={2} />
         <ClinicCall
           events={run.events}
           booking={run.booking}
@@ -140,8 +70,64 @@ export default function DecisionPage() {
         />
       </section>
 
+      <section aria-labelledby="said-heading" className="mt-16">
+        <h2
+          id="said-heading"
+          className="font-display border-b-2 border-line-ink pb-2 text-2xl font-semibold text-ink"
+        >
+          What you said
+        </h2>
+        <blockquote className="mt-7 border-l-4 border-brand pl-6">
+          <p className="font-display measure text-lg text-ink">
+            {quoted(triage.transcript)}
+          </p>
+        </blockquote>
+        <p className="numeric mt-5 text-sm text-muted">
+          Recorded {dateTimeLabel(run.at)}
+        </p>
+
+        {triage.normalized_text ? (
+          <div className="mt-9">
+            <h3 className="smallcaps text-micro text-muted">
+              Written down in clinical terms as
+            </h3>
+            <p className="font-display measure mt-3 border-l-4 border-line-strong bg-surface-2 px-6 py-5 text-lg text-ink">
+              {triage.normalized_text}
+            </p>
+            <p className="measure mt-4 text-sm text-ink-2">
+              The rules and the model both work from this line rather than from
+              the raw words.
+            </p>
+          </div>
+        ) : null}
+      </section>
+
+      <section aria-labelledby="working-heading" className="mt-16">
+        <h2
+          id="working-heading"
+          className="font-display border-b-2 border-line-ink pb-2 text-2xl font-semibold text-ink"
+        >
+          How it got there
+        </h2>
+        {rules.length ? (
+          <p className="measure mt-7 text-ink-2">
+            A fixed safety rule matched on {ruleWords(rules)}. A matched rule
+            settles the severity on its own, which is why the answer came back
+            without waiting for a model. The model is allowed to raise a
+            severity afterwards. It is never allowed to lower one.
+          </p>
+        ) : (
+          <p className="measure mt-7 text-ink-2">
+            No fixed safety rule matched these words, so the question went on to
+            the model. Had a rule matched, it would have settled the severity on
+            its own.
+          </p>
+        )}
+        <RunNarrative events={run.events} startIndex={2} />
+      </section>
+
       {history.length ? (
-        <section aria-labelledby="history-heading" className="mt-12">
+        <section aria-labelledby="history-heading" className="mt-16">
           <h2
             id="history-heading"
             className="font-display border-b-2 border-line-ink pb-2 text-2xl font-semibold text-ink"
@@ -182,14 +168,14 @@ export default function DecisionPage() {
         </section>
       ) : null}
 
-      <section aria-labelledby="record-heading" className="mt-12">
+      <section aria-labelledby="record-heading" className="mt-16">
         <h2
           id="record-heading"
           className="font-display border-b-2 border-line-ink pb-2 text-2xl font-semibold text-ink"
         >
           The machine record
         </h2>
-        <p className="measure mt-6 text-ink-2">
+        <p className="measure mt-7 text-ink-2">
           Nothing is hidden. Every step the system took is written down in the
           order it happened, and this is that list.
         </p>

@@ -19,52 +19,38 @@ export default function VoicePanel({ patientId, patientName }) {
   const configured = isConfigured()
   const firstName = String(patientName || '').trim().split(/\s+/)[0] || ''
 
+  if (!configured) {
+    return (
+      <p className="measure mt-8 border-l-4 border-line-strong bg-surface-2 px-6 py-4 text-sm text-ink-2">
+        The spoken version of this call is switched off in this build, so
+        answer in writing below. CareLoop does exactly the same thing with
+        typed words as it does with spoken ones.
+      </p>
+    )
+  }
+
   return (
     <section
       aria-labelledby="voice-heading"
       className="console-scope mt-8 overflow-hidden rounded-panel border-2 border-console-inset bg-console-bg text-console-ink shadow-lift"
     >
-      <div className="border-b border-console-line px-6 py-6 sm:px-8">
-        <p className="text-micro font-semibold uppercase text-console-accent">
-          The call itself
-        </p>
-        <h3
+      <div className="px-6 py-7 sm:px-8">
+        <h2
           id="voice-heading"
-          className="font-display mt-2 text-xl font-semibold text-console-ink"
+          className="font-display text-xl font-semibold text-console-ink"
         >
-          Speak with CareLoop out loud
-        </h3>
+          Answer out loud
+        </h2>
         <p className="measure mt-2 text-sm text-console-ink-2">
-          This is the real thing a patient hears. CareLoop talks, you answer in
-          your own voice, and it decides what to do while you are still on the
-          line.
+          Press the button, and CareLoop speaks to you the way it would on the
+          phone. Or type your answer further down instead.
         </p>
 
         <SafetyNotice />
       </div>
 
-      <div className="voice-mount px-6 py-6 sm:px-8">
-        {configured ? (
-          <VoiceAgent patientId={patientId} patientName={firstName} />
-        ) : (
-          <div className="rounded-card border-2 border-dashed border-console-line-2 bg-console-inset px-6 py-6">
-            <p className="font-display text-lg font-semibold text-console-ink">
-              The voice call is not switched on right now
-            </p>
-            <p className="measure mt-3 text-sm text-console-ink-2">
-              Nothing is broken. The phone line for this demonstration has not
-              been connected yet. You can type how you are feeling in the box
-              below instead, and CareLoop will do exactly the same thing with
-              it.
-            </p>
-            <a
-              href="#free-text"
-              className="mt-6 inline-flex min-h-[52px] items-center rounded-control bg-console-accent px-7 py-3 text-sm font-semibold text-console-accent-ink transition-[background-color,transform] duration-200 ease-out hover:bg-console-accent-deep active:translate-y-px"
-            >
-              Type it instead
-            </a>
-          </div>
-        )}
+      <div className="voice-mount border-t border-console-line px-6 py-6 sm:px-8">
+        <VoiceAgent patientId={patientId} patientName={firstName} />
       </div>
     </section>
   )

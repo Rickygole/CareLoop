@@ -1,15 +1,6 @@
 import { useRef, useState } from 'react'
 
-import { PATIENTS } from '../data/patients.js'
-
-export default function CheckIn({
-  busy,
-  error,
-  scenarios,
-  patientId,
-  onPatientChange,
-  onSubmit,
-}) {
+export default function CheckIn({ busy, error, scenarios, onSubmit }) {
   const [text, setText] = useState('')
   const input = useRef(null)
 
@@ -32,11 +23,32 @@ export default function CheckIn({
           htmlFor="free-text"
           className="font-display block text-xl font-semibold text-ink"
         >
-          Tell CareLoop how you are feeling
+          Answer in writing
         </label>
         <p className="measure mt-2 text-sm text-ink-2">
-          Use your own words. There is no right way to say it.
+          Say how you are feeling in your own words. There is no right way to
+          put it.
         </p>
+
+        {scenarios && scenarios.length ? (
+          <div className="mt-6">
+            <p className="text-sm text-ink-2">
+              Not sure what to say? Borrow one of these.
+            </p>
+            <div className="mt-3 flex flex-wrap gap-3">
+              {scenarios.map((scenario) => (
+                <button
+                  key={scenario.id}
+                  type="button"
+                  onClick={() => pick(scenario)}
+                  className="min-h-[44px] rounded-control border-2 border-line-strong bg-surface px-4 py-2 text-sm font-medium text-ink-2 transition-colors duration-150 hover:border-ink hover:text-ink"
+                >
+                  {scenario.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : null}
 
         <textarea
           id="free-text"
@@ -51,18 +63,18 @@ export default function CheckIn({
           }}
           placeholder="I have been dizzy for two days and my ankles are swollen"
           autoComplete="off"
-          className="mt-5 block w-full resize-y rounded-card border-2 border-line-strong bg-surface-2 px-5 py-4 text-ink placeholder:text-muted focus:border-brand"
+          className="mt-6 block w-full resize-y rounded-card border-2 border-line-strong bg-surface-2 px-5 py-4 text-ink placeholder:text-muted focus:border-brand"
         />
 
         <div className="mt-5 flex flex-wrap items-center gap-x-6 gap-y-4">
           <button
             type="submit"
             disabled={busy || !text.trim()}
-            className="min-h-[56px] rounded-control bg-brand px-8 py-3.5 text-sm font-semibold text-white shadow-raised transition-[background-color,transform,box-shadow] duration-200 ease-out hover:bg-brand-deep hover:shadow-lift active:translate-y-px disabled:cursor-not-allowed disabled:bg-muted disabled:shadow-none"
+            className="min-h-[60px] rounded-control bg-brand px-9 py-4 text-lg font-semibold text-white shadow-raised transition-[background-color,transform,box-shadow] duration-200 ease-out hover:bg-brand-deep hover:shadow-lift active:translate-y-px disabled:cursor-not-allowed disabled:bg-muted disabled:shadow-none"
           >
             {busy ? 'CareLoop is calling...' : 'Start the check-in'}
           </button>
-          <p className="text-xs text-muted">
+          <p className="text-sm text-muted">
             Nothing is stored about you. These are made up records.
           </p>
         </div>
@@ -83,49 +95,6 @@ export default function CheckIn({
             </span>
           </p>
         ) : null}
-      </div>
-
-      <div className="mt-5 rounded-card border border-dashed border-line-strong bg-surface-2 px-5 py-4">
-        <p className="text-micro font-semibold uppercase text-muted">
-          Set up for this demonstration
-        </p>
-        <div className="mt-3 flex flex-wrap items-center gap-x-6 gap-y-4">
-          {onPatientChange ? (
-            <div className="flex items-center gap-3">
-              <label htmlFor="patient" className="text-xs text-ink-2">
-                Whose record
-              </label>
-              <select
-                id="patient"
-                value={patientId}
-                onChange={(event) => onPatientChange(event.target.value)}
-                className="field-select min-h-[48px] rounded-control border-2 border-line-strong bg-surface px-4 py-2 text-xs font-medium text-ink"
-              >
-                {PATIENTS.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          ) : null}
-
-          {scenarios && scenarios.length ? (
-            <div className="flex flex-wrap items-center gap-2.5">
-              <span className="text-xs text-ink-2">Or borrow a sentence</span>
-              {scenarios.map((scenario) => (
-                <button
-                  key={scenario.id}
-                  type="button"
-                  onClick={() => pick(scenario)}
-                  className="min-h-[44px] rounded-control border border-line-strong bg-surface px-4 py-2 text-micro font-medium text-ink-2 transition-colors duration-150 hover:border-ink hover:text-ink"
-                >
-                  {scenario.label}
-                </button>
-              ))}
-            </div>
-          ) : null}
-        </div>
       </div>
     </form>
   )

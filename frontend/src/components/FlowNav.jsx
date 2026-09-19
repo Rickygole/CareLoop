@@ -86,6 +86,12 @@ export default function FlowNav() {
           )
         })}
       </ol>
+
+      {!connected ? (
+        <p className="mx-auto max-w-[72rem] px-6 pb-3 text-sm text-muted sm:px-8">
+          Steps 2 to 5 are shut until you connect MyHealth on this screen.
+        </p>
+      ) : null}
     </nav>
   )
 }

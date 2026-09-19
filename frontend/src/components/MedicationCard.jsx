@@ -27,7 +27,11 @@ export default function MedicationCard({ med, index }) {
           {med.prescriber ? '. Prescribed by ' + med.prescriber + '.' : '.'}
         </p>
 
-        <ul className="mt-5 flex flex-wrap gap-x-9 gap-y-4">
+        <p className="smallcaps mt-6 text-micro text-muted">
+          CareLoop calls at
+        </p>
+
+        <ul className="mt-3 flex flex-wrap gap-x-9 gap-y-4">
           {med.doses.map((dose) => {
             const meta = doseMeta(dose.status)
             return (
