@@ -32,14 +32,18 @@ export default function CallSchedule({ plan, flash }) {
                 <span aria-hidden="true" className={'leading-none ' + meta.tone}>
                   {meta.glyph}
                 </span>
-                <span className="numeric text-sm font-semibold text-ink">
-                  {clockLabel(dose.time)}
-                </span>
-                <span className="min-w-0 flex-1 truncate text-sm text-ink-2">
-                  {dose.medication}
-                </span>
-                <span className={'smallcaps text-micro ' + meta.tone}>
-                  {meta.label}
+                <span className="min-w-0 flex-1">
+                  <span className="flex flex-wrap items-baseline gap-x-3">
+                    <span className="numeric text-sm font-semibold text-ink">
+                      {clockLabel(dose.time)}
+                    </span>
+                    <span className={'smallcaps text-micro ' + meta.tone}>
+                      {meta.label}
+                    </span>
+                  </span>
+                  <span className="mt-1 block text-sm text-ink-2">
+                    {dose.medication}
+                  </span>
                 </span>
               </li>
             )

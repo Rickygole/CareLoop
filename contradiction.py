@@ -159,6 +159,22 @@ def active_ingredients(medication_requests: List[dict]) -> List[str]:
     return [i for i in out if i]
 
 
+def label_for(ingredient: str, medication_requests: List[dict]) -> str:
+    for request in medication_requests or []:
+        if request.get("status") != "active":
+            continue
+        written = str(request.get("medication") or "").strip()
+        if not written:
+            continue
+        resolved = active_ingredients([request])
+        if ingredient in resolved:
+            head = written.split()[0]
+            if head.lower() != ingredient.lower():
+                return f"{head} ({ingredient})"
+            return head
+    return ingredient
+
+
 def check_regimen(medication_requests: List[dict]) -> List[dict]:
     present = set(active_ingredients(medication_requests))
     found = []
@@ -167,6 +183,10 @@ def check_regimen(medication_requests: List[dict]) -> List[dict]:
             found.append({
                 "check_id": "regimen_pair",
                 "ingredients": [pair["a"], pair["b"]],
+                "labels": [
+                    label_for(pair["a"], medication_requests),
+                    label_for(pair["b"], medication_requests),
+                ],
                 "severity": pair["severity"],
                 "concern": pair["concern"],
                 "source": pair["source"],
@@ -178,7 +198,7 @@ def check_regimen(medication_requests: List[dict]) -> List[dict]:
 def patient_message(finding: dict) -> Optional[str]:
     if not finding.get("surfaced"):
         return None
-    a, b = finding["ingredients"]
+    a, b = finding.get("labels") or finding["ingredients"]
     return (
         f"Something on your medication list is worth asking about. Your {a} and "
         f"your {b} appear together on a short list of pairs this prototype "

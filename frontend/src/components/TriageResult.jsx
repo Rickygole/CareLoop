@@ -19,7 +19,7 @@ function bookingSentence(tier, booking) {
     return (
       'CareLoop ran the booking call with ' +
       booking.provider_name +
-      ' and holds an appointment for ' +
+      ' and would hold an appointment for ' +
       dateTimeLabel(booking.time) +
       '. The clinic side of that call was simulated.'
     )
@@ -125,7 +125,12 @@ export default function TriageResult({ result, latencyMs, booking }) {
         </p>
 
         {result.reasoning ? (
-          <p className="measure mt-5 text-sm text-ink-2">{result.reasoning}</p>
+          <details className="mt-5">
+            <summary className="inline-flex min-h-[44px] cursor-pointer items-center text-sm font-semibold text-brand">
+              How CareLoop worked this out
+            </summary>
+            <p className="measure mt-3 text-sm text-ink-2">{result.reasoning}</p>
+          </details>
         ) : null}
       </div>
 

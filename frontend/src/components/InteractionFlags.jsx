@@ -62,7 +62,7 @@ export function InteractionLimits({ regimen }) {
           className="block w-full cursor-pointer px-6 py-6 text-left sm:px-8"
         >
           <span className="smallcaps text-micro text-clay">
-            For the clinical team, not shown to the patient
+            What CareLoop held back
           </span>
           <span className="mt-2 block text-sm font-semibold text-ink">
             {held.length

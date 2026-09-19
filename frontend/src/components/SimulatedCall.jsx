@@ -160,7 +160,7 @@ function Turn({ turn, index }) {
 const RING_WORDING = {
   [CALL_STATUS.DIALLING]: 'Placing the call. Keep your phone to hand.',
   [CALL_STATUS.RINGING]:
-    'Your phone is ringing now. Pick up and CareLoop will greet you by name. If you miss it, it rings you back.',
+    'Your phone is ringing now. Pick up and CareLoop will greet you by name. If you miss it, CareLoop sends you a text message instead.',
 }
 
 function Path({ state, label, heading, body, children }) {
