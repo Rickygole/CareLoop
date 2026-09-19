@@ -388,7 +388,9 @@ test('the dashboard shows the next call, the medicines and the next appointment'
   connect()
   await screen.findByRole('heading', { level: 1, name: /Today/ }, { timeout: 4000 })
   expect(screen.getAllByText(/Metformin/).length).toBeGreaterThan(0)
-  expect(screen.getByText(/Two calls today\. They cover two doses\./)).toBeTruthy()
+  expect(
+    screen.getAllByText(/CareLoop (called you|rings your telephone|will call again)/).length,
+  ).toBe(2)
   expect(screen.getByText('CareLoop called you')).toBeTruthy()
   expect(screen.getByText('CareLoop rings your telephone')).toBeTruthy()
   await screen.findByText(/Tuesday, September 22 at 12:00 PM/, {}, { timeout: 4000 })
@@ -453,8 +455,7 @@ test('a medicine arriving from the portal cascades through snapshot, schedule an
   expect(screen.getAllByText(/replaces a1b2c3d4e5f6/).length).toBeGreaterThan(0)
   expect(screen.getByText(/Warfarin arrived from MyHealth/)).toBeTruthy()
   expect(screen.getByText('The portal reports a change. Warfarin was added by Dr. Ana Reyes.')).toBeTruthy()
-  const callList = screen.getByRole('region', { name: /Every dose today/ })
-  await within(callList).findByText(/18:00|6:00 PM/, {}, { timeout: 4000 })
+  await screen.findByText(/18:00|6:00 PM/, {}, { timeout: 4000 })
   await screen.findByText(/warfarin and aspirin/i, {}, { timeout: 4000 })
   expect(screen.getByText(/FDA label, Coumadin/)).toBeTruthy()
   expect(screen.getByText(/1 finding was detected and held back/)).toBeTruthy()
@@ -619,7 +620,11 @@ test('answering the phone does not brick the screen', async () => {
 
 test('the written stand-in says what the phone call says', async () => {
   renderCall()
-  expect(screen.getByText(/not a recording of the real phone call/)).toBeTruthy()
+  expect(
+    screen.getByText(
+      'Simulated call. CareLoop is not speaking to you; this is a scripted stand-in for the voice agent.',
+    ),
+  ).toBeTruthy()
 
   fireEvent.click(screen.getByText('Read the check-in in writing'))
   await screen.findByText(/This is CareLoop, your medication assistant/, {}, { timeout: 4000 })
@@ -1058,8 +1063,6 @@ test('doses hang off the call that covers them, and the next call carries the bu
 
   await openTodayWithPlan(schedule)
 
-  expect(screen.getByText(/Two calls today\. They cover three doses\./)).toBeTruthy()
-
   const morning = screen.getByText('CareLoop called you').closest('li')
   expect(within(morning).getByText('One call, two doses')).toBeTruthy()
   expect(within(morning).getAllByText('Taken').length).toBe(2)
@@ -1100,7 +1103,6 @@ test('one medicine is a timeline of one event rather than a broken page', async 
 
   await openTodayWithPlan(schedule)
 
-  expect(screen.getByText('One call today. It covers one dose.')).toBeTruthy()
   expect(screen.getAllByText(/CareLoop (called you|rings your telephone|will call again)/).length).toBe(1)
 }, 25000)
 
@@ -1117,12 +1119,23 @@ test('a record with no medicines says so on the spine and keeps the booking', as
 
   await openTodayWithPlan(schedule)
 
-  expect(screen.getByText('No calls today.')).toBeTruthy()
   expect(
     screen.getByRole('heading', { name: /There are no calls on today's list/ }),
   ).toBeTruthy()
   await screen.findByText(/Tuesday, September 22 at 12:00 PM/, {}, { timeout: 6000 })
 }, 25000)
+
+test('the limits of the pair check stay on the page, one disclosure away', async () => {
+  await connectAndOpenMedications()
+
+  const summary = screen.getByText('What this check does not do').closest('summary')
+  const panel = summary.closest('details')
+  expect(panel.open).toBe(false)
+  expect(panel.textContent).toMatch(/Not a formulary check and not a drug interaction database/)
+
+  fireEvent.click(summary)
+  expect(panel.open).toBe(true)
+}, 20000)
 
 test('the interaction is pinned inside the call it qualifies, not floating at the top', async () => {
   const finding = {

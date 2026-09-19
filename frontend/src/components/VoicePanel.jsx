@@ -46,8 +46,7 @@ export default function VoicePanel({
         CareLoop rings your telephone
       </h2>
       <p className="measure mt-4 text-lg leading-[1.45] text-ink">
-        Press the button and your phone rings, like any other call. You can
-        answer out loud, the way you would on the phone.
+        You can answer out loud, the way you would on the phone.
       </p>
 
       <p className="measure mt-4 flex items-start gap-3 text-sm text-ink">

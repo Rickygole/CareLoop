@@ -89,11 +89,15 @@ export function InteractionLimits({ regimen }) {
 
   return (
     <section aria-labelledby="limits-heading" className="mt-12">
-      <h2 id="limits-heading" className="display text-2xl text-ink">
-        What this check does not do
-      </h2>
-      <Rule tone="sand" />
-      <p className="measure mt-6 text-ink-2">{regimen.limitations}</p>
+      <details>
+        <summary className="marker:text-clay cursor-pointer py-3">
+          <h2 id="limits-heading" className="display inline text-2xl text-ink">
+            What this check does not do
+          </h2>
+        </summary>
+        <Rule tone="sand" />
+        <p className="measure mt-5 text-ink-2">{regimen.limitations}</p>
+      </details>
 
       <div className="ledge mt-10 overflow-hidden rounded-card border border-line bg-sunken text-ink">
         <button
@@ -119,7 +123,7 @@ export function InteractionLimits({ regimen }) {
         <div
           id="held-back-panel"
           hidden={!heldOpen}
-          className="border-t border-line px-6 py-6 sm:px-8"
+          className="bg-surface px-6 py-6 sm:px-8"
         >
           <p className="measure text-sm text-ink-2">
             CareLoop only tells a patient about a finding at major severity or
@@ -177,11 +181,7 @@ export default function InteractionFlags({ regimen, flash }) {
 
       {surfaced.length ? (
         <div className="mt-8">
-          <p className="measure text-lg leading-[1.45] text-ink">
-            {regimen.patient_message}
-          </p>
-
-          <ul className="mt-8 flex flex-col gap-6">
+          <ul className="flex flex-col gap-6">
             {surfaced.map((finding, index) => {
               const meta = severityMeta(finding.severity)
               return (

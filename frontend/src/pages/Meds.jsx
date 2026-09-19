@@ -1,13 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 
-import CallSchedule from '../components/CallSchedule.jsx'
 import InteractionFlags, {
   InteractionLimits,
 } from '../components/InteractionFlags.jsx'
 import { LoadFailed, Loading, RefreshFailed } from '../components/LoadState.jsx'
 import MedicationCard from '../components/MedicationCard.jsx'
-import NextUpCard from '../components/NextUpCard.jsx'
 import PortalShared from '../components/PortalShared.jsx'
 import PortalUpdate from '../components/PortalUpdate.jsx'
 import RegimenSnapshot from '../components/RegimenSnapshot.jsx'
@@ -206,10 +204,6 @@ export default function MedsPage() {
             flash={cascading && stage >= 3}
           />
 
-          <div className="mt-12">
-            <NextUpCard dose={plan.next_dose} />
-          </div>
-
           <div className="mt-12 grid gap-x-12 gap-y-14 lg:grid-cols-[minmax(0,1fr)_21rem]">
             <div className="min-w-0">
               <h2 className="display text-2xl text-ink">Your medications</h2>
@@ -229,7 +223,6 @@ export default function MedsPage() {
             </div>
 
             <aside className="lg:pt-2">
-              <CallSchedule plan={plan} flash={cascading && stage >= 2} />
               <PortalShared
                 allergies={portal && portal.allergies}
                 window={portal && portal.preferred_contact_window}
@@ -260,7 +253,7 @@ export default function MedsPage() {
             <div
               id="reviewer-panel"
               hidden={!toolsOpen}
-              className="border-t border-line bg-surface px-6 py-8 sm:px-8"
+              className="bg-surface px-6 py-8 sm:px-8"
             >
               <section aria-labelledby="change-heading">
                 <h2 id="change-heading" className="display text-2xl text-ink">

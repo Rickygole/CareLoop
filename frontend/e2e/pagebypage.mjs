@@ -1,9 +1,14 @@
 import { chromium } from '@playwright/test'
 import { mkdirSync } from 'fs'
-const BASE = 'https://careloop-woad.vercel.app'
+const BASE = process.env.BASE || 'https://careloop-woad.vercel.app'
 mkdirSync('/tmp/cl-pages', { recursive: true })
 const br = await chromium.launch()
 const pg = await br.newPage({ viewport: { width: 1280, height: 900 } })
+await pg.route('**/*', (route) => {
+  const url = route.request().url()
+  if (/\/call\/(start|clinic|reminder)/.test(url)) return route.abort()
+  return route.continue()
+})
 const press = async (n) => {
   const b = pg.getByRole('button', { name: n }).first()
   if (await b.count()) { await b.click(); await pg.waitForTimeout(1600) }

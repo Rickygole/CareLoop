@@ -1,5 +1,5 @@
 import Notice from './Notice.jsx'
-import { BTN_PRIMARY, BTN_SECONDARY, CARD } from '../lib/ui.js'
+import { BTN_PRIMARY, BTN_SECONDARY } from '../lib/ui.js'
 import { dateTimeLabel } from '../lib/format.js'
 
 export default function PortalUpdate({
@@ -14,7 +14,7 @@ export default function PortalUpdate({
 }) {
   return (
     <div className="mt-9">
-      <div className={CARD + ' px-7 py-7'}>
+      <div>
         <p className="smallcaps text-micro text-clay">
           MyHealth decides what is on your list
         </p>
@@ -53,8 +53,8 @@ export default function PortalUpdate({
           className="enter-fade mt-8"
         >
           Your prescriber has sent a new prescription to MyHealth. It arrives
-          from MyHealth, so nobody types it in here and nobody edits a call
-          time by hand.
+          from MyHealth, so nobody types it in here and nobody edits a call time
+          by hand.
           <span className="mt-6 block">
             <button
               type="button"
@@ -78,9 +78,9 @@ export default function PortalUpdate({
           className="enter-fade measure mt-8"
           size="sm"
         >
-          CareLoop could not reach MyHealth just now. Your list is unchanged
-          and still shows the last thing MyHealth sent. Press the button again
-          in a moment, or call your clinic directly if this is urgent.
+          CareLoop could not reach MyHealth just now. Your list is unchanged and
+          still shows the last thing MyHealth sent. Press the button again in a
+          moment, or call your clinic directly if this is urgent.
         </Notice>
       ) : null}
     </div>

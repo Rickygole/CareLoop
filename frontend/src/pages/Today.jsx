@@ -9,17 +9,7 @@ import { LoadFailed, Loading, RefreshFailed } from '../components/LoadState.jsx'
 import { applyClockShift } from '../lib/clock.js'
 import { clockLabel } from '../lib/format.js'
 import { BTN_HERO, BTN_SECONDARY, CARD } from '../lib/ui.js'
-import {
-  callEvents,
-  coversLine,
-  countWord,
-  dayCount,
-  dayLabel,
-  groupingLine,
-  movedLine,
-  visitGutter,
-  windowLine,
-} from '../lib/day.js'
+import { callEvents, coversLine, dayLabel, visitGutter } from '../lib/day.js'
 import { flaggedNames, isFlagged, nameKey } from '../lib/flagged.js'
 import { isConfigured as phoneConfigured } from '../lib/telephony.js'
 import { bookedVisits, useFollowups } from '../lib/useFollowups.js'
@@ -27,7 +17,17 @@ import { usePortal } from '../lib/usePortal.js'
 import { useSession } from '../lib/session.jsx'
 
 const DIAMOND = String.fromCharCode(9670)
-const CHECK = String.fromCharCode(10003)
+
+function doseLine(event) {
+  const dose = (event.doses || [])[0]
+  if (!dose) return ''
+  return (
+    dose.medication +
+    (dose.dosage ? ' ' + dose.dosage : '') +
+    ', ' +
+    clockLabel(dose.time)
+  )
+}
 
 function findingFor(event, finding, marked) {
   if (!finding) return null
@@ -56,12 +56,6 @@ function pairNote(dose, marked, events, index) {
     }
   }
   return null
-}
-
-function takenMark(covers) {
-  if (covers === 1) return 'You said you took it'
-  if (covers === 2) return 'You said you took both'
-  return 'You said you took all ' + countWord(covers)
 }
 
 export default function TodayPage() {
@@ -173,14 +167,9 @@ export default function TodayPage() {
 
       {!loading && !loadFailed && plan ? (
         <section aria-labelledby="day-heading">
-          <div className="flex flex-wrap items-baseline justify-between gap-x-10 gap-y-2 border-b border-line pb-5">
-            <h2 id="day-heading" className="display text-2xl text-ink">
-              {dayLabel(plan)}
-            </h2>
-            <p className="text-lg font-semibold text-ink-2">
-              {dayCount(plan, events)}
-            </p>
-          </div>
+          <h2 id="day-heading" className="display text-2xl text-ink">
+            {dayLabel(plan)}
+          </h2>
 
           <Spine>
             {events.length ? null : (
@@ -218,10 +207,10 @@ export default function TodayPage() {
                     ? 'CareLoop rings your telephone'
                     : 'CareLoop will call again'
               const pin = next ? findingFor(event, finding, marked) : null
-              const grouped = groupingLine(event, done || missed)
-              const moved = movedLine(event)
-              const lastCall =
-                index === events.length - 1 && !done && !next && !missed
+              const note = (dose) =>
+                pin ? null : pairNote(dose, marked, events, index)
+              const doses = event.doses || []
+              const single = doses.length < 2 && !doses.some(note)
 
               return (
                 <Event
@@ -233,60 +222,25 @@ export default function TodayPage() {
                 >
                   <CallHeading
                     title={title}
-                    covers={coversLine(event)}
-                    mark={
-                      done ? (
-                        <p className="flex items-center gap-2 text-sm font-semibold text-mild">
-                          <span aria-hidden="true" className="leading-none">
-                            {CHECK}
-                          </span>
-                          {takenMark(event.covers || 1)}
-                        </p>
-                      ) : null
-                    }
+                    covers={single ? doseLine(event) : coversLine(event)}
                   />
 
-                  {grouped ? (
-                    <p className="measure mt-2 text-sm text-ink-2">{grouped}</p>
-                  ) : null}
+                  {single ? null : <DoseRows doses={doses} note={note} />}
 
-                  <DoseRows
-                    doses={event.doses}
-                    note={(dose) => pairNote(dose, marked, events, index)}
-                  />
-
-                  {moved ? (
-                    <p className="measure mt-4 text-sm text-ink-2">{moved}</p>
-                  ) : null}
-
-                  {pin ? (
-                    <InteractionPin finding={pin}>
-                      {' '}
-                      You can ask about it on this call.
-                    </InteractionPin>
-                  ) : null}
+                  {pin ? <InteractionPin finding={pin} /> : null}
 
                   {next ? (
                     <div className="mt-7">
                       <Link to="/call" className={BTN_HERO}>
                         {phoneLive ? 'Call my phone now' : 'Start my check-in'}
                       </Link>
-                      <p className="measure mt-4 text-sm text-ink-2">
-                        {phoneLive
-                          ? 'Your phone rings, like any other call. You do not have to wait for ' +
-                            clockLabel(event.time) +
-                            ' and you never call CareLoop. CareLoop asks you to confirm before it dials.'
-                          : 'You do not have to wait for ' +
-                            clockLabel(event.time) +
-                            '. Calling out needs telephone settings that are not filled in here, so no phone will ring and the check-in runs in writing.'}
-                      </p>
+                      {phoneLive ? null : (
+                        <p className="measure mt-4 text-sm text-ink-2">
+                          No telephone settings are filled in here, so the
+                          check-in runs in writing.
+                        </p>
+                      )}
                     </div>
-                  ) : null}
-
-                  {lastCall ? (
-                    <p className="measure mt-4 text-sm text-ink-2">
-                      The last call of the day. {windowLine(plan)}
-                    </p>
                   ) : null}
                 </Event>
               )
@@ -304,7 +258,7 @@ export default function TodayPage() {
                 </h3>
                 <p className="measure mt-3 text-sm text-ink-2">
                   Every call CareLoop planned for today is behind you. The next
-                  one is on tomorrow's list. {windowLine(plan)}
+                  one is on tomorrow's list.
                 </p>
                 {finding ? (
                   <InteractionPin
@@ -334,10 +288,6 @@ export default function TodayPage() {
                     {visit.slot_local}. Covered by{' '}
                     {visit.payer_display || (visits && visits.payer_display)}
                     {visit.in_network ? ', inside the network' : ''}.
-                  </p>
-                  <p className="measure mt-3 text-sm text-ink-2">
-                    CareLoop rang the clinic and booked this after you agreed to
-                    it on a call.
                   </p>
                 </>
               ) : visitsLoading ? (

@@ -15,14 +15,7 @@ import {
 } from '../lib/api.js'
 import { applyClockShift } from '../lib/clock.js'
 import { clockLabel } from '../lib/format.js'
-import {
-  callEvents,
-  countWord,
-  dayLabel,
-  nextCallIndex,
-  ordinalWord,
-  sentenceCase,
-} from '../lib/day.js'
+import { callEvents, countWord, dayLabel, nextCallIndex } from '../lib/day.js'
 import { flaggedNames, isFlagged } from '../lib/flagged.js'
 import { isConfigured } from '../lib/voice.js'
 import { useSession } from '../lib/session.jsx'
@@ -39,19 +32,14 @@ const TIMED_OUT =
   Math.round(RUN_TIMEOUT_MS / 1000) +
   ' seconds for an answer from its own service and stopped. Nothing was recorded. Press Send again to retry, or call your clinic directly if this is urgent.'
 
-function whereInTheDay(plan, events, index) {
-  const calls = events.length
-  if (!calls) return 'No call is planned today. You can still take a check-in.'
+function whereInTheDay(events, index) {
+  if (!events.length) {
+    return 'No call is planned today. You can still take a check-in.'
+  }
   if (index === -1) {
     return 'Every call today is behind you. You can still take a check-in.'
   }
-  if (calls === 1) return 'One call today. This is it.'
-  return (
-    sentenceCase(countWord(calls)) +
-    ' calls today. This is the ' +
-    ordinalWord(index + 1) +
-    '.'
-  )
+  return ''
 }
 
 function medicinesLine(event) {
@@ -157,6 +145,8 @@ export default function CallPage() {
     [check, navigate],
   )
 
+  const where = whereInTheDay(events, index)
+
   const asks = [
     next
       ? 'Did you take your ' +
@@ -182,36 +172,24 @@ export default function CallPage() {
         isDoseFlagged={isDoseFlagged}
         onRing={ring}
       >
-        <div className="mt-9 border-t border-line pt-6">
-          <p className="smallcaps text-micro text-clay">
-            What CareLoop asks on this call
-          </p>
-          <ol className="mt-4">
-            {asks.map((question, position) => (
-              <li
-                key={question}
-                className="flex gap-x-4 border-b border-line py-3 text-base text-ink"
-              >
-                <span className="numeric font-semibold text-ink-2">
-                  {position + 1}.
-                </span>
-                <span>{question}</span>
-              </li>
-            ))}
-          </ol>
+        <div className="mt-8">
+          {finding ? <InteractionPin finding={finding} /> : null}
 
-          {finding ? (
-            <InteractionPin
-              finding={finding}
-              lead="Why CareLoop listens for this, on this call."
-            />
-          ) : null}
-
-          <p className="measure mt-5 text-sm text-ink-2">
-            If what you say sounds like you should be seen, CareLoop offers to
-            ring the clinic and book a time your insurance covers. It asks you
-            first and it tells no one else.
-          </p>
+          <details className="mt-7">
+            <summary className="marker:text-clay cursor-pointer py-3 text-base font-semibold text-ink">
+              What CareLoop asks on this call
+            </summary>
+            <ol className="mt-3 flex flex-col gap-2">
+              {asks.map((question, position) => (
+                <li key={question} className="flex gap-x-4 text-base text-ink">
+                  <span className="numeric font-semibold text-ink-2">
+                    {position + 1}.
+                  </span>
+                  <span>{question}</span>
+                </li>
+              ))}
+            </ol>
+          </details>
         </div>
       </VoicePanel>
 
@@ -239,18 +217,15 @@ export default function CallPage() {
   )
 
   return (
-    <Screen
-      title="Check-in"
-      lead="CareLoop rings your telephone and asks how you are. You never have to call it."
-    >
+    <Screen title="Check-in">
       <section aria-labelledby="call-day-heading">
-        <div className="flex flex-wrap items-baseline justify-between gap-x-10 gap-y-2 border-b border-line pb-5">
+        <div className="flex flex-wrap items-baseline justify-between gap-x-10 gap-y-2">
           <h2 id="call-day-heading" className="display text-2xl text-ink">
             {dayLabel(plan)}
           </h2>
-          <p className="text-lg font-semibold text-ink-2">
-            {whereInTheDay(plan, events, index)}
-          </p>
+          {where ? (
+            <p className="text-lg font-semibold text-ink-2">{where}</p>
+          ) : null}
         </div>
 
         <Spine>

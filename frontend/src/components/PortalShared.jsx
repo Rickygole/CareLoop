@@ -1,8 +1,9 @@
 import { clockLabel } from '../lib/format.js'
-import { CARD } from '../lib/ui.js'
 
 export function zoneLabel(zone) {
-  const name = String(zone || '').split('/').pop()
+  const name = String(zone || '')
+    .split('/')
+    .pop()
   return name ? name.replace(/_/g, ' ') + ' time' : 'local time'
 }
 
@@ -11,10 +12,7 @@ export default function PortalShared({ allergies, window: contactWindow }) {
   if (!list.length && !contactWindow) return null
 
   return (
-    <section
-      aria-labelledby="shared-heading"
-      className={CARD + ' mt-8 px-6 py-7'}
-    >
+    <section aria-labelledby="shared-heading">
       <h2 id="shared-heading" className="display-tight text-lg text-ink">
         Also came across from MyHealth
       </h2>
@@ -23,10 +21,7 @@ export default function PortalShared({ allergies, window: contactWindow }) {
       {list.length ? (
         <ul className="mt-3 flex flex-col gap-3">
           {list.map((item) => (
-            <li
-              key={item.substance}
-              className="rounded-card border border-line bg-sunken px-4 py-3"
-            >
+            <li key={item.substance}>
               <p className="text-sm font-semibold text-ink">{item.substance}</p>
               <p className="mt-1 text-sm text-ink-2">
                 Reaction: {item.reaction}. Recorded as {item.criticality}{' '}
@@ -48,8 +43,7 @@ export default function PortalShared({ allergies, window: contactWindow }) {
           </h3>
           <p className="mt-3 text-sm text-ink-2">
             {clockLabel(contactWindow.start)} to {clockLabel(contactWindow.end)}
-            , {zoneLabel(contactWindow.timezone)}. CareLoop schedules no call outside that
-            window.
+            , {zoneLabel(contactWindow.timezone)}.
           </p>
         </>
       ) : null}

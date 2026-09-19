@@ -85,7 +85,10 @@ function doseTiming(dose) {
   const hour = Number(h)
   const twelve = hour % 12 === 0 ? 12 : hour % 12
   const suffix = hour >= 12 ? 'pm' : 'am'
-  return { when: 'due later today, at ' + twelve + ' ' + suffix, dueNow: false }
+  return {
+    when: 'due later today, at ' + twelve + ' ' + suffix,
+    dueNow: false,
+  }
 }
 
 function doseLine(first, dose, flagged) {
@@ -97,7 +100,7 @@ function doseLine(first, dose, flagged) {
   if (flagged) {
     return (
       first +
-      ', how have you been feeling? Separately, your prescriber\'s schedule ' +
+      ", how have you been feeling? Separately, your prescriber's schedule " +
       'has your ' +
       named +
       amount +
@@ -213,11 +216,6 @@ const RING_WORDING = {
   [CALL_STATUS.RINGING]:
     'Your phone is ringing now. Pick up and CareLoop will greet you by name. If you miss it, CareLoop sends you a text message instead.',
 }
-
-const WRITTEN_NOTE =
-  'The written option is a stand-in. ' +
-  SIMULATION_DISCLOSURE +
-  ' It is not a recording of the real phone call. It asks the same questions and your answer goes to the same CareLoop service.'
 
 export default function SimulatedCall({
   patientName,
@@ -393,11 +391,12 @@ export default function SimulatedCall({
             ? 'CareLoop rings your telephone'
             : 'The check-in, in writing'}
         </h2>
-        <p className="measure mt-4 text-lg leading-[1.45] text-ink">
-          {phoneLive
-            ? 'Press the button and your phone rings, like any other call.'
-            : 'Calling out needs telephone settings that are not filled in here, so no phone will ring. Nothing is faked to cover for it.'}
-        </p>
+        {phoneLive ? null : (
+          <p className="measure mt-4 text-lg leading-[1.45] text-ink">
+            Calling out needs telephone settings that are not filled in here, so
+            no phone will ring. Nothing is faked to cover for it.
+          </p>
+        )}
 
         <div className="mt-7">
           <div className="flex flex-col items-start gap-y-5 sm:flex-row sm:items-center sm:gap-x-8">
@@ -438,7 +437,9 @@ export default function SimulatedCall({
             )}
           </div>
 
-          <p className="measure mt-4 text-sm text-ink-2">{WRITTEN_NOTE}</p>
+          <p className="measure mt-4 text-sm text-ink-2">
+            {SIMULATION_DISCLOSURE}
+          </p>
 
           <p className="measure mt-4 flex items-start gap-3 text-sm text-ink">
             <span aria-hidden="true" className="leading-[1.6] text-moderate">

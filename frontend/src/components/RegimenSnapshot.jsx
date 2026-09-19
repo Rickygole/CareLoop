@@ -8,10 +8,7 @@ export default function RegimenSnapshot({ hash, previousHash, count, flash }) {
   return (
     <section
       aria-labelledby="snapshot-heading"
-      className={
-        'ledge mt-10 rounded-card border border-line bg-sunken px-6 py-6 text-ink sm:px-8 ' +
-        (flash ? 'trace-flash' : '')
-      }
+      className={'mt-10 text-ink ' + (flash ? 'trace-flash' : '')}
     >
       <h2 id="snapshot-heading" className="display-tight text-lg text-ink">
         Which version of your list this is
