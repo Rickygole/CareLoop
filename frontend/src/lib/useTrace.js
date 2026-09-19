@@ -6,7 +6,13 @@ const POLL_MS = 500
 const RETRY_MS = 2000
 const MAX_RETRIES = 5
 
-const FORCED = import.meta.env.VITE_TRACE_TRANSPORT || 'auto'
+function defaultTransport() {
+  if (typeof window === 'undefined') return 'auto'
+  const local = ['localhost', '127.0.0.1', '0.0.0.0']
+  return local.includes(window.location.hostname) ? 'auto' : 'poll'
+}
+
+const FORCED = import.meta.env.VITE_TRACE_TRANSPORT || defaultTransport()
 
 export const TRACE_STATUS = {
   CONNECTING: 'connecting',
@@ -30,12 +36,18 @@ export function useTrace() {
   const polling = useRef(false)
 
   const push = useCallback((incoming) => {
-    const fresh = incoming.filter(
-      (e) => typeof e.seq === 'number' && e.seq > lastSeq.current,
-    )
+    const numbered = incoming.filter((e) => typeof e.seq === 'number')
+    if (!numbered.length) return
+
+    const maxIncoming = Math.max(...numbered.map((e) => e.seq))
+    const resynced = maxIncoming < lastSeq.current
+    const floor = resynced ? 0 : lastSeq.current
+
+    const fresh = numbered.filter((e) => e.seq > floor)
     if (!fresh.length) return
+
     lastSeq.current = fresh[fresh.length - 1].seq
-    setEvents((prev) => prev.concat(fresh))
+    setEvents((prev) => (resynced ? fresh : prev.concat(fresh)))
   }, [])
 
   const stopPolling = useCallback(() => {
@@ -58,7 +70,7 @@ export function useTrace() {
       const tick = async () => {
         if (!alive.current || !polling.current) return
         try {
-          const data = await fetchEventsSince(lastSeq.current)
+          const data = await fetchEventsSince(0)
           if (!alive.current || !polling.current) return
           push(data.events || [])
           setStatus((current) =>

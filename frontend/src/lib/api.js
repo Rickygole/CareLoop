@@ -1,5 +1,14 @@
+const LOCAL_HOSTS = ['localhost', '127.0.0.1', '0.0.0.0']
+
+function defaultApiBase() {
+  if (typeof window === 'undefined') return 'http://localhost:8000'
+  return LOCAL_HOSTS.includes(window.location.hostname)
+    ? 'http://localhost:8000'
+    : '/api'
+}
+
 export const API_BASE = (
-  import.meta.env.VITE_API_BASE || 'http://localhost:8000'
+  import.meta.env.VITE_API_BASE || defaultApiBase()
 ).replace(/\/+$/, '')
 
 export const TRACE_TOKEN = import.meta.env.VITE_TRACE_TOKEN || ''
