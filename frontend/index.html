@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light" />
+    <meta
+      name="description"
+      content="CareLoop is a research prototype for medication check-in calls with two-tier symptom triage. Not a medical device."
+    />
+    <title>CareLoop</title>
+    <script>
+      // Deep links like /dashboard are rewritten to the hash route before
+      // React loads, so a judge typing the path by hand still lands correctly
+      // on hosts that serve index.html for unknown paths.
+      (function () {
+        var p = window.location.pathname
+        var m = p.match(/\/(dashboard|admin-demo)\/?$/)
+        if (m && !window.location.hash) {
+          window.location.replace(p.slice(0, m.index + 1) + '#/' + m[1])
+        }
+      })()
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <noscript>CareLoop requires JavaScript to run.</noscript>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>

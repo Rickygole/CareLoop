@@ -379,3 +379,62 @@ def test_natural_and_non_english_phrasing_reaches_tier0(transcript):
     assert result.severity is Severity.EMERGENCY, (
         f"Missed a natural-phrasing emergency: {transcript!r}"
     )
+
+
+# ---------------------------------------------------------------------------
+# Tier 1 response parsing
+# ---------------------------------------------------------------------------
+
+from triage_engine import LLMVerdict, _parse_llm_response  # noqa: E402
+
+
+def test_parses_structured_json_response():
+    raw = ('{"normalized_text": "patient reports gastrointestinal discomfort", '
+           '"tier": "moderate", "confidence": 0.82, "reasoning": "Persistent GI symptoms."}')
+    v = _parse_llm_response(raw)
+    assert v.severity is Severity.MODERATE
+    assert v.normalized_text == "patient reports gastrointestinal discomfort"
+    assert v.confidence == 0.82
+
+
+def test_parses_json_wrapped_in_prose():
+    """Models sometimes wrap JSON in a code fence or a sentence."""
+    raw = 'Here you go:\n```json\n{"normalized_text": "x", "tier": "severe"}\n```'
+    assert _parse_llm_response(raw).severity is Severity.SEVERE
+
+
+def test_falls_back_to_word_scan_when_json_is_broken():
+    v = _parse_llm_response('{"tier": "moderate", broken json here')
+    assert v.severity is Severity.MODERATE
+
+
+def test_unparseable_response_yields_no_severity():
+    assert _parse_llm_response("I cannot help with that").severity is None
+    assert _parse_llm_response("").severity is None
+
+
+def test_chatty_reply_resolves_to_the_most_urgent_word():
+    """A reply mentioning several tiers must not resolve downward."""
+    raw = "This is not mild, and not quite moderate, it is severe."
+    assert _parse_llm_response(raw).severity is Severity.SEVERE
+
+
+def test_rich_verdict_populates_normalized_text_and_confidence():
+    verdict = LLMVerdict(
+        severity=Severity.MODERATE, raw="{}",
+        normalized_text="patient reports nausea", confidence=0.77,
+    )
+    result = triage("stomach's off", llm_classifier=lambda t: verdict)
+    assert result.normalized_text == "patient reports nausea"
+    assert result.confidence == 0.77
+
+
+def test_legacy_tuple_classifier_still_supported():
+    """The old two-tuple contract keeps working, so existing tests stay valid."""
+    result = triage("feeling fine", llm_classifier=lambda t: (Severity.MILD, "MILD"))
+    assert result.severity is Severity.MILD
+
+
+def test_tier0_match_reports_full_confidence():
+    result = triage("I can't breathe", llm_classifier=exploding_llm)
+    assert result.confidence == 1.0

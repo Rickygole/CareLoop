@@ -22,11 +22,17 @@ pure importable unit you can unit test standalone.
 
 from __future__ import annotations
 
+import json
 import os
 import re
 from dataclasses import dataclass, field
 from enum import IntEnum
 from typing import List, Optional
+
+
+# Overridable via GEMINI_MODEL so a retired model id is a config fix, not a
+# code change at 4am.
+DEFAULT_MODEL = "gemini-1.5-flash"
 
 
 class Severity(IntEnum):
@@ -277,30 +283,44 @@ def detect_emergency(transcript: str) -> List[str]:
 # Tier 1: LLM classification
 # --------------------------------------------------------------------------
 
-TIER1_PROMPT = """You are a clinical triage classifier for a medication adherence \
-check-in call. A patient was asked how they are feeling on their medication. \
-Classify the severity of what they reported.
+# One call, not two. v1 specified a NORMALIZE call followed by a CLASSIFY
+# call, which put 2.7 to 5.0 seconds of dead air into a live phone call and
+# up to 9.3 in the bad case. Because JSON keys generate in order, asking for
+# normalized_text BEFORE tier means the model still writes the clinical
+# restatement first and conditions the tier on it. Same mechanism, one round
+# trip. The two-call version is kept in the eval, where latency is free.
 
-Answer with EXACTLY ONE WORD, one of: MILD, MODERATE, SEVERE
+TIER1_PROMPT = """You are a clinical triage classifier for a medication \
+adherence check-in call. A patient was asked how they are feeling on their \
+medication.
 
-Guidance:
-- MILD: no symptoms, routine check-in, or a minor tolerable side effect
-  (slight nausea, mild tiredness, a small headache).
-- MODERATE: a symptom that is interfering with daily life, worsening, or
-  warrants a clinician callback within 24 hours (persistent vomiting,
-  dizziness on standing, a rash, swelling in the legs, sleeping badly for days).
-- SEVERE: a symptom that needs same-day clinical attention.
+Work in two steps, in this order:
+
+1. normalized_text: restate what the patient said in standard, neutral
+   clinical phrasing. Preserve every symptom detail they mentioned. Do not
+   add symptoms they did not mention. Do not soften or escalate severity.
+2. tier: classify the severity of the restated description as exactly one
+   of mild, moderate, or severe.
+
+   mild: no symptoms, a routine check-in, or a minor tolerable side effect.
+   moderate: a symptom interfering with daily life, worsening, or warranting
+     a clinician callback within 24 hours.
+   severe: a symptom needing same-day clinical attention.
+
+Do not use an emergency classification. True emergencies are filtered out
+deterministically before they reach you.
 
 Judge the SYMPTOM, not the vocabulary. Patients describe real symptoms in
-casual, indirect, or dialectal language. "I been feeling real off, like the
-room tilting" is the same finding as "I am experiencing orthostatic dizziness."
-Never rate something lower because it was phrased informally, apologetically,
-minimized, or in non-standard English.
+casual, indirect, hedged, or non-standard English, and in languages other
+than English. "I been feeling real off, like the room tilting" reports the
+same finding as "I am experiencing orthostatic dizziness". Never rate
+something lower because of how it was phrased.
 
 Patient transcript:
 \"\"\"{transcript}\"\"\"
 
-One word:"""
+Respond with only this JSON object, no other text:
+{{"normalized_text": "...", "tier": "mild|moderate|severe", "confidence": 0.0, "reasoning": "one sentence"}}"""
 
 _LLM_WORD_TO_SEVERITY = {
     "MILD": Severity.MILD,
@@ -308,30 +328,72 @@ _LLM_WORD_TO_SEVERITY = {
     "SEVERE": Severity.SEVERE,
 }
 
+# Hard ceiling on how long a live call will wait for the classifier.
+LLM_TIMEOUT_SECONDS = 2.5
+LLM_MAX_OUTPUT_TOKENS = 200
+
+
+@dataclass
+class LLMVerdict:
+    """What Tier 1 came back with. None severity means it could not answer."""
+
+    severity: Optional[Severity]
+    raw: Optional[str] = None
+    normalized_text: Optional[str] = None
+    confidence: Optional[float] = None
+    reasoning: Optional[str] = None
+
 
 def _parse_llm_severity(raw: str) -> Optional[Severity]:
     """Pull a severity out of the model's reply. Returns None if unparseable."""
     if not raw:
         return None
     text = raw.strip().upper()
-    # Check most-urgent-first so a chatty reply that mentions several words
-    # resolves to the highest one mentioned. Fail loud, not quiet.
+    # Most urgent first, so a chatty reply mentioning several resolves to the
+    # highest one mentioned. Fail loud, not quiet.
     for word in ("SEVERE", "MODERATE", "MILD"):
         if re.search(r"\b" + word + r"\b", text):
             return _LLM_WORD_TO_SEVERITY[word]
     return None
 
 
-def classify_with_llm(transcript: str, model_name: str = "gemini-1.5-flash") -> tuple:
-    """Tier 1. Ask Gemini to classify the transcript.
+def _parse_llm_response(raw: str) -> LLMVerdict:
+    """Prefer the structured JSON; fall back to scanning for a severity word."""
+    if not raw:
+        return LLMVerdict(severity=None)
 
-    Returns (Severity or None, raw_text or None). Returns (None, None) on any
-    failure -- missing key, network error, unparseable reply. The caller
-    decides what to do with that; this function never raises into triage.
+    text = raw.strip()
+    match = re.search(r"\{.*\}", text, re.DOTALL)
+    if match:
+        try:
+            data = json.loads(match.group(0))
+            severity = _LLM_WORD_TO_SEVERITY.get(str(data.get("tier", "")).upper())
+            confidence = data.get("confidence")
+            return LLMVerdict(
+                severity=severity or _parse_llm_severity(text),
+                raw=text,
+                normalized_text=data.get("normalized_text"),
+                confidence=float(confidence) if isinstance(confidence, (int, float)) else None,
+                reasoning=data.get("reasoning"),
+            )
+        except (ValueError, TypeError):
+            pass
+
+    return LLMVerdict(severity=_parse_llm_severity(text), raw=text)
+
+
+def classify_with_llm(transcript: str, model_name: str = None) -> LLMVerdict:
+    """Tier 1. Ask Gemini to normalize and classify in a single call.
+
+    Never raises into triage. Any failure (missing key, network, timeout,
+    unparseable reply) comes back as a verdict with severity None, and the
+    caller decides what that means.
     """
     api_key = os.environ.get("GEMINI_API_KEY")
     if not api_key:
-        return None, None
+        return LLMVerdict(severity=None)
+
+    model_name = model_name or os.environ.get("GEMINI_MODEL", DEFAULT_MODEL)
 
     try:
         import google.generativeai as genai
@@ -339,12 +401,28 @@ def classify_with_llm(transcript: str, model_name: str = "gemini-1.5-flash") -> 
         genai.configure(api_key=api_key)
         model = genai.GenerativeModel(model_name)
         response = model.generate_content(
-            TIER1_PROMPT.format(transcript=transcript)
+            TIER1_PROMPT.format(transcript=transcript),
+            generation_config={
+                "temperature": 0.0,
+                "max_output_tokens": LLM_MAX_OUTPUT_TOKENS,
+                "response_mime_type": "application/json",
+            },
+            request_options={"timeout": LLM_TIMEOUT_SECONDS},
         )
-        raw = (response.text or "").strip()
-        return _parse_llm_severity(raw), raw
+        return _parse_llm_response((response.text or "").strip())
     except Exception:
-        return None, None
+        return LLMVerdict(severity=None)
+
+
+def _coerce_verdict(value) -> LLMVerdict:
+    """Accept either an LLMVerdict or the legacy (severity, raw) tuple."""
+    if isinstance(value, LLMVerdict):
+        return value
+    if isinstance(value, tuple):
+        severity = value[0] if len(value) > 0 else None
+        raw = value[1] if len(value) > 1 else None
+        return LLMVerdict(severity=severity, raw=raw)
+    return LLMVerdict(severity=None)
 
 
 # --------------------------------------------------------------------------
@@ -393,7 +471,8 @@ def triage(transcript: str, llm_classifier=None) -> TriageResult:
 
     # --- Tier 1 -----------------------------------------------------------
     classifier = llm_classifier or classify_with_llm
-    llm_severity, llm_raw = classifier(transcript)
+    verdict = _coerce_verdict(classifier(transcript))
+    llm_severity, llm_raw = verdict.severity, verdict.raw
 
     if llm_severity is None:
         # The LLM was unavailable or gave us something we could not parse.
@@ -408,6 +487,7 @@ def triage(transcript: str, llm_classifier=None) -> TriageResult:
                 "assuming the symptom is mild. Flagged for human review."
             ),
             llm_raw=llm_raw,
+            normalized_text=verdict.normalized_text,
         )
 
     # The one line that enforces the safety property.
@@ -419,11 +499,16 @@ def triage(transcript: str, llm_classifier=None) -> TriageResult:
         tier="tier_1",
         reasoning=(
             f"Tier 0 found no emergency indicators. Tier 1 classified this as "
-            f"{llm_severity.label}. Final severity {final.label} "
+            f"{llm_severity.label}. "
+            + (f"Normalized as: {verdict.normalized_text!r}. " if verdict.normalized_text else "")
+            + (f"{verdict.reasoning} " if verdict.reasoning else "")
+            + f"Final severity {final.label} "
             f"(Tier 0 floor was {floor.label}; the LLM can raise this floor "
             f"but never lower it)."
         ),
         llm_severity=llm_severity,
         llm_raw=llm_raw,
         escalated=escalated,
+        normalized_text=verdict.normalized_text,
+        confidence=verdict.confidence,
     )
