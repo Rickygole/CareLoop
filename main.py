@@ -1,94 +1,171 @@
 """
 CareLoop API.
 
-Three routes, one job: let a voice agent connect to a patient's medication
-data, triage what they report on the call, and book a follow-up.
+Transport only. Every clinical decision lives in triage_engine.py, which
+knows nothing about HTTP and can be unit tested standalone.
 
-    POST /portal/connect   patient_id -> derived dosing schedule
-    POST /triage           transcript -> severity tier + reasoning
-    POST /book             specialty + urgency -> appointment confirmation
-
-All the clinical safety logic lives in triage_engine.py, which knows nothing
-about HTTP. This file is transport only.
+    POST /portal/connect       patient_id -> derived dosing schedule
+    POST /triage               transcript -> severity tier + reasoning
+    POST /book                 specialty + urgency -> appointment confirmation
+    POST /webhook/elevenlabs   tool-call receiver for the voice agent
+    WS   /trace                live structured event log for the judge console
+    GET  /trace/events         polling fallback for hosts without WebSockets
 """
 
+import asyncio
 import json
+import os
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, List, Optional
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query, WebSocket, WebSocketDisconnect
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
-# Load .env here, at the app entry point, BEFORE importing triage_engine.
-# triage_engine stays dependency-free and just reads os.environ -- keeping it
-# pure and standalone-testable. Populating that environ is this layer's job.
+# Load .env at the entry point, before importing the engine. The engine stays
+# dependency free and just reads os.environ; populating it is this layer's job.
 load_dotenv()
 
-from triage_engine import Severity, triage
+from providers import find_provider, specialties  # noqa: E402
+from responses import suggested_response  # noqa: E402
+from triage_engine import Severity, triage  # noqa: E402
 
 app = FastAPI(
     title="CareLoop API",
     description="Medication adherence voice agent with two-tier symptom triage.",
-    version="0.1.0",
+    version="0.2.0",
+)
+
+# The frontend is hosted separately (Vercel / GitHub Pages), so it is a
+# different origin from this API.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 DATA_DIR = Path(__file__).parent / "mock_data"
+WEBHOOK_SECRET = os.environ.get("CARELOOP_WEBHOOK_SECRET", "")
 
 
 # ---------------------------------------------------------------------------
-# Mock FHIR-style patient store
+# Patient store
 # ---------------------------------------------------------------------------
 
 def load_patients() -> Dict[str, dict]:
-    """Load the mock patient records, keyed by patient_id.
-
-    Stands in for a real FHIR Patient/MedicationRequest fetch from a portal.
-    """
     with open(DATA_DIR / "patients.json") as f:
-        records = json.load(f)["patients"]
-    return {p["patient_id"]: p for p in records}
+        return {p["patient_id"]: p for p in json.load(f)["patients"]}
 
 
 PATIENTS = load_patients()
 
 
-# The clock times we map named dosing windows onto. A real build would pull
-# these from the patient's own routine; for the demo they are fixed.
-TIME_OF_DAY = {
-    "morning": "08:00",
-    "before breakfast": "07:30",
-    "midday": "13:00",
-    "afternoon": "15:00",
-    "evening": "19:00",
-    "bedtime": "22:00",
-}
-
-
 def derive_schedule(medication_requests: List[dict]) -> List[dict]:
-    """Turn FHIR-ish MedicationRequests into a flat, call-ready dosing schedule.
+    """Flatten FHIR-ish MedicationRequests into one entry per dose time.
 
-    One entry per (medication, dose time), sorted by time -- which is the shape
-    the voice agent actually needs to ask "did you take your 8am pill?"
+    This is the shape the voice agent needs to ask "did you take your 8am
+    pill?", sorted by clock time.
     """
     schedule = []
     for req in medication_requests:
         if req.get("status") != "active":
             continue
-        for window in [w.strip() for w in req["timing"].split(",")]:
-            schedule.append(
-                {
-                    "medication": req["medication"],
-                    "dosage": req["dosage"],
-                    "window": window,
-                    "time": TIME_OF_DAY.get(window, "as needed"),
-                    "frequency": req["frequency"],
-                    "prescriber": req["prescriber"],
-                    "medication_request_id": req["id"],
-                }
-            )
-    # "as needed" doses sort last; everything else by clock time.
-    return sorted(schedule, key=lambda d: (d["time"] == "as needed", d["time"]))
+        for hour in req["timing"]["preferred_hours"]:
+            schedule.append({
+                "medication": req["medication"],
+                "dosage": req["dosage_text"],
+                "time": f"{hour:02d}:00",
+                "frequency": req["frequency"],
+                "prescriber": req["prescriber"],
+                "medication_id": req["medication_id"],
+            })
+    return sorted(schedule, key=lambda d: d["time"])
+
+
+# ---------------------------------------------------------------------------
+# Trace event bus
+# ---------------------------------------------------------------------------
+
+EVENT_TYPES = {
+    "CALL_INITIATED", "CALL_CONNECTED", "CALL_ENDED", "AGENT_SPEECH",
+    "PATIENT_SPEECH", "TIER_0_CHECK", "TIER_0_MATCH", "NORMALIZE",
+    "TIER_1_CLASSIFY", "ACTION_DECIDED", "TOOL_CALL", "BOOKING_CONFIRMED",
+    "BACKBOARD_WRITE", "EMERGENCY_ESCALATION",
+}
+
+
+class TraceBus:
+    """Fan-out of structured events to every connected console.
+
+    Keeps a bounded replay buffer so the polling fallback (/trace/events)
+    behaves identically to the WebSocket for a judge watching the panel.
+    """
+
+    def __init__(self, capacity: int = 500):
+        self._events: List[dict] = []
+        self._clients: List[WebSocket] = []
+        self._capacity = capacity
+        self._seq = 0
+
+    async def emit(self, event_type: str, payload: Optional[dict] = None) -> dict:
+        self._seq += 1
+        event = {
+            "seq": self._seq,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "event_type": event_type,
+            "payload": payload or {},
+        }
+        self._events.append(event)
+        del self._events[:-self._capacity]
+
+        for client in list(self._clients):
+            try:
+                await client.send_json(event)
+            except Exception:
+                self.disconnect(client)
+        return event
+
+    def since(self, seq: int) -> List[dict]:
+        return [e for e in self._events if e["seq"] > seq]
+
+    def connect(self, ws: WebSocket) -> None:
+        self._clients.append(ws)
+
+    def disconnect(self, ws: WebSocket) -> None:
+        if ws in self._clients:
+            self._clients.remove(ws)
+
+
+bus = TraceBus()
+
+
+@app.websocket("/trace")
+async def trace_socket(ws: WebSocket, token: str = Query(default="")):
+    """Live event stream. Shared-secret gated: this carries patient-shaped data."""
+    if WEBHOOK_SECRET and token != WEBHOOK_SECRET:
+        await ws.close(code=1008)
+        return
+    await ws.accept()
+    bus.connect(ws)
+    try:
+        for event in bus.since(0):
+            await ws.send_json(event)
+        while True:
+            await asyncio.sleep(30)
+            await ws.send_json({"event_type": "PING", "payload": {}})
+    except WebSocketDisconnect:
+        bus.disconnect(ws)
+    except Exception:
+        bus.disconnect(ws)
+
+
+@app.get("/trace/events")
+def trace_events(since: int = 0):
+    """Polling fallback for hosts that cannot hold a WebSocket open."""
+    return {"events": bus.since(since)}
 
 
 # ---------------------------------------------------------------------------
@@ -96,28 +173,23 @@ def derive_schedule(medication_requests: List[dict]) -> List[dict]:
 # ---------------------------------------------------------------------------
 
 class ConnectRequest(BaseModel):
-    patient_id: str = Field(..., examples=["pt-1001"])
+    patient_id: str = Field(..., examples=["p1"])
 
 
 @app.post("/portal/connect")
-def portal_connect(body: ConnectRequest):
-    """Look up a patient and return their derived dosing schedule."""
+async def portal_connect(body: ConnectRequest):
     patient = PATIENTS.get(body.patient_id)
     if patient is None:
-        raise HTTPException(
-            status_code=404, detail=f"No patient with id {body.patient_id!r}"
-        )
+        raise HTTPException(404, f"No patient with id {body.patient_id!r}")
+
+    patient = dict(patient)
+    patient["connected"] = True
+    patient["connected_at"] = datetime.now(timezone.utc).isoformat()
+    PATIENTS[body.patient_id] = patient
 
     return {
-        "connected": True,
-        "patient": {
-            "patient_id": patient["patient_id"],
-            "name": patient["name"],
-            "phone": patient["phone"],
-            "insurance_payer_id": patient["insurance_payer_id"],
-        },
-        "medication_count": len(patient["medication_requests"]),
-        "schedule": derive_schedule(patient["medication_requests"]),
+        "patient": patient,
+        "derived_schedule": derive_schedule(patient["medication_requests"]),
     }
 
 
@@ -130,102 +202,146 @@ class TriageRequest(BaseModel):
     patient_id: Optional[str] = None
 
 
-@app.post("/triage")
-def triage_transcript(body: TriageRequest):
-    """Run a symptom transcript through the two-tier triage engine."""
-    result = triage(body.transcript)
+def _source_for(result) -> str:
+    if result.tier == "tier_0":
+        return "rule"
+    if result.llm_severity is None:
+        return "fallback_error"
+    return "llm"
 
-    payload = result.to_dict()
-    payload["patient_id"] = body.patient_id
-    payload["transcript"] = body.transcript
-    payload["recommended_action"] = (
-        CRISIS_ACTION if result.is_crisis else RECOMMENDED_ACTION[result.severity]
-    )
+
+async def run_triage(transcript: str, patient_id: Optional[str] = None) -> dict:
+    """Run triage and emit the trace events the judge console renders."""
+    await bus.emit("PATIENT_SPEECH", {"text": transcript, "patient_id": patient_id})
+    await bus.emit("TIER_0_CHECK", {"transcript": transcript})
+
+    result = triage(transcript)
+
+    if result.matched_rules:
+        await bus.emit("TIER_0_MATCH", {"rules": result.matched_rules})
+    if result.normalized_text:
+        await bus.emit("NORMALIZE", {"normalized_text": result.normalized_text})
+    if result.tier == "tier_1":
+        await bus.emit("TIER_1_CLASSIFY", {
+            "severity": result.severity.label,
+            "confidence": result.confidence,
+            "source": _source_for(result),
+        })
+
+    payload = {
+        "tier": result.severity.label.lower(),
+        "source": _source_for(result),
+        "normalized_text": result.normalized_text,
+        "confidence": result.confidence,
+        "reasoning": result.reasoning,
+        "suggested_agent_response": suggested_response(result.severity, result.is_crisis),
+        "is_crisis": result.is_crisis,
+        "is_emergency": result.is_emergency,
+        "matched_rules": result.matched_rules,
+        "patient_id": patient_id,
+        "transcript": transcript,
+    }
+
+    if result.is_emergency:
+        await bus.emit("EMERGENCY_ESCALATION", {
+            "rules": result.matched_rules, "is_crisis": result.is_crisis,
+        })
+    await bus.emit("ACTION_DECIDED", {"tier": payload["tier"]})
     return payload
 
 
-# A mental health crisis is an EMERGENCY by severity, but answering it with
-# "call 911 and hang up" is the wrong response and is contraindicated by most
-# crisis guidance. It gets its own action: warm handoff, stay on the line.
-CRISIS_ACTION = (
-    "Route to the 988 Suicide and Crisis Lifeline (call or text 988). "
-    "Stay on the line with the patient until a human is connected. "
-    "Do NOT end the call."
-)
-
-RECOMMENDED_ACTION = {
-    Severity.EMERGENCY: "Stop the check-in. Direct the patient to call 911 and "
-                        "page the on-call clinician immediately.",
-    Severity.SEVERE: "Book a same-day appointment and notify the prescriber.",
-    Severity.MODERATE: "Book a clinician callback within 24 hours.",
-    Severity.MILD: "Log the response and continue the normal check-in cadence.",
-}
+@app.post("/triage")
+async def triage_transcript(body: TriageRequest):
+    return await run_triage(body.transcript, body.patient_id)
 
 
 # ---------------------------------------------------------------------------
 # POST /book
 # ---------------------------------------------------------------------------
 
-PROVIDERS = [
-    {"provider_id": "prv-01", "name": "Dr. Aisha Rahman", "specialty": "internal medicine",
-     "location": "Riverside Clinic, Suite 200"},
-    {"provider_id": "prv-02", "name": "Dr. Lena Vogt", "specialty": "cardiology",
-     "location": "Mercy Heart Center, 3rd Floor"},
-    {"provider_id": "prv-03", "name": "Dr. Peter Okonjo", "specialty": "endocrinology",
-     "location": "Riverside Clinic, Suite 410"},
-    {"provider_id": "prv-04", "name": "Dr. Hannah Weiss", "specialty": "psychiatry",
-     "location": "Lakeview Behavioral Health"},
-    {"provider_id": "prv-05", "name": "Dr. Samuel Ortiz", "specialty": "pulmonology",
-     "location": "Mercy Respiratory Care, 2nd Floor"},
-]
-
-# How fast we promise to see them, by urgency.
-URGENCY_SLOTS = {
-    "emergency": ("2026-09-18", "immediate - ER handoff"),
-    "same_day": ("2026-09-18", "16:45"),
-    "urgent": ("2026-09-19", "09:15"),
-    "routine": ("2026-09-25", "11:30"),
-}
+URGENCIES = {"routine", "urgent"}
 
 
 class BookRequest(BaseModel):
-    specialty: str = Field(..., examples=["cardiology"])
-    urgency: str = Field("routine", examples=["urgent"])
+    specialty: str = Field(..., examples=["Internal Medicine"])
+    urgency: str = Field("routine", examples=["routine"])
     patient_id: Optional[str] = None
 
 
 @app.post("/book")
-def book_appointment(body: BookRequest):
-    """Return a mock appointment confirmation from the static provider list."""
-    specialty = body.specialty.strip().lower()
+async def book_appointment(body: BookRequest):
     urgency = body.urgency.strip().lower()
+    if urgency not in URGENCIES:
+        raise HTTPException(400, f"urgency must be one of {sorted(URGENCIES)}")
 
-    if urgency not in URGENCY_SLOTS:
-        raise HTTPException(
-            status_code=400,
-            detail=f"urgency must be one of {sorted(URGENCY_SLOTS)}",
-        )
+    patient = PATIENTS.get(body.patient_id) if body.patient_id else None
+    payer = patient["insurance_payer_id"] if patient else None
 
-    provider = next((p for p in PROVIDERS if p["specialty"] == specialty), None)
+    provider = find_provider(body.specialty, payer)
     if provider is None:
         raise HTTPException(
-            status_code=404,
-            detail=f"No provider for specialty {body.specialty!r}. "
-                   f"Available: {sorted({p['specialty'] for p in PROVIDERS})}",
+            404,
+            f"No in-network provider for {body.specialty!r}. Available: {specialties()}",
+        )
+    if not provider["available_slots"]:
+        raise HTTPException(
+            409, f"{provider['name']} has no bookable slots. Emergencies are not booked."
         )
 
-    date, time = URGENCY_SLOTS[urgency]
+    # Slots are never consumed. See providers.py for why.
+    slot = provider["available_slots"][0]
+    await bus.emit("BOOKING_CONFIRMED", {
+        "provider_name": provider["name"], "time": slot, "specialty": provider["specialty"],
+    })
     return {
         "confirmed": True,
-        "confirmation_code": f"CL-{provider['provider_id'][-2:]}-{urgency[:3].upper()}-7741",
-        "patient_id": body.patient_id,
-        "provider": provider,
-        "urgency": urgency,
-        "date": date,
-        "time": time,
+        "provider_name": provider["name"],
+        "time": slot,
+        "specialty": provider["specialty"],
     }
+
+
+# ---------------------------------------------------------------------------
+# POST /webhook/elevenlabs
+# ---------------------------------------------------------------------------
+
+class ToolCall(BaseModel):
+    tool_name: str
+    patient_id: Optional[str] = None
+    transcript: Optional[str] = None
+    specialty: Optional[str] = None
+    urgency: Optional[str] = None
+    secret: Optional[str] = None
+
+
+@app.post("/webhook/elevenlabs")
+async def elevenlabs_webhook(body: ToolCall):
+    """Receives tool calls from the voice agent. Shared-secret gated."""
+    if WEBHOOK_SECRET and body.secret != WEBHOOK_SECRET:
+        raise HTTPException(401, "unauthorized")
+
+    if body.patient_id and body.patient_id not in PATIENTS:
+        raise HTTPException(404, "unknown_patient")
+
+    await bus.emit("TOOL_CALL", {"tool": body.tool_name, "patient_id": body.patient_id})
+
+    if body.tool_name == "report_symptom":
+        return await run_triage(body.transcript or "", body.patient_id)
+
+    if body.tool_name == "book_appointment":
+        return await book_appointment(BookRequest(
+            specialty=body.specialty or "Internal Medicine",
+            urgency=body.urgency or "routine",
+            patient_id=body.patient_id,
+        ))
+
+    raise HTTPException(400, f"unknown tool {body.tool_name!r}")
 
 
 @app.get("/health")
 def health():
-    return {"status": "ok", "patients_loaded": len(PATIENTS)}
+    return {
+        "status": "ok",
+        "patients_loaded": len(PATIENTS),
+        "gemini_configured": bool(os.environ.get("GEMINI_API_KEY")),
+    }
