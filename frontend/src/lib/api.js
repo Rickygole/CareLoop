@@ -24,7 +24,32 @@ export class ApiError extends Error {
   }
 }
 
+const SESSION_HEADER = 'X-CareLoop-Session'
+const SESSION_KEY = 'careloop.session'
+
+function sessionId() {
+  try {
+    const existing = window.sessionStorage.getItem(SESSION_KEY)
+    if (existing) return existing
+    const minted =
+      window.crypto && window.crypto.randomUUID
+        ? window.crypto.randomUUID()
+        : String(Date.now()) + '-' + Math.random().toString(36).slice(2)
+    window.sessionStorage.setItem(SESSION_KEY, minted)
+    return minted
+  } catch {
+    return ''
+  }
+}
+
 async function request(path, options = {}) {
+  const id = sessionId()
+  if (id) {
+    options = {
+      ...options,
+      headers: { ...(options.headers || {}), [SESSION_HEADER]: id },
+    }
+  }
   let response
   try {
     response = await fetch(API_BASE + path, options)
@@ -95,5 +120,9 @@ export function health() {
 
 export function traceSocketUrl() {
   const base = API_BASE.replace(/^http/, 'ws')
-  return base + '/trace' + (TRACE_TOKEN ? '?token=' + encodeURIComponent(TRACE_TOKEN) : '')
+  const params = []
+  if (TRACE_TOKEN) params.push('token=' + encodeURIComponent(TRACE_TOKEN))
+  const id = sessionId()
+  if (id) params.push('session_id=' + encodeURIComponent(id))
+  return base + '/trace' + (params.length ? '?' + params.join('&') : '')
 }
