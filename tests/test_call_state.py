@@ -130,3 +130,47 @@ def test_one_visitor_never_sees_another_visitors_call(configured):
     client = TestClient(main.app)
     ring(client, "cs-mine")
     assert state(client, "cs-theirs")["phase"] == "idle"
+
+
+def test_a_long_answered_call_is_not_texted_even_on_another_instance(configured, monkeypatch):
+    texts = []
+    monkeypatch.setattr(
+        telephony, "send_sms",
+        lambda to, body: texts.append(body) or {"ok": True, "sid": "SM1"},
+    )
+    client = TestClient(main.app)
+    session = "cross-instance"
+    state_obj = main.SESSIONS.get(session)
+    nonce = main._issue_callback_nonce(state_obj, 1)
+    sig = main._callback_signature("p1", session, 1, nonce)
+
+    client.post(
+        f"/voice/checkin/status?patient_id=p1&attempt=1&nonce={nonce}&sig={sig}",
+        data={"CallStatus": "completed", "CallDuration": "41", "CallSid": "CAunseen"},
+        headers={"X-CareLoop-Session": session},
+    )
+    assert texts == [], (
+        "the callback landed where answered_calls was empty. Trusting only process "
+        "memory texted a patient who had just finished talking to CareLoop."
+    )
+    assert state(client, session)["phase"] == main.CALL_PHASE_ENDED
+
+
+def test_a_genuinely_unanswered_call_is_still_texted(configured, monkeypatch):
+    texts = []
+    monkeypatch.setattr(
+        telephony, "send_sms",
+        lambda to, body: texts.append(body) or {"ok": True, "sid": "SM1"},
+    )
+    client = TestClient(main.app)
+    session = "genuine-miss"
+    state_obj = main.SESSIONS.get(session)
+    nonce = main._issue_callback_nonce(state_obj, 1)
+    sig = main._callback_signature("p1", session, 1, nonce)
+
+    client.post(
+        f"/voice/checkin/status?patient_id=p1&attempt=1&nonce={nonce}&sig={sig}",
+        data={"CallStatus": "no-answer", "CallDuration": "0", "CallSid": "CAmissed"},
+        headers={"X-CareLoop-Session": session},
+    )
+    assert len(texts) == 1

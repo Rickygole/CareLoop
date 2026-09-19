@@ -1290,7 +1290,8 @@ async def voice_checkin_status(
         return Response(status_code=204)
 
     engaged = bool(call_sid) and call_sid in session.answered_calls
-    picked_up = engaged and not answered_by.startswith("machine")
+    long_enough = status == "completed" and duration >= ANSWERED_CALL_SECONDS
+    picked_up = (engaged or long_enough) and not answered_by.startswith("machine")
 
     if picked_up:
         _set_call_state(

@@ -921,3 +921,35 @@ def test_the_interaction_check_has_something_to_say_about_dorothy():
     assert any(f["severity"] == "major" for f in surfaced), (
         "the waiting prescription must trip a major finding"
     )
+
+
+def test_a_later_dose_of_the_same_medicine_is_not_marked_taken():
+    from datetime import datetime
+    from scheduler import build_day_plan, clinic_timezone
+
+    plan = build_day_plan(
+        main.load_patients()["p1"],
+        datetime.now(clinic_timezone()).replace(hour=8, minute=0),
+    )
+    evening = [d for d in plan["doses"] if d["time"] == "20:00"]
+    assert evening, "Maria takes metformin twice a day"
+    assert evening[0]["status"] != "taken", (
+        "the morning dose was taken, not the evening one. Keying the taken set by "
+        "medication alone marked a dose twelve hours before it was due."
+    )
+
+
+def test_a_call_group_reports_its_worst_dose_not_its_first():
+    from scheduler import coalesce
+
+    groups = coalesce([
+        {"due_at": "2026-09-19T07:00:00-04:00", "time": "07:00", "status": "taken",
+         "medication": "Levothyroxine", "medication_id": "a"},
+        {"due_at": "2026-09-19T08:00:00-04:00", "time": "08:00", "status": "missed",
+         "medication": "Metformin", "medication_id": "b"},
+        {"due_at": "2026-09-19T08:00:00-04:00", "time": "08:00", "status": "missed",
+         "medication": "Aspirin", "medication_id": "c"},
+    ])
+    assert groups[0]["status"] == "missed", (
+        "two of three doses were missed, so the call that covered them is not taken"
+    )
