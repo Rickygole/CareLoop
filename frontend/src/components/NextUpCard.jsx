@@ -1,20 +1,22 @@
 import { clockLabel } from '../lib/format.js'
 
 const STATUS_LABEL = {
-  upcoming: 'Upcoming',
+  upcoming: 'Coming up',
   due_soon: 'Due soon',
   due_now: 'Due now',
+  missed: 'Missed',
+  taken: 'Taken',
 }
 
 export default function NextUpCard({ dose }) {
   if (!dose) {
     return (
-      <section className="border-l-2 border-line-strong bg-surface-2 px-6 py-5">
+      <section className="rounded-card border-l-4 border-line-strong bg-surface-2 px-6 py-6">
         <p className="text-micro font-semibold uppercase text-muted">
-          Next dose
+          Your next dose
         </p>
-        <p className="mt-2 text-sm text-muted">
-          Nothing due right now, so CareLoop has no reason to call yet.
+        <p className="measure mt-3 text-ink-2">
+          Nothing is due right now, so CareLoop has no reason to call yet.
         </p>
       </section>
     )
@@ -22,29 +24,29 @@ export default function NextUpCard({ dose }) {
 
   return (
     <section
-      aria-label="What happens next"
-      className="overflow-hidden rounded-card border border-line bg-surface px-6 py-5 shadow-card"
+      aria-label="Your next dose"
+      className="enter-rise overflow-hidden rounded-panel border-2 border-brand bg-surface px-6 py-7 shadow-raised sm:px-8"
     >
-      <p className="text-micro font-semibold uppercase text-muted">
-        Next dose and check-in call
+      <p className="text-micro font-semibold uppercase text-brand-deep">
+        Your next dose, and the call that comes with it
       </p>
-      <p className="mt-2 flex items-center gap-2.5">
-        <span
-          aria-hidden="true"
-          className="size-2 shrink-0 rounded-full bg-brand"
-          style={{ animation: 'pulse-ring 2.6s ease-out infinite' }}
-        />
-        <span className="numeric font-display text-2xl font-semibold tracking-[-0.01em] text-ink">
+
+      <p className="mt-4 flex flex-wrap items-baseline gap-x-5 gap-y-2">
+        <span className="numeric font-display text-3xl font-semibold text-ink">
           {clockLabel(dose.time)}
         </span>
-        <span className="numeric text-sm text-muted">
+        <span className="inline-flex items-center gap-2.5 rounded-full border-2 border-brand/45 bg-brand-tint px-4 py-1.5 text-micro font-semibold text-brand-deep">
+          <span aria-hidden="true" className="text-[0.8em] leading-none">
+            {String.fromCharCode(9679)}
+          </span>
           {STATUS_LABEL[dose.status] || dose.status}
         </span>
       </p>
-      <p className="mt-1.5 text-sm text-ink-2">
+
+      <p className="measure mt-4 text-ink-2">
         {dose.medication}
-        {dose.dosage ? ' ' + String.fromCharCode(183) + ' ' + dose.dosage : ''}.
-        CareLoop calls at this time to ask whether it was taken.
+        {dose.dosage ? ', ' + dose.dosage : ''}. CareLoop will ring you at this
+        time and ask whether you took it.
       </p>
     </section>
   )

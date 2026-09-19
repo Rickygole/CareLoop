@@ -53,7 +53,7 @@ export default function ConsentModal({ open, patientName, busy, onAgree, onCance
 
   return (
     <div
-      className="enter-fade fixed inset-0 z-50 flex items-end justify-center bg-ink/50 p-4 sm:items-center"
+      className="enter-fade fixed inset-0 z-50 flex items-end justify-center bg-ink/60 p-4 sm:items-center"
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) onCancel()
       }}
@@ -65,44 +65,44 @@ export default function ConsentModal({ open, patientName, busy, onAgree, onCance
         aria-labelledby="consent-title"
         aria-describedby="consent-body"
         onKeyDown={handleKey}
-        className="enter-rise w-full max-w-lg overflow-hidden rounded-panel border border-line bg-surface shadow-modal"
+        className="enter-rise w-full max-w-2xl overflow-hidden rounded-panel border-2 border-line-ink bg-surface shadow-modal"
       >
-        <div className="px-7 pt-7 pb-6">
-          <p className="text-micro font-semibold uppercase text-brand">
-            Consent required
+        <div className="px-7 pb-8 pt-8 sm:px-10">
+          <p className="smallcaps text-micro text-brand-deep">
+            We ask before we read anything
           </p>
           <h2
             id="consent-title"
-            className="font-display mt-2 text-xl font-semibold tracking-[-0.008em] text-ink"
+            className="font-display mt-3 border-b-2 border-line-ink pb-3 text-2xl font-semibold text-ink"
           >
             Before we connect your portal
           </h2>
 
-          <div id="consent-body" className="mt-4 space-y-3 text-sm text-ink-2">
-            <p className="max-w-[60ch]">
+          <div id="consent-body" className="mt-6 space-y-4 text-ink-2">
+            <p className="measure">
               CareLoop will read{' '}
-              {patientName ? patientName + '\u2019s' : 'this'} medication list
-              and dosing schedule so it can ask about doses during a check-in
-              call, and it will record what is said on those calls.
+              {patientName ? patientName + String.fromCharCode(8217) + 's' : 'this'}{' '}
+              list of medicines and the times they are due, so it can ask about
+              them on a check-in call. It will keep a record of what is said on
+              those calls.
             </p>
-            <p className="max-w-[60ch]">
-              CareLoop is a research prototype, not a medical device. It does
-              not provide medical advice, diagnosis, or treatment.
+            <p className="measure">
+              CareLoop is a research prototype. It is not a medical device and
+              it does not give medical advice.
             </p>
           </div>
 
-          <p className="mt-5 rounded-control border border-line bg-surface-2 px-4 py-3 text-2xs leading-relaxed text-muted">
-            This demo uses synthetic patient records only. Nothing here is a
-            real person and nothing you enter should be real health
-            information.
+          <p className="measure mt-6 border-l-4 border-line-strong bg-surface-2 px-5 py-4 text-sm text-muted">
+            This demonstration uses made up records only. Nothing here is a real
+            person, and nothing you type should be real health information.
           </p>
         </div>
 
-        <div className="flex flex-col-reverse gap-3 border-t border-line bg-surface-2 px-7 py-5 sm:flex-row sm:justify-end">
+        <div className="flex flex-col-reverse gap-4 border-t border-line bg-surface-2 px-7 py-6 sm:flex-row sm:justify-end sm:px-10">
           <button
             type="button"
             onClick={onCancel}
-            className="rounded-control border border-line bg-surface px-4 py-2.5 text-sm font-medium text-ink-2 transition-colors duration-150 hover:border-line-strong hover:bg-sunken"
+            className="min-h-[52px] rounded-control border-2 border-line-strong bg-surface px-6 py-3 text-sm font-semibold text-ink-2 transition-colors duration-150 hover:border-ink hover:text-ink"
           >
             Not now
           </button>
@@ -110,9 +110,9 @@ export default function ConsentModal({ open, patientName, busy, onAgree, onCance
             type="button"
             onClick={onAgree}
             disabled={busy}
-            className="rounded-control bg-brand px-5 py-2.5 text-sm font-semibold text-white shadow-card transition-[background-color,transform] duration-150 ease-out hover:bg-brand-deep active:scale-[0.99] disabled:opacity-60"
+            className="min-h-[52px] rounded-control bg-brand px-7 py-3 text-sm font-semibold text-white shadow-raised transition-[background-color,transform] duration-200 ease-out hover:bg-brand-deep active:translate-y-px disabled:bg-muted disabled:shadow-none"
           >
-            {busy ? 'Connecting...' : 'I agree, connect my portal'}
+            {busy ? 'Connecting...' : 'Yes, connect my portal'}
           </button>
         </div>
       </div>

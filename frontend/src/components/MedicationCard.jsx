@@ -1,61 +1,79 @@
 import { clockLabel } from '../lib/format.js'
+import { MARGIN_GRID } from './Section.jsx'
 
-const STATUS_LABEL = {
-  taken: 'Taken',
-  due_soon: 'Due soon',
-  due_now: 'Due now',
-  missed: 'Missed',
-  upcoming: 'Upcoming',
-}
-
-const STATUS_STYLE = {
-  taken: 'border-mild/40 bg-mild-tint text-mild',
-  due_soon: 'border-line-strong bg-surface text-ink-2',
-  due_now: 'border-brand bg-brand text-white',
-  missed: 'border-severe/40 bg-severe-tint text-severe',
-  upcoming: 'border-line-strong bg-surface text-ink-2',
+const STATUS = {
+  taken: {
+    label: 'Taken',
+    glyph: String.fromCharCode(10003),
+    tone: 'text-mild',
+  },
+  due_now: {
+    label: 'Due now',
+    glyph: String.fromCharCode(9679),
+    tone: 'text-brand-deep',
+  },
+  due_soon: {
+    label: 'Due soon',
+    glyph: String.fromCharCode(9675),
+    tone: 'text-ink-2',
+  },
+  missed: {
+    label: 'Missed',
+    glyph: String.fromCharCode(9651),
+    tone: 'text-severe',
+  },
+  upcoming: {
+    label: 'Later today',
+    glyph: String.fromCharCode(9675),
+    tone: 'text-ink-2',
+  },
 }
 
 export default function MedicationCard({ med, index }) {
   return (
     <li
-      className="enter-rise group relative flex flex-col overflow-hidden rounded-card border border-line bg-surface shadow-card transition-[box-shadow,border-color,transform] duration-200 ease-out hover:-translate-y-px hover:border-line-strong hover:shadow-lift"
+      className={'enter-script border-t border-line py-7 ' + MARGIN_GRID}
       style={{ '--i': index }}
     >
-      <div className="flex flex-1 flex-col p-5">
-        <div className="flex items-start justify-between gap-4">
-          <h3 className="text-lg font-semibold text-ink">{med.medication}</h3>
-          <span className="numeric shrink-0 rounded-md bg-sunken px-2 py-0.5 text-2xs font-medium text-ink-2">
-            {med.dosage}
-          </span>
-        </div>
-
-        <p className="mt-1.5 text-sm text-muted">
-          {med.frequency}
-          {med.prescriber ? ' ' + String.fromCharCode(183) + ' ' + med.prescriber : ''}
-        </p>
+      <div className="numeric pt-1.5 text-right text-micro font-semibold uppercase text-muted">
+        {String(index + 1).padStart(2, '0')}
       </div>
 
-      <div className="border-t border-line bg-surface-2 px-5 py-4">
-        <p className="text-micro font-semibold uppercase text-muted">
-          Doses today
+      <div className="min-w-0">
+        <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
+          <h4 className="font-display text-xl font-semibold text-ink">
+            {med.medication}
+          </h4>
+          <p className="numeric text-sm font-semibold text-ink-2">
+            {med.dosage}
+          </p>
+        </div>
+
+        <p className="measure mt-1.5 text-sm text-ink-2">
+          {med.frequency ? med.frequency : 'As prescribed'}
+          {med.prescriber ? '. Prescribed by ' + med.prescriber + '.' : '.'}
         </p>
-        <ul className="mt-2.5 flex flex-wrap gap-2">
-          {med.doses.map((dose) => (
-            <li key={dose.time}>
-              <span
-                className={
-                  'numeric inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-2xs font-medium ' +
-                  (STATUS_STYLE[dose.status] || STATUS_STYLE.upcoming)
-                }
-              >
-                <span className="text-micro font-semibold uppercase opacity-80">
-                  {STATUS_LABEL[dose.status] || dose.status}
+
+        <ul className="mt-5 flex flex-wrap gap-x-9 gap-y-4">
+          {med.doses.map((dose) => {
+            const meta = STATUS[dose.status] || STATUS.upcoming
+            return (
+              <li key={dose.time} className="flex items-baseline gap-2.5">
+                <span
+                  aria-hidden="true"
+                  className={'text-micro leading-none ' + meta.tone}
+                >
+                  {meta.glyph}
                 </span>
-                {clockLabel(dose.time)}
-              </span>
-            </li>
-          ))}
+                <span className="numeric text-sm font-semibold text-ink">
+                  {clockLabel(dose.time)}
+                </span>
+                <span className={'smallcaps text-micro ' + meta.tone}>
+                  {meta.label}
+                </span>
+              </li>
+            )
+          })}
         </ul>
       </div>
     </li>

@@ -2,11 +2,8 @@ import { useEffect, useState } from 'react'
 
 import evalResults from '../data/eval_results.json'
 
-const BAR_COLOR = '#7E8A99'
-const VARIANCE_COLOR = '#E3A13B'
-
 const CAPTION =
-  'Internal evaluation on symptom descriptions written by the project team across several phrasing styles. This demonstrates the evaluation method, not a measurement of real-world bias. The sample is small, non-clinical, not representative of any population or language community, and was authored by non-clinicians. No claim is made about how CareLoop would perform on real patient speech.'
+  'Internal evaluation on symptom descriptions written by the project team across several phrasing styles. This demonstrates the evaluation method, not a measurement of real world bias. The sample is small, non clinical, not representative of any population or language community, and was authored by non clinicians. No claim is made about how CareLoop would perform on real patient speech.'
 
 function percent(value) {
   return Math.max(0, Math.min(100, Math.round(value * 1000) / 10))
@@ -17,17 +14,17 @@ function Bar({ arm, entry, grown, placeholder }) {
   const width = grown && !placeholder ? percent(value) : 0
 
   return (
-    <div className="flex items-center gap-3">
-      <span className="w-36 shrink-0 truncate font-mono text-2xs text-console-muted">
+    <div className="flex items-center gap-4">
+      <span className="w-40 shrink-0 truncate text-xs text-ink-2">
         {arm.label}
       </span>
-      <div className="relative h-2 min-w-0 flex-1 bg-console-line">
+      <div className="relative h-2.5 min-w-0 flex-1 bg-sunken">
         <div
-          className="h-full transition-[width] duration-500 ease-out"
-          style={{ width: width + '%', background: BAR_COLOR }}
+          className="h-full bg-ink-2 transition-[width] duration-700 ease-out"
+          style={{ width: width + '%' }}
         />
       </div>
-      <span className="numeric w-20 shrink-0 text-right font-mono text-2xs text-console-ink-2">
+      <span className="numeric w-24 shrink-0 text-right text-xs text-ink">
         {placeholder
           ? '--'
           : percent(value) +
@@ -55,66 +52,38 @@ export default function FairnessChart() {
   const arms = evalResults.arms || []
   const categories = evalResults.categories || []
 
-  const varies = new Set(
-    categories.filter((category) => {
-      const values = arms.map((arm) => {
-        const entry = lookup.get(category + '|' + arm.id)
-        return entry ? entry.value : 0
-      })
-      return Math.max(...values) - Math.min(...values) > 0.0001
-    }),
-  )
-
   return (
-    <details
-      aria-label="Evaluation"
-      className="overflow-hidden rounded-card border border-console-line bg-console-panel text-sm"
-    >
-      <summary className="cursor-pointer list-none px-6 py-3 font-mono text-2xs font-bold uppercase tracking-[0.18em] text-console-ink marker:content-none">
-        Supporting evaluation: triage consistency across phrasing styles
+    <details className="mt-10 border-t border-line pt-7">
+      <summary className="cursor-pointer list-none text-sm font-semibold text-ink marker:content-none">
+        <span className="smallcaps text-micro text-muted">The evidence</span>
+        <span className="mt-1.5 block">
+          Show how consistently CareLoop rates the same symptom said different
+          ways
+        </span>
       </summary>
 
-      <div className="border-t border-console-line px-6 py-4">
+      <div className="mt-7">
+        <p className="measure text-sm text-ink-2">
+          {evalResults.metric_label}
+        </p>
         {placeholder ? (
-          <span className="font-mono text-2xs text-dark-moderate">
-            awaiting eval run
-          </span>
+          <p className="numeric mt-3 text-sm text-moderate">
+            The test has not been run yet, so every bar is empty on purpose.
+          </p>
         ) : (
-          <span className="numeric font-mono text-2xs text-console-muted">
-            {evalResults.cases} cases {String.fromCharCode(215)}{' '}
-            {evalResults.repeats_per_case}{' '}
-            repeats
-          </span>
+          <p className="numeric mt-3 text-sm text-muted">
+            {evalResults.cases} cases, {evalResults.repeats_per_case} repeats
+            each.
+          </p>
         )}
-      </div>
 
-      <div className="grid gap-x-12 gap-y-8 border-t border-console-line p-6 lg:grid-cols-[minmax(0,20rem)_1fr]">
-        <div>
-          <p className="text-2xs leading-relaxed text-console-ink-2">
-            {evalResults.metric_label}
-          </p>
-          <p className="mt-3 max-w-[44ch] text-2xs leading-relaxed text-console-muted">
-            {placeholder
-              ? 'The harness has not been run, so every bar is empty on purpose. The three arms and four phrasing styles are the design of the evaluation, not a result.'
-              : 'No meaningful difference between arms at this sample size.'}
-          </p>
-        </div>
-
-        <div className="grid gap-x-10 gap-y-6 sm:grid-cols-2">
+        <div className="mt-8 grid gap-x-14 gap-y-10 lg:grid-cols-2">
           {categories.map((category) => (
             <div key={category}>
-              <h3 className="flex items-center gap-2 text-2xs font-semibold text-console-ink">
+              <h4 className="smallcaps border-b border-line-strong pb-1.5 text-micro text-muted">
                 {category}
-                {!placeholder && varies.has(category) ? (
-                  <span
-                    className="font-mono text-micro font-normal uppercase"
-                    style={{ color: VARIANCE_COLOR }}
-                  >
-                    arms differ
-                  </span>
-                ) : null}
-              </h3>
-              <div className="mt-2.5 space-y-2">
+              </h4>
+              <div className="mt-4 space-y-3">
                 {arms.map((arm) => (
                   <Bar
                     key={arm.id}
@@ -128,22 +97,14 @@ export default function FairnessChart() {
             </div>
           ))}
         </div>
-      </div>
 
-      <div className="border-t border-console-line px-6 py-4">
+        <p className="measure mt-8 text-xs text-muted">{CAPTION}</p>
         {!placeholder && evalResults.model ? (
-          <p className="numeric font-mono text-micro text-console-muted">
+          <p className="numeric mt-3 text-xs text-muted">
             {evalResults.model}
-            {evalResults.temperature === null ||
-            evalResults.temperature === undefined
-              ? ''
-              : ' at temperature ' + evalResults.temperature}
             {evalResults.generated_at ? ', run ' + evalResults.generated_at : ''}
           </p>
         ) : null}
-        <p className="mt-2 max-w-[92ch] text-micro leading-relaxed text-console-muted">
-          {CAPTION}
-        </p>
       </div>
     </details>
   )

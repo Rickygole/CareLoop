@@ -32,9 +32,6 @@
   --color-emergency: #9e1c13;
   --color-emergency-tint: #fbe4e2;
 
-  --color-lane: #1c3f5f;
-  --color-lane-tint: #e8eef4;
-
   --color-console-bg: #0e1116;
   --color-console-chrome: #141920;
   --color-console-panel: #141920;
@@ -76,22 +73,21 @@
   --text-2xl--line-height: 1.18;
   --text-2xl--letter-spacing: -0.018em;
   --text-3xl: 3rem;
-  --text-3xl--line-height: 1.1;
-  --text-3xl--letter-spacing: -0.022em;
-  --text-4xl: 4rem;
-  --text-4xl--line-height: 1.02;
-  --text-4xl--letter-spacing: -0.028em;
+  --text-3xl--line-height: 1.08;
+  --text-3xl--letter-spacing: -0.024em;
+  --text-4xl: 4.25rem;
+  --text-4xl--line-height: 0.98;
+  --text-4xl--letter-spacing: -0.032em;
 
   --radius-control: 8px;
   --radius-card: 10px;
   --radius-panel: 14px;
 
-  --shadow-card: 0 1px 0 rgba(20, 23, 26, 0.04),
-    0 1px 2px rgba(60, 50, 30, 0.05);
-  --shadow-raised: 0 2px 4px -2px rgba(60, 50, 30, 0.12),
-    0 8px 18px -12px rgba(60, 50, 30, 0.22);
-  --shadow-lift: 0 4px 8px -4px rgba(60, 50, 30, 0.16),
-    0 22px 44px -26px rgba(60, 50, 30, 0.38);
+  --shadow-card: none;
+  --shadow-raised: 0 1px 1px rgba(64, 54, 34, 0.05),
+    0 6px 14px -10px rgba(64, 54, 34, 0.24);
+  --shadow-lift: 0 1px 1px rgba(64, 54, 34, 0.06),
+    0 12px 28px -18px rgba(64, 54, 34, 0.32);
   --shadow-modal: 0 8px 16px -8px rgba(20, 23, 26, 0.24),
     0 48px 96px -40px rgba(20, 23, 26, 0.52);
   --shadow-console: 0 1px 0 rgba(255, 255, 255, 0.04) inset,
@@ -178,7 +174,13 @@
 
 @layer utilities {
   .measure {
-    max-width: 66ch;
+    max-width: 64ch;
+  }
+
+  .smallcaps {
+    font-variant-caps: all-small-caps;
+    letter-spacing: 0.12em;
+    font-weight: 600;
   }
 
   .measure-tight {
@@ -215,8 +217,13 @@
   }
 
   .enter-rise {
-    animation: enter-rise 420ms var(--ease-spring) both;
-    animation-delay: calc(var(--i, 0) * 70ms);
+    animation: enter-quiet 260ms var(--ease-settle) both;
+    animation-delay: calc(var(--i, 0) * 40ms);
+  }
+
+  .enter-script {
+    animation: enter-script 380ms var(--ease-spring) both;
+    animation-delay: calc(var(--i, 0) * 60ms);
   }
 
   .enter-fade {
@@ -230,8 +237,8 @@
   }
 
   .enter-step {
-    animation: enter-step 440ms var(--ease-spring) both;
-    animation-delay: calc(var(--i, 0) * 160ms);
+    animation: enter-quiet 280ms var(--ease-settle) both;
+    animation-delay: calc(var(--i, 0) * 60ms);
   }
 
   .enter-verdict {
@@ -250,12 +257,27 @@
   }
 }
 
-@keyframes enter-rise {
+@keyframes enter-quiet {
   from {
     opacity: 0;
-    transform: translate3d(0, 16px, 0) scale(0.99);
+    transform: translate3d(0, 5px, 0);
   }
   to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes enter-script {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 22px, 0);
+  }
+  70% {
+    opacity: 1;
+    transform: translate3d(0, -3px, 0);
+  }
+  100% {
     opacity: 1;
     transform: none;
   }
@@ -274,17 +296,6 @@
   from {
     opacity: 0;
     transform: translate3d(-10px, 0, 0);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
-
-@keyframes enter-step {
-  from {
-    opacity: 0;
-    transform: translate3d(-14px, 0, 0);
   }
   to {
     opacity: 1;
@@ -345,6 +356,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .enter-rise,
+  .enter-script,
   .enter-fade,
   .enter-trace,
   .enter-step,

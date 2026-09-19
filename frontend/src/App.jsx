@@ -1,15 +1,14 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 
-import AdminDemo from './pages/AdminDemo.jsx'
-import Dashboard from './pages/Dashboard.jsx'
+import CareLoopPage from './pages/CareLoop.jsx'
 
 export default function App() {
   return (
     <Routes>
-      <Route path="/" element={<Navigate to="/admin-demo" replace />} />
-      <Route path="/dashboard" element={<Dashboard />} />
-      <Route path="/admin-demo" element={<AdminDemo />} />
-      <Route path="*" element={<Navigate to="/admin-demo" replace />} />
+      <Route path="/" element={<CareLoopPage />} />
+      <Route path="/dashboard" element={<CareLoopPage />} />
+      <Route path="/admin-demo" element={<Navigate to="/" replace />} />
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )
 }
