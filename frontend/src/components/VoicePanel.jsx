@@ -1,3 +1,4 @@
+import SimulatedCall from './SimulatedCall.jsx'
 import VoiceAgent from './VoiceAgent.jsx'
 import { isConfigured } from '../lib/voice.js'
 
@@ -15,17 +16,28 @@ function SafetyNotice() {
   )
 }
 
-export default function VoicePanel({ patientId, patientName }) {
+export default function VoicePanel({
+  patientId,
+  patientName,
+  nextDose,
+  scenarios,
+  busy,
+  error,
+  onReply,
+}) {
   const configured = isConfigured()
   const firstName = String(patientName || '').trim().split(/\s+/)[0] || ''
 
   if (!configured) {
     return (
-      <p className="measure mt-8 border-l-4 border-line-strong bg-surface-2 px-6 py-4 text-sm text-ink-2">
-        The spoken version of this call is switched off in this build, so
-        answer in writing below. CareLoop does exactly the same thing with
-        typed words as it does with spoken ones.
-      </p>
+      <SimulatedCall
+        patientName={patientName}
+        nextDose={nextDose}
+        scenarios={scenarios}
+        busy={busy}
+        error={error}
+        onReply={onReply}
+      />
     )
   }
 

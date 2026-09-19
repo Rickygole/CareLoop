@@ -7,9 +7,13 @@ import VoicePanel from '../components/VoicePanel.jsx'
 import { runLoop } from '../lib/api.js'
 import { applyClockShift } from '../lib/clock.js'
 import { clockLabel } from '../lib/format.js'
+import { isConfigured } from '../lib/voice.js'
 import { useSession } from '../lib/session.jsx'
 import { SCENARIOS } from '../data/scenarios.js'
 import { patientName } from '../data/patients.js'
+
+const FAILED =
+  'CareLoop could not reach the line just now. Nothing was recorded. Send your answer again to retry.'
 
 export default function CallPage() {
   const navigate = useNavigate()
@@ -18,12 +22,13 @@ export default function CallPage() {
   const [busy, setBusy] = useState(false)
   const [failed, setFailed] = useState(false)
 
+  const spoken = isConfigured()
   const plan = applyClockShift(schedule, clockShiftMs)
   const next = plan && plan.next_dose
   const due = next && (next.status === 'due_now' || next.status === 'due_soon')
   const who = record ? record.name : patientName(patientId)
 
-  const start = useCallback(
+  const check = useCallback(
     async (transcript) => {
       setBusy(true)
       setFailed(false)
@@ -31,14 +36,23 @@ export default function CallPage() {
       try {
         const payload = await runLoop(transcript, patientId)
         recordRun(payload, Math.round(performance.now() - started))
-        navigate('/decision')
+        return payload
       } catch {
         setFailed(true)
+        return null
       } finally {
         setBusy(false)
       }
     },
-    [navigate, patientId, recordRun],
+    [patientId, recordRun],
+  )
+
+  const start = useCallback(
+    async (transcript) => {
+      const payload = await check(transcript)
+      if (payload) navigate('/decision')
+    },
+    [check, navigate],
   )
 
   return (
@@ -88,21 +102,27 @@ export default function CallPage() {
         )}
       </p>
 
-      <VoicePanel patientId={patientId} patientName={who} />
-
-      <CheckIn
-        busy={busy}
-        error={
-          failed
-            ? 'CareLoop could not reach the line just now. Nothing was recorded. Press Start the check-in to try again.'
-            : null
-        }
+      <VoicePanel
+        patientId={patientId}
+        patientName={who}
+        nextDose={next}
         scenarios={SCENARIOS}
-        onSubmit={start}
+        busy={busy}
+        error={failed ? FAILED : null}
+        onReply={check}
       />
 
+      {spoken ? (
+        <CheckIn
+          busy={busy}
+          error={failed ? FAILED : null}
+          scenarios={SCENARIOS}
+          onSubmit={start}
+        />
+      ) : null}
+
       <div role="status" aria-live="polite" className="empty:hidden">
-        {busy ? (
+        {spoken && busy ? (
           <p className="enter-fade mt-10 border-l-4 border-brand bg-brand-wash px-6 py-5 text-sm font-semibold text-brand-deep">
             CareLoop is on the call. Listening, checking, and deciding what to
             do.
