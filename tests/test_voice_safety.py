@@ -156,3 +156,16 @@ def test_the_hold_loop_repeats_rather_than_ending():
     assert "<Redirect>" in body, "the hold must loop, not run out"
     assert "988" in said(body)
     assert "<Hangup/>" not in body
+
+
+def test_the_call_never_claims_a_later_dose_is_due_now():
+    for patient_id in ("p1", "p2"):
+        xml = client.get(
+            f"/voice/checkin?patient_id={patient_id}",
+            headers={"X-CareLoop-Session": f"timing-{patient_id}"},
+        ).text
+        spoken = said(xml)
+        plan_due = "due at about this time" in spoken
+        later = "due later today" in spoken
+        assert plan_due or later, f"{patient_id} did not say when the dose is due"
+        assert not (plan_due and later), "the call cannot say both"

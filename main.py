@@ -880,15 +880,17 @@ CHECKIN_GREETING = (
 )
 
 CHECKIN_DOSE_PROMPT = (
-    "{patient_first_name}, this is a reminder to take your "
-    "{medication}{indication}. Please take it now if you have not already. "
-    "When you have, tell me you took it, and tell me how you have been "
-    "feeling since."
+    "{patient_first_name}, this is a reminder about your {medication}"
+    "{indication}, {when}. {take}When you have taken it, tell me, and tell me "
+    "how you have been feeling since."
 )
+
+DOSE_TAKE_NOW = "Please take it now if you have not already. "
+DOSE_TAKE_LATER = ""
 
 CHECKIN_DOSE_PROMPT_FLAGGED = (
     "{patient_first_name}, your prescriber's schedule has your {medication} "
-    "at about this time. I am not going to ask you to take it, because "
+    "{when}. I am not going to ask you to take it, because "
     "something on your medication list is worth asking your prescriber or "
     "pharmacist about first. Please do not start, stop or change anything "
     "because of this call. Tell me how you have been feeling since."
@@ -1020,6 +1022,19 @@ def _spoken_indication(patient: Optional[dict]) -> str:
     return ""
 
 
+def _dose_timing(patient: Optional[dict]) -> tuple:
+    if not patient:
+        return "due today", False
+    dose = build_day_plan(patient)["next_dose"]
+    if not dose:
+        return "due today", False
+    if dose["status"] in ("due_now", "due_soon"):
+        return "due at about this time", True
+    hour, _, minute = dose["time"].partition(":")
+    spoken = datetime.strptime(dose["time"], "%H:%M").strftime("%-I %p").lower()
+    return f"due later today, at {spoken}", False
+
+
 def _next_dose_is_flagged(patient: Optional[dict]) -> Optional[List[str]]:
     if not patient:
         return None
@@ -1108,6 +1123,7 @@ async def voice_checkin(
     medication = _spoken_medication(patient)
     indication = _spoken_indication(patient)
     flagged = _next_dose_is_flagged(patient)
+    when_phrase, due_now = _dose_timing(patient)
     if flagged:
         await session.bus.emit("DOSE_PROMPT_WITHHELD", {
             "patient_id": patient_id, "ingredients": flagged,
@@ -1123,13 +1139,17 @@ async def voice_checkin(
         'speechTimeout="auto" timeout="8" language="en-US">'
         + _say(
             CHECKIN_DOSE_PROMPT_FLAGGED.format(
-                patient_first_name=first_name, medication=medication,
+                patient_first_name=first_name,
+                medication=medication,
+                when=when_phrase,
             )
             if flagged
             else CHECKIN_DOSE_PROMPT.format(
                 patient_first_name=first_name,
                 medication=medication,
                 indication=f", the one {indication}" if indication else "",
+                when=when_phrase,
+                take=DOSE_TAKE_NOW if due_now else DOSE_TAKE_LATER,
             )
         )
         + "</Gather>"

@@ -14,7 +14,7 @@ def trace_url(since=0):
 client = TestClient(main.app)
 
 INSTRUCTIONS = ["please take it", "take it now", "you should take", "go ahead and take"]
-REMINDER = "this is a reminder to take your"
+REMINDER = "this is a reminder about your"
 
 
 def headers(name):
