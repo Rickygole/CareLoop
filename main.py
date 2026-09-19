@@ -170,6 +170,7 @@ class SessionState:
         self.memory = InMemoryBackend()
         self.escalations: Dict[str, List[dict]] = {}
         self.regimen_snapshots: Dict[str, List[dict]] = {}
+        self.answered_calls: set = set()
         self.bus = TraceBus()
         self.call_limiter = telephony.CallLimiter()
         self.last_touched = time.monotonic()
@@ -837,6 +838,15 @@ CHECKIN_CLOSING = (
     "I will check in with you again. Take care."
 )
 
+CHECKIN_CRISIS_HOLD = (
+    "I am staying on the line with you. I am not going to hang up. If you can, "
+    "please call or text 988 now, and stay with me until someone is with you."
+)
+
+CHECKIN_EMERGENCY_CLOSING = (
+    "Please do that now. I am ending this call so your line is free."
+)
+
 MAX_CALL_ATTEMPTS = 3
 ANSWERED_CALL_SECONDS = 22
 
@@ -955,6 +965,24 @@ async def voice_checkin(
     )
 
 
+async def _record_voice_escalation(session: SessionState, patient_id: str, result: dict) -> None:
+    record = record_escalation(
+        patient_id,
+        result["tier"],
+        result["is_crisis"],
+        datetime.now(timezone.utc),
+        store=session.escalations,
+    )
+    if record:
+        await session.bus.emit("ESCALATION_FIRED", {
+            "kind": record["kind"],
+            "would_notify": record["would_notify"],
+            "notification_delivered": record["notification_delivered"],
+            "ack_window_would_expire_at": record["ack_window_would_expire_at"],
+            "channel": "voice",
+        })
+
+
 @app.post("/voice/checkin/respond")
 async def voice_checkin_respond(
     request: Request,
@@ -973,7 +1001,31 @@ async def voice_checkin_respond(
             + "<Hangup/>"
         )
 
+    call_sid = (fields.get("CallSid") or "").strip()
+    if call_sid:
+        session.answered_calls.add(call_sid)
+
     result = await run_triage(session, transcript, patient_id)
+
+    if result["is_crisis"]:
+        await _record_voice_escalation(session, patient_id, result)
+        return _twiml(
+            _say(result["suggested_agent_response"])
+            + '<Pause length="3"/>'
+            + _say(CHECKIN_CRISIS_HOLD)
+            + '<Pause length="10"/>'
+            + _say(CHECKIN_CRISIS_HOLD)
+        )
+
+    if result["is_emergency"]:
+        await _record_voice_escalation(session, patient_id, result)
+        return _twiml(
+            _say(result["suggested_agent_response"])
+            + '<Pause length="1"/>'
+            + _say(CHECKIN_EMERGENCY_CLOSING)
+            + "<Hangup/>"
+        )
+
     return _twiml(
         _say(result["suggested_agent_response"])
         + '<Pause length="1"/>'
@@ -987,24 +1039,30 @@ async def voice_checkin_status(
     request: Request,
     patient_id: str = DEFAULT_DEMO_PATIENT_ID,
     attempt: int = 1,
+    sig: str = "",
     session: SessionState = Depends(get_session),
 ):
+    if not _callback_signature_valid(patient_id, session.session_id, attempt, sig):
+        raise HTTPException(403, "bad_callback_signature")
+
+    attempt = max(1, min(int(attempt), MAX_CALL_ATTEMPTS))
+
     fields = dict(parse_qsl((await request.body()).decode("utf-8")))
     status = (fields.get("CallStatus") or "").strip().lower()
     answered_by = (fields.get("AnsweredBy") or "").strip().lower()
+    call_sid = (fields.get("CallSid") or "").strip()
     try:
         duration = int(fields.get("CallDuration") or 0)
     except ValueError:
         duration = 0
 
-    picked_up = (
-        status == "completed"
-        and duration >= ANSWERED_CALL_SECONDS
-        and not answered_by.startswith("machine")
-    )
-    if picked_up or attempt >= MAX_CALL_ATTEMPTS:
+    engaged = bool(call_sid) and call_sid in session.answered_calls
+    picked_up = engaged and not answered_by.startswith("machine")
+
+    if picked_up or attempt >= MAX_CALL_ATTEMPTS or not session.call_limiter.allow():
         await session.bus.emit("PHONE_CALL_ENDED", {
-            "leg": "checkin", "status": status, "duration": duration, "attempt": attempt,
+            "leg": "checkin", "status": status, "duration": duration,
+            "attempt": attempt, "engaged": engaged,
         })
         return Response(status_code=204)
 
@@ -1015,6 +1073,7 @@ async def voice_checkin_status(
     result = _dial_checkin(
         str(request.base_url).rstrip("/"), session, patient_id, to, attempt + 1,
     )
+    session.call_limiter.record()
     await _emit_call_result(session, "checkin", to, result)
     return Response(status_code=204)
 
@@ -1054,6 +1113,21 @@ def _authorize_call(supplied: Optional[str]) -> None:
         raise HTTPException(401, "unauthorized")
 
 
+def _callback_signature(patient_id: str, session_id: str, attempt: int) -> str:
+    import hashlib
+    import hmac
+
+    secret = (CALL_TOKEN or WEBHOOK_SECRET or "careloop-unsigned").encode("utf-8")
+    basis = f"{patient_id}|{session_id}|{attempt}".encode("utf-8")
+    return hmac.new(secret, basis, hashlib.sha256).hexdigest()[:32]
+
+
+def _callback_signature_valid(patient_id: str, session_id: str, attempt: int, sig: str) -> bool:
+    import hmac
+
+    return hmac.compare_digest(_callback_signature(patient_id, session_id, attempt), sig or "")
+
+
 def _dial_checkin(
     base_url: str, session: SessionState, patient_id: str, to: str, attempt: int,
 ) -> dict:
@@ -1063,6 +1137,7 @@ def _dial_checkin(
     status_url = base_url + "/voice/checkin/status?" + urlencode({
         "patient_id": patient_id,
         "attempt": attempt,
+        "sig": _callback_signature(patient_id, session.session_id, attempt),
         SESSION_QUERY_PARAM: session.session_id,
     })
     return telephony.place_call(to, twiml_url=twiml_url, status_callback=status_url)

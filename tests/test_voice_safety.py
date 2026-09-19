@@ -1,0 +1,87 @@
+import re
+
+from fastapi.testclient import TestClient
+
+import main
+
+client = TestClient(main.app)
+
+CRISIS = "i want to kill myself"
+EMERGENCY = "my chest is crushing and my arm is numb"
+ROUTINE = "i took it, feeling fine"
+
+
+def respond(transcript, session, patient_id="p1"):
+    return client.post(
+        f"/voice/checkin/respond?patient_id={patient_id}",
+        data={"SpeechResult": transcript, "CallSid": "CA" + session},
+        headers={"X-CareLoop-Session": session},
+    ).text
+
+
+def said(xml):
+    return " ".join(re.findall(r"<Say[^>]*>(.*?)</Say>", xml))
+
+
+def escalations(session, patient_id="p1"):
+    body = client.get(
+        f"/escalations/{patient_id}", headers={"X-CareLoop-Session": session}
+    ).json()
+    return body["escalations"] if isinstance(body, dict) else body
+
+
+def test_a_crisis_call_is_never_hung_up():
+    xml = respond(CRISIS, "safety-crisis-hangup")
+    assert "<Hangup/>" not in xml
+
+
+def test_a_crisis_call_does_not_tell_the_patient_to_take_their_medication():
+    spoken = said(respond(CRISIS, "safety-crisis-meds"))
+    assert "keep taking your medication" not in spoken
+    assert "Take care" not in spoken
+
+
+def test_a_crisis_call_keeps_its_promise_to_stay_on_the_line():
+    spoken = said(respond(CRISIS, "safety-crisis-promise"))
+    assert "staying on the line" in spoken
+    assert "988" in spoken
+
+
+def test_a_crisis_on_the_phone_is_recorded_as_an_escalation():
+    session = "safety-crisis-escalation"
+    respond(CRISIS, session)
+    assert len(escalations(session)) == 1
+
+
+def test_an_emergency_call_does_not_tell_the_patient_to_take_their_medication():
+    spoken = said(respond(EMERGENCY, "safety-emergency-meds"))
+    assert "keep taking your medication" not in spoken
+
+
+def test_an_emergency_call_ends_so_the_line_is_free():
+    xml = respond(EMERGENCY, "safety-emergency-hangup")
+    assert "<Hangup/>" in xml
+    assert "911" in said(xml)
+
+
+def test_an_emergency_on_the_phone_is_recorded_as_an_escalation():
+    session = "safety-emergency-escalation"
+    respond(EMERGENCY, session)
+    assert len(escalations(session)) == 1
+
+
+def test_a_routine_call_still_closes_normally():
+    session = "safety-routine"
+    xml = respond(ROUTINE, session)
+    spoken = said(xml)
+    assert "<Hangup/>" in xml
+    assert "keep taking your medication" in spoken
+    assert escalations(session) == []
+
+
+def test_the_greeting_never_reads_another_patient_record_by_accident():
+    xml = client.get(
+        "/voice/checkin?patient_id=p1", headers={"X-CareLoop-Session": "safety-who"}
+    ).text
+    assert "Maria" in said(xml)
+    assert "Dorothy" not in said(xml)
