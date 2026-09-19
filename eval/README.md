@@ -1,210 +1,265 @@
-# CareLoop eval: paraphrase invariance
+# CareLoop eval v2: under-triage rate, not paraphrase invariance
 
-## What this measures
+This replaces the v1 eval (`eval/archive/`, see `eval/archive/README.md` for
+why). v1 measured whether a classifier gave the same answer across
+registers, with no gold labels and no rule layer isolated on its own. v2
+measures under-triage and over-triage rate against gold labels, with the
+rule layer tested on its own as a separate arm, because v1's design could
+not tell "the normalizer helped" apart from "the regex helped," and had no
+control for how much two rewordings of the identical vignette disagree by
+chance alone.
 
-This eval does not use ground truth severity labels. It does not ask "did the
-classifier get the right answer." It asks a narrower, checkable question:
+## The corpus
 
-> For the same underlying symptom, described in four different registers,
-> does the classifier return the same tier every time?
+`eval/vignettes.v2.json`: 8 scenarios (gi_upset, dizziness, swelling, rash,
+breathing, chest, fatigue, bleeding) times 3 gold tiers (mild, moderate,
+severe) equals 24 vignettes. Each vignette has 5 condition texts:
 
-If the classifier is invariant to phrasing, the tier a patient gets should
-depend only on what they are describing, not on how they talk. If it is not
-invariant, then whatever the "correct" tier is, some patients are getting a
-different answer than others for reporting the identical symptom, purely
-because of vocabulary, formality, hedging, or language mixing. That is a
-measurable, ground-truth-free way to demonstrate a phrasing bias (or the
-absence of one) without the team ever having to assert what the correct
-answer was.
+- `A`: clinical register, Standard American English. The control.
+- `A_prime`: a paraphrase of A, same register and variety. This is the noise
+  floor: how much do two rewordings of the identical symptom disagree on
+  their own, before any register or dialect variable is introduced. Every
+  other condition's gap should be read as a multiple of the A-to-A_prime
+  gap, not as a number on its own.
+- `B`: casual register, Standard American English.
+- `C`: dialect morphosyntax and lexicon, clinical register.
+- `D`: casual register plus dialect features.
 
-This design was chosen instead of an "under-triage rate" eval with
-hand-labeled correct answers. That alternative was considered and rejected:
-with a handful of hand-authored cases, the smallest possible change in the
-result is large (double digit percentage points), and because the team would
-be authoring the cases, the labels, and the baseline, the result is
-circular. Paraphrase invariance needs no labels, so there is nothing to
-accuse of circularity. The result is not "CareLoop under-triages less often
-than a naive pipeline." The result is "whatever the correct answer is, the
-naive pipeline gives a different one depending on how the patient talks, and
-this one does not" (or: "does too," if that is what the data shows).
+8 vignettes are `split: dev`, 16 are `split: test`. Test is frozen: no
+prompt or scoring-logic change is tuned against test-set outcomes after the
+fact. `eval/PREREGISTRATION.md` names the one confirmatory contrast (naive
+arm, under-triage rate, gold=severe, condition D vs condition A, test split
+only) and the stopping rule, both written and committed before any real or
+dry-run result existed.
 
-## What this does not show
+### Provenance, stated here because it changes what the numbers mean
 
-- It does not show that any tier assigned is clinically correct. No clinician
-  reviewed these scenarios or labeled them.
-- It is not a measurement of real-world bias, dialect fairness, or language
-  fairness. Every scenario and paraphrase in `cases.json` was written by the
-  CareLoop project team, not collected from real patients, and is not a
-  representative sample of any population, dialect, age group, or language
-  community. See the `note` field at the top of `cases.json`, which is
-  intended to be shown or quoted whenever this eval's results are shown.
-- With 9 scenarios, the sample is small. Treat percentages as a demonstration
-  of the method and a directional signal, not a precise measurement.
-- "mixed_language" paraphrases are the team's own attempt at Spanish/English
-  code-mixing, not a linguist-reviewed or native-speaker-reviewed sample.
+The original plan for this rebuild was an empty `eval/cases.v2.json`
+scaffold: 24 vignette slots with ids, scenario, gold tier, and protocol
+rule filled in, and all five condition text fields left blank with a TODO
+marker, under a project rule that test phrasings are human-authored, never
+LLM-authored. That plan changed mid-build. `eval/vignettes.v2.json` was
+authored and committed directly by the project owner's own process, with
+five condition texts already filled in for all 24 vignettes, and its own
+`provenance` field says so:
+
+`"human_authored": false`, `"authored_by": "generated by the same class of
+language model that is under evaluation"`.
+
+State that plainly wherever these numbers are shown: the corpus was not
+written by a human and was not collected from patients or from anyone
+speaking the dialect condition attempts to represent. Conditions `C` and
+`D` are author-constructed approximations of dialect morphosyntax and
+lexicon (dropped copula, habitual "be," multiple negation, and similar
+features), not speech recorded from speakers of that variety. Every
+`C`- or `D`-broken-out result in this eval, not just this section,
+describes the system's response to constructed text approximating a
+dialect, not how any real community of speakers is actually served. That
+is a representation gap, not only an acoustic one: a text-only eval, built
+this way, cannot speak to how the product performs for the population the
+dialect condition is meant to gesture at, and treating "the model handled
+condition D fine" as "the model handles this dialect fine" would be a
+larger and different claim than this eval can support.
+
+The eval-integrity reason v1 chose ground-truth-free paraphrase invariance
+over hand-labeled severity in the first place was to avoid a team labeling
+its own test and grading itself. v2 does use gold labels (a `protocol_rule`
+per vignette citing a published triage criterion, checked against
+`docs/TIER_RUBRIC.md`), which reintroduces some of that risk, and now adds
+a second one on top of it: the text the labels were assigned to was
+generated by an LLM rather than collected or hand-written. Two separate,
+stacked reasons to read every number here as a demonstration of method,
+not a validated measurement of real-world performance.
+
+## Same modality, every condition
+
+The old design's fatal flaw: comparing conditions that had gone through
+different amounts of processing before reaching a classifier makes any gap
+between them ambiguous, because the gap could be the thing you meant to
+measure or it could be an artifact of one condition getting extra help (or
+extra corruption) that the other didn't. v2 fixes this by running every one
+of the 5 conditions through the identical 3 arms, from the identical cached
+transcript text, with nothing about the arm depending on which condition it
+is being run on.
+
+This eval is text-in, text-out. It does not synthesize speech and it does
+not run automatic speech recognition. See "What this does not show" below
+for why that matters and why it was not attempted here.
 
 ## The three arms
 
-All three arms use the same model, the same temperature, and the same
-underlying severity rubric (mild / moderate / severe, as defined in
-`triage_engine.TIER1_PROMPT`). The only thing that differs between arms is
-what the classifier is asked to do with the transcript before it answers.
+All three read the exact same 5 condition texts per vignette. What differs
+is what happens to the text before a tier comes out.
 
-- `naive`: the raw transcript goes straight into the rubric. One call. One
-  word back (MILD, MODERATE, or SEVERE). This is what a classifier looks
-  like with no normalization and no intermediate reasoning step at all.
-- `cot`: one call. The model is asked to restate the transcript in one or
-  two sentences of clinical terminology, then classify that restatement.
-  This is a chain-of-thought-style call: it adds a reasoning step, but the
-  instruction is just "put this in clinical terms," not "strip out register
-  and produce a canonical phrasing." It returns a small ordered JSON object:
-  `clinical_restatement` first, then `tier`.
-- `normalize`: one call, using the exact prompt CareLoop ships in
-  `triage_engine.TIER1_PROMPT`. The model is asked to produce
-  `normalized_text`, a register-neutral clinical restatement that strips
-  casual tone, hedging, minimization, regional idiom, and non-English
-  phrasing, before classifying that normalized text. Same ordered JSON
-  shape as `cot`, with `normalized_text` in place of `clinical_restatement`.
+- `naive`: the condition text goes straight into the classifier prompt. No
+  rule layer, no normalization. One call.
+- `rules_only`: `triage_engine.detect_emergency` (the real deterministic
+  regex layer CareLoop ships, imported not reimplemented) runs against the
+  raw condition text first. A match scores `severe` (see EMERGENCY, below)
+  with no LLM call at all. No match falls through to the same classifier
+  call as `naive`. This arm exists specifically to answer whether a
+  regex catch alone, with no LLM normalization step, accounts for however
+  much of the gap the `full` arm closes.
+- `full`: a normalization call rewrites the condition text into neutral
+  clinical phrasing first (a separate call from classification, unlike
+  `triage_engine.TIER1_PROMPT`'s combined normalize-and-classify call, so
+  this eval can isolate the normalization step from the classification
+  step). `detect_emergency` then runs against the normalized text. A match
+  scores `severe`. No match falls through to the classifier call on the
+  normalized text.
 
-`cot` and `normalize` are structurally identical: same call count, same
-number of output fields, same JSON ordering (the extra field always comes
-before `tier`, so the tier is causally conditioned on it). The only thing
-that differs between them is the content of the instruction: "restate
-clinically" versus "normalize away the register." That is deliberate. If
-`normalize` is more consistent than `naive`, that alone does not tell you
-whether the improvement came from normalization or from simply giving the
-model one more step to think before answering. `cot` is the control that
-isolates the two: if `cot` looks like `naive` and `normalize` looks better
-than both, the improvement is attributable to normalization specifically,
-not to inference count. If `cot` and `normalize` look similar, the extra
-reasoning step is doing the work, not the register-stripping.
+If `rules_only` alone closes most of a gap that `naive` shows, the honest
+headline is "the regex layer is doing the work," not "the normalizer is
+doing the work." The stopping rule in `eval/PREREGISTRATION.md` makes this
+explicit for the one confirmatory contrast: if the D-vs-A gap's CI crosses
+zero, the reported headline becomes the `rules_only` catch rate instead of
+the gap.
 
-`normalize` reuses `triage_engine.TIER1_PROMPT` directly (imported, not
-copied), so this arm is always testing the literal prompt CareLoop ships,
-not a reconstruction of it that could drift out of sync. `naive` and `cot`
-use prompts local to `score.py` that mirror the same mild/moderate/severe
-rubric text. If `triage_engine.TIER1_PROMPT`'s rubric wording changes in a
-way that would materially change how a model reads it, update the `RUBRIC`
-constant in `score.py` to match, so the three arms stay comparable.
+### A real, unplanned finding from wiring this up
 
-## Metrics
+Running the actual `detect_emergency` regex (not a mock) against the actual
+committed vignette text surfaces a false positive: the `breathing_difficulty`
+rule matches the `breath-mild` and `breath-moderate` vignettes (gold `mild`
+and `moderate`, about "a bit winded on the stairs, nothing new" and "short
+of breath walking to the mailbox") in every condition, because the rule
+pattern matches on breathlessness language without distinguishing chronic
+baseline breathlessness from acute new-onset breathlessness. This means
+`rules_only` and `full` will over-triage those two vignettes to `severe`
+regardless of condition. That is a real, reportable result of building this
+harness against real vignette text, not a hypothetical; it shows up in
+`metrics_test.rules_only.*.over_triage_rate_gold_mild` and
+`..._gold_moderate` in any run's output, and it is a `triage_engine.py`
+regex specificity issue this eval surfaced, not something eval/ can fix
+(the fix belongs in `triage_engine.py`, which is out of scope here).
 
-For every (scenario, arm, register), the case is run `--repeats` times
-(default 5). The modal (most common) tier across those repeats is that
-register's answer; ties break toward the more severe tier, matching
-CareLoop's own stated philosophy of failing toward attention rather than
-away from it. The spread across repeats (how many of the 5 runs agreed) is
-recorded per register in `scenario_detail` so silent instability is visible
-even when the modal answer looks fine.
+## Metrics (see `eval/score_v2.py` for exact definitions)
 
-Primary metric, consistency: for each scenario, look at all six pairs among
-the four registers' modal tiers, and take the fraction of pairs that match.
-Average across scenarios for that arm's overall consistency percentage. Per
-register percentages (the numbers the frontend chart reads) are computed
-differently: for each register, across all nine scenarios, the percentage of
-scenarios where that register's modal tier agrees with the scenario's own
-majority tier across all four registers. This is still ground-truth-free:
-the "majority" is majority-of-the-four-paraphrases, not an external label.
-It answers "does phrasing register X tend to be the odd one out."
+- Under-triage rate and over-triage rate, both conditioned on gold tier and
+  reported separately for `severe` and `moderate` (under) or `mild` and
+  `moderate` (over). Never pooled: a pooled rate would hide whether a
+  system is failing on the cases where failing matters most.
+- Mean signed ordinal tier error: `predicted_ordinal - gold_ordinal`,
+  averaged. A 2-tier miss counts twice what a 1-tier miss counts.
+- Action-router accuracy: exact match between predicted and gold tier. This
+  assumes CareLoop's downstream action selection keys 1:1 off the tier
+  label; that assumption is not independently checked against
+  `scheduler.py`, which is out of scope for this eval, so treat this metric
+  as an approximation of router behavior, not a direct measurement of it.
+- Parse failures and refusals: their own outcome category (`parse_failure`,
+  `refusal`, alongside `parsed` and `rule_escalation`), counted and reported
+  in `outcome_counts`, never silently dropped from the denominator without
+  saying so.
+- `macro-F1` from v1 is gone. At n=24 across 3 classes it was noise
+  dressed as precision.
 
-Secondary metric, directionality: whenever a register disagrees with its
-scenario's majority, record whether it landed lower or higher in severity
-than the majority. The hypothesis this is designed to catch is
-under-triage: a naive pipeline reading a hedged, minimized, or
-code-switched description as less severe than the same symptom described
-clinically. If it goes the other way (normalization over-triaging by
-discarding hedging language), report that too. Both are legitimate,
-reportable findings; a negative or backwards result is still a result.
+Every rate above ships with a cluster bootstrap 95 percent CI (10000
+resamples, resampling vignettes, not runs or conditions, so the CI reflects
+uncertainty over which 24 vignettes were sampled, not over model noise).
+The one preregistered contrast additionally reports an exact (binomial)
+McNemar test on the paired vignette-level outcome. Every other contrast in
+the output, including the gold=moderate companion number, is exploratory
+and is labeled that in the results file.
+
+`k=3` full repeats run per condition per arm at temperature 0, because
+temperature 0 is not determinism; run-to-run agreement is reported per
+arm/condition as `run_to_run_agreement_rate`.
+
+## What this does not show
+
+- It does not test the actual product modality. CareLoop's real intake is a
+  phone call: speech in, ASR transcript out, then whatever text pipeline
+  this eval tests. This eval only exercises the text pipeline, on
+  hand-constructed (and, per the provenance note above, LLM-generated)
+  text standing in for what an ASR system might eventually produce. If ASR
+  word error rates differ by dialect, which is documented in the speech
+  recognition literature, that gap is entirely invisible here, in either
+  direction: it could be additively worse than what this eval shows, or
+  the two effects could partially cancel. This eval cannot tell you which.
+  Building a real TTS-to-ASR pass was judged not achievable before code
+  freeze in this session; see "What was not built" below.
+- It does not show real-world dialect fairness. The dialect conditions are
+  construct text, not recordings or transcriptions of real speakers; see
+  the provenance section above.
+- Gold labels are assigned by the project team against a published
+  protocol rule, but the team is not clinicians and is not independent of
+  the corpus. Treat labels as "the team's best-effort application of a
+  documented rule," not adjudicated ground truth.
+- n=24 (16 test) cannot detect an interaction effect below roughly the
+  number computed and printed in `exploratory_interaction_all_24` and
+  `exploratory_interaction_test_only_16` in the results file (around 40-50
+  percentage points depending on how many vignettes are actually usable
+  for that estimate). No superadditivity claim is made anywhere in this
+  harness's output regardless of what a point estimate looks like.
+
+## What was not built: TTS/ASR modality pass
+
+The corrected design in scope for this rebuild is 5 text conditions run
+through the same 3 text-processing arms; that is what "same modality"
+means here, and it is satisfied by construction, since none of the 5
+conditions goes through speech synthesis or recognition at all. That is
+narrower than the modality CareLoop actually runs in production. A more
+faithful redo would synthesize each condition's text to speech (with
+appropriate voice/accent choices for the dialect conditions, which raises
+its own construction-validity questions), run it through the same ASR path
+`main.py`/`providers.py` use in production, and score the ASR output
+instead of the hand-typed condition text. That was not attempted here,
+honestly, because: it requires new infrastructure (TTS synthesis, an ASR
+call path) that does not exist in `eval/` today and that this rebuild does
+not have permission to add to `main.py`, `providers.py`, or `clinic.py`;
+it multiplies the already-tight 24-vignette x 5-condition x 3-arm x k=3
+matrix by a TTS+ASR call per condition, at real cost and latency, for a
+corpus that was frozen and being scaffolded within the same overnight
+window as everything else in this document; and voice/accent selection for
+synthesizing the dialect conditions would itself need real review before
+being defensible, on the same construction-validity grounds already
+flagged for the text version. This is flagged, not hidden: the text-only
+result in this eval should not be read as evidence about the audio
+product's dialect behavior.
+
+## Fixed constants
+
+`EMERGENCY` (the top severity `triage_engine.detect_emergency` can return)
+scores as `severe` for every metric in this eval. This is pinned once, in
+`docs/TIER_RUBRIC.md`, and read from there by `eval/score_v2.py`, not
+redefined here or duplicated into a second rubric file. `eval/rubric.md`
+explains why it is a pointer rather than a copy.
 
 ## Running it
 
-Everything runs through `eval/score.py` using the project's venv:
-
 ```
-/Users/rickygole/Careloop/CareLoop/.venv/bin/python eval/score.py --dry-run
+/Users/rickygole/Careloop/CareLoop/.venv/bin/python eval/score_v2.py --dry-run
 ```
 
-`--dry-run` never touches the network and never requires `GEMINI_API_KEY`.
-It runs the full pipeline (load cases, validate them against Tier 0, run all
-three arms across all nine scenarios and four registers, aggregate, print
-the summary table) against a deterministic offline fake classifier, so the
-plumbing can be exercised and reviewed with no key present. It writes its
-output to `eval/results.dryrun.json`, never to `eval/results.json`, and
-marks `"placeholder": true` and `"dry_run": true` so a dry run can never be
-mistaken for a real measurement. `eval/results.dryrun.json` is gitignored.
+Runs the entire pipeline with zero API calls: the classify/normalize LLM
+steps use a deterministic offline fake, but the rule layer is the real
+`triage_engine.detect_emergency`, so `rule_escalation` counts and the
+breathing false-positive noted above show up even in `--dry-run`. Writes
+`eval/results_v2.dryrun.json` (gitignored, never committed, never mistaken
+for a real result: `"placeholder": false` here still means "this is a
+structurally real-shaped output," but `"dry_run": true` is the field that
+actually matters and is always checked first).
 
-Once `GEMINI_API_KEY` is set (in `.env` or the environment):
+Once `GEMINI_API_KEY` is set (`.env` or the environment):
 
 ```
-/Users/rickygole/Careloop/CareLoop/.venv/bin/python eval/score.py
+/Users/rickygole/Careloop/CareLoop/.venv/bin/python eval/score_v2.py
 ```
 
-This will:
+This verifies the pinned model resolves before spending the call budget,
+refuses to run if `docs/TIER_RUBRIC.md` is missing (a real run will not
+guess at the rubric), runs all 3 arms x 5 conditions x 24 vignettes x
+`--k` repeats (default 3, so 360 classify-equivalent decision points before
+counting the extra normalize calls the `full` arm makes and the calls the
+`rules_only`/`full` arms skip on a rule match), and writes
+`eval/results_v2.json` with the confirmatory contrast, the stopping-rule
+check, every exploratory number, and `total_api_calls` actually spent.
 
-1. Load and validate `eval/cases.json`. Every paraphrase is checked against
-   `triage_engine.detect_emergency` (Tier 0). If any paraphrase trips a Tier
-   0 rule, the run aborts loudly: a paraphrase that Tier 0 catches is not a
-   Tier 1 case, and including it would make the arms comparison meaningless
-   (Tier 0 is deterministic regex, so all three arms would trivially agree).
-2. Make one lightweight call to confirm the pinned model id resolves on the
-   installed SDK before spending the full call budget. If it does not
-   resolve, the run aborts with the SDK's own exception message printed, and
-   nothing is written.
-3. Run all three arms across all nine scenarios and four registers, five
-   times each by default: 9 x 3 x 4 x 5 = 540 calls at the defaults.
-4. Print the summary table to stdout.
-5. Write `eval/results.json` with `"placeholder": false`.
+Useful flags: `--k N` (default 3), `--model NAME`, `--temperature X`
+(default 0.0), `--resamples N` (default 10000), `--seed N` (default fixed,
+for reproducible bootstrap CIs across runs), `--check-model` (probe model
+resolution only, no scoring), `--vignettes PATH` / `--rubric PATH` (point
+at a different corpus or rubric file without touching the defaults).
 
-If any individual call fails to return a parseable tier, that call is
-recorded in `errors` in the results file (never silently dropped, never
-guessed), and the process exits nonzero at the end so a partially-broken run
-is never mistaken for a clean one.
-
-Useful flags:
-
-- `--repeats N` (default 5)
-- `--temperature X` (default 0.0, matching `triage_engine`'s production
-  default; override to test whether findings hold at higher temperature)
-- `--model NAME` (default: whatever `triage_engine.DEFAULT_MODEL` is
-  currently pinned to, or `GEMINI_MODEL` if set; override here to test a
-  different model without touching production)
-- `--check-model` runs only the model-resolution probe and exits, useful for
-  a fast check the moment a key lands, without spending the full budget
-- `--sleep X` seconds between calls, if rate limited
-- `--out PATH` where to write results (ignored in `--dry-run`, which always
-  writes to `eval/results.dryrun.json`)
-
-Per the plan, the intent is to run this once for real, commit the resulting
-`eval/results.json`, and have the frontend chart read the committed file
-rather than calling the model live.
-
-## Known issue: the pinned model id is unverified
-
-`triage_engine.py` pins `gemini-3.6-flash` as `DEFAULT_MODEL`, overridable
-with `GEMINI_MODEL` in `.env`.
-
-This was verified against the live API on 2026-09-19, and the original
-pin was wrong. `gemini-1.5-flash` is retired and returns:
-
-    NotFound: 404 models/gemini-1.5-flash is not found for API version
-    v1beta, or is not supported for generateContent
-
-`gemini-2.5-flash` is also gone for new keys, and the API names its own
-replacement in the error text:
-
-    NotFound: 404 This model models/gemini-2.5-flash is no longer
-    available to new users. Please update your code to use
-    models/gemini-3.6-flash
-
-Two traps worth knowing, both of which cost real time here:
-
-`genai.list_models()` lists models that a new key cannot actually call.
-It is not a reliable availability check. The only reliable check is
-issuing a real `generateContent` call, which is what `--check-model`
-does.
-
-An empty environment variable is not an absent one. `GEMINI_MODEL=` with
-no value made `os.environ.get("GEMINI_MODEL", DEFAULT_MODEL)` return the
-empty string rather than the default, and the model name resolved to
-`''`. Both this file's loader and `triage_engine` now use
-`os.environ.get(...) or DEFAULT_MODEL`.
+If a real run's `total_parse_failures + total_refusals` is nonzero, the
+process exits nonzero on purpose, the same as v1 did: a partially-broken
+run should never look identical to a clean one from the exit code alone.
