@@ -1,0 +1,1162 @@
+{
+  "placeholder": false,
+  "dry_run": false,
+  "generated_at": "2026-09-19T04:13:51.501916+00:00",
+  "model": "gemini-flash-lite-latest",
+  "temperature": 0.0,
+  "repeats": 5,
+  "total_api_calls": 540,
+  "scenarios_evaluated": 9,
+  "registers": [
+    "clinical",
+    "casual",
+    "understated",
+    "mixed_language"
+  ],
+  "arms": [
+    "naive",
+    "cot",
+    "normalize"
+  ],
+  "consistency_pct": {
+    "naive": {
+      "clinical": 100.0,
+      "casual": 100.0,
+      "understated": 66.7,
+      "mixed_language": 100.0
+    },
+    "cot": {
+      "clinical": 100.0,
+      "casual": 100.0,
+      "understated": 66.7,
+      "mixed_language": 100.0
+    },
+    "normalize": {
+      "clinical": 100.0,
+      "casual": 100.0,
+      "understated": 55.6,
+      "mixed_language": 100.0
+    }
+  },
+  "overall_consistency_pct": {
+    "naive": 83.3,
+    "cot": 83.3,
+    "normalize": 77.8
+  },
+  "scenario_detail": {
+    "naive": {
+      "mild_nausea": {
+        "territory": "mild",
+        "modal_tier_by_register": {
+          "clinical": "MILD",
+          "casual": "MILD",
+          "understated": "MILD",
+          "mixed_language": "MILD"
+        },
+        "spread_by_register": {
+          "clinical": {
+            "n_valid": 5,
+            "n_total": 5,
+            "mean": 1.0,
+            "unique_tiers": 1
+          },
+          "casual": {
+            "n_valid": 5,
+            "n_total": 5,
+            "mean": 1.0,
+            "unique_tiers": 1
+          },
+          "understated": {
+            "n_valid": 5,
+            "n_total": 5,
+            "mean": 1.0,
+            "unique_tiers": 1
+          },
+          "mixed_language": {
+            "n_valid": 5,
+            "n_total": 5,
+            "mean": 1.0,
+            "unique_tiers": 1
+          }
+        },
+        "majority_tier": "MILD",
+        "all_registers_agree": true,
+        "pairwise_consistency_pct": 100.0
+      },
+      "mild_fatigue": {
+        "territory": "mild",
+        "modal_tier_by_register": {
+          "clinical": "MILD",
+          "casual": "MILD",
+          "understated": "MILD",
+          "mixed_language": "MILD"
+        },
+        "spread_by_register": {
+          "clinical": {
+            "n_valid": 5,
+            "n_total": 5,
+            "mean": 1.0,
+            "unique_tiers": 1
+          },
+          "casual": {
+            "n_valid": 5,
+            "n_total": 5,
+            "mean": 1.0,
+            "unique_tiers": 1
+          },
+          "understated": {
+            "n_valid": 5,
+            "n_total": 5,
+            "mean": 1.0,
+            "unique_tiers": 1
+          },
+          "mixed_language": {
+            "n_valid": 5,
+            "n_total": 5,
+            "mean": 1.0,
+            "unique_tiers": 1
+          }
+        },
+        "majority_tier": "MILD",
+        "all_registers_agree": true,
+        "pairwise_consistency_pct": 100.0
+      },
+      "mild_headache": {
+        "territory": "mild",
+        "modal_tier_by_register": {
+          "clinical": "MILD",
+          "casual": "MILD",
+          "understated": "MILD",
+          "mixed_language": "MILD"
+        },
+        "spread_by_register": {
+          "clinical": {
+            "n_valid": 5,
+            "n_total": 5,
+            "mean": 1.0,
+            "unique_tiers": 1
+          },
+          "casual": {
+            "n_valid": 5,
+            "n_total": 5,
+            "mean": 1.0,
+            "unique_tiers": 1
+          },
+          "understated": {
+            "n_valid": 5,
+            "n_total": 5,
+            "mean": 1.0,
+            "unique_tiers": 1
+          },
+          "mixed_language": {
+            "n_valid": 5,
+            "n_total": 5,
+            "mean": 1.0,
+            "unique_tiers": 1
+          }
+        },
+        "majority_tier": "MILD",
+        "all_registers_agree": true,
+        "pairwise_consistency_pct": 100.0
+      },
+      "moderate_vomiting": {
+        "territory": "moderate",
+        "modal_tier_by_register": {
+          "clinical": "MODERATE",
+          "casual": "MODERATE",
+          "understated": "MODERATE",
+          "mixed_language": "MODERATE"
+        },
+        "spread_by_register": {
+          "clinical": {
+            "n_valid": 5,
+            "n_total": 5,
+            "mean": 2.0,
+            "unique_tiers": 1
+          },
+          "casual": {
+            "n_valid": 5,
+            "n_total": 5,
+            "mean": 2.0,
+            "unique_tiers": 1
+          },
+          "understated": {
+            "n_valid": 5,
+            "n_total": 5,
+            "mean": 2.0,
+            "unique_tiers": 1
+          },
+          "mixed_language": {
+            "n_valid": 5,
+            "n_total": 5,
+            "mean": 2.0,
+            "unique_tiers": 1
+          }
+        },
+        "majority_tier": "MODERATE",
+        "all_registers_agree": true,
+        "pairwise_consistency_pct": 100.0
+      },
+      "moderate_orthostatic_dizziness": {
+        "territory": "moderate",
+        "modal_tier_by_register": {
+          "clinical": "MODERATE",
+          "casual": "MODERATE",
+          "understated": "MODERATE",
+          "mixed_language": "MODERATE"
+        },
+        "spread_by_register": {
+          "clinical": {
+            "n_valid": 5,
+            "n_total": 5,
+            "mean": 2.0,
+            "unique_tiers": 1
+          },
+          "casual": {
+            "n_valid": 5,
+            "n_total": 5,
+            "mean": 2.0,
+            "unique_tiers": 1
+          },
+          "understated": {
+            "n_valid": 5,
+            "n_total": 5,
+            "mean": 2.0,
+            "unique_tiers": 1
+          },
+          "mixed_language": {
+            "n_valid": 5,
+            "n_total": 5,
+            "mean": 2.0,
+            "unique_tiers": 1
+          }
+        },
+        "majority_tier": "MODERATE",
+        "all_registers_agree": true,
+        "pairwise_consistency_pct": 100.0
+      },
+      "moderate_leg_swelling": {
+        "territory": "moderate",
+        "modal_tier_by_register": {
+          "clinical": "MODERATE",
+          "casual": "MODERATE",
+          "understated": "MODERATE",
+          "mixed_language": "MODERATE"
+        },
+        "spread_by_register": {
+          "clinical": {
+            "n_valid": 5,
+            "n_total": 5,
+            "mean": 2.0,
+            "unique_tiers": 1
+          },
+          "casual": {
+            "n_valid": 5,
+            "n_total": 5,
+            "mean": 2.0,
+            "unique_tiers": 1
+          },
+          "understated": {
+            "n_valid": 5,
+            "n_total": 5,
+            "mean": 2.0,
+            "unique_tiers": 1
+          },
+          "mixed_language": {
+            "n_valid": 5,
+            "n_total": 5,
+            "mean": 2.0,
+            "unique_tiers": 1
+          }
+        },
+        "majority_tier": "MODERATE",
+        "all_registers_agree": true,
+        "pairwise_consistency_pct": 100.0
+      },
+      "severe_persistent_fever": {
+        "territory": "severe",
+        "modal_tier_by_register": {
+          "clinical": "SEVERE",
+          "casual": "SEVERE",
+          "understated": "MODERATE",
+          "mixed_language": "SEVERE"
+        },
+        "spread_by_register": {
+          "clinical": {
+            "n_valid": 5,
+            "n_total": 5,
+            "mean": 3.0,
+            "unique_tiers": 1
+          },
+          "casual": {
+            "n_valid": 5,
+            "n_total": 5,
+            "mean": 3.0,
+            "unique_tiers": 1
+          },
+          "understated": {
+            "n_valid": 5,
+            "n_total": 5,
+            "mean": 2.0,
+            "unique_tiers": 1
+          },
+          "mixed_language": {
+            "n_valid": 5,
+            "n_total": 5,
+            "mean": 3.0,
+            "unique_tiers": 1
+          }
+        },
+        "majority_tier": "SEVERE",
+        "all_registers_agree": false,
+        "pairwise_consistency_pct": 50.0
+      },
+      "severe_worst_headache": {
+        "territory": "severe",
+        "modal_tier_by_register": {
+          "clinical": "SEVERE",
+          "casual": "SEVERE",
+          "understated": "MODERATE",
+          "mixed_language": "SEVERE"
+        },
+        "spread_by_register": {
+          "clinical": {
+            "n_valid": 5,
+            "n_total": 5,
+            "mean": 3.0,
+            "unique_tiers": 1
+          },
+          "casual": {
+            "n_valid": 5,
+            "n_total": 5,
+            "mean": 3.0,
+            "unique_tiers": 1
+          },
+          "understated": {
+            "n_valid": 5,
+            "n_total": 5,
+            "mean": 2.0,
+            "unique_tiers": 1
+          },
+          "mixed_language": {
+            "n_valid": 5,
+            "n_total": 5,
+            "mean": 3.0,
+            "unique_tiers": 1
+          }
+        },
+        "majority_tier": "SEVERE",
+        "all_registers_agree": false,
+        "pairwise_consistency_pct": 50.0
+      },
+      "severe_spreading_wound_infection": {
+        "territory": "severe",
+        "modal_tier_by_register": {
+          "clinical": "SEVERE",
+          "casual": "SEVERE",
+          "understated": "MODERATE",
+          "mixed_language": "SEVERE"
+        },
+        "spread_by_register": {
+          "clinical": {
+            "n_valid": 5,
+            "n_total": 5,
+            "mean": 3.0,
+            "unique_tiers": 1
+          },
+          "casual": {
+            "n_valid": 5,
+            "n_total": 5,
+            "mean": 3.0,
+            "unique_tiers": 1
+          },
+          "understated": {
+            "n_valid": 5,
+            "n_total": 5,
+            "mean": 2.0,
+            "unique_tiers": 1
+          },
+          "mixed_language": {
+            "n_valid": 5,
+            "n_total": 5,
+            "mean": 3.0,
+            "unique_tiers": 1
+          }
+        },
+        "majority_tier": "SEVERE",
+        "all_registers_agree": false,
+        "pairwise_consistency_pct": 50.0
+      }
+    },
+    "cot": {
+      "mild_nausea": {
+        "territory": "mild",
+        "modal_tier_by_register": {
+          "clinical": "MILD",
+          "casual": "MILD",
+          "understated": "MILD",
+          "mixed_language": "MILD"
+        },
+        "spread_by_register": {
+          "clinical": {
+            "n_valid": 5,
+            "n_total": 5,
+            "mean": 1.0,
+            "unique_tiers": 1
+          },
+          "casual": {
+            "n_valid": 5,
+            "n_total": 5,
+            "mean": 1.0,
+            "unique_tiers": 1
+          },
+          "understated": {
+            "n_valid": 5,
+            "n_total": 5,
+            "mean": 1.0,
+            "unique_tiers": 1
+          },
+          "mixed_language": {
+            "n_valid": 5,
+            "n_total": 5,
+            "mean": 1.0,
+            "unique_tiers": 1
+          }
+        },
+        "majority_tier": "MILD",
+        "all_registers_agree": true,
+        "pairwise_consistency_pct": 100.0
+      },
+      "mild_fatigue": {
+        "territory": "mild",
+        "modal_tier_by_register": {
+          "clinical": "MILD",
+          "casual": "MILD",
+          "understated": "MILD",
+          "mixed_language": "MILD"
+        },
+        "spread_by_register": {
+          "clinical": {
+            "n_valid": 5,
+            "n_total": 5,
+            "mean": 1.0,
+            "unique_tiers": 1
+          },
+          "casual": {
+            "n_valid": 5,
+            "n_total": 5,
+            "mean": 1.0,
+            "unique_tiers": 1
+          },
+          "understated": {
+            "n_valid": 5,
+            "n_total": 5,
+            "mean": 1.0,
+            "unique_tiers": 1
+          },
+          "mixed_language": {
+            "n_valid": 5,
+            "n_total": 5,
+            "mean": 1.0,
+            "unique_tiers": 1
+          }
+        },
+        "majority_tier": "MILD",
+        "all_registers_agree": true,
+        "pairwise_consistency_pct": 100.0
+      },
+      "mild_headache": {
+        "territory": "mild",
+        "modal_tier_by_register": {
+          "clinical": "MILD",
+          "casual": "MILD",
+          "understated": "MILD",
+          "mixed_language": "MILD"
+        },
+        "spread_by_register": {
+          "clinical": {
+            "n_valid": 5,
+            "n_total": 5,
+            "mean": 1.0,
+            "unique_tiers": 1
+          },
+          "casual": {
+            "n_valid": 5,
+            "n_total": 5,
+            "mean": 1.0,
+            "unique_tiers": 1
+          },
+          "understated": {
+            "n_valid": 5,
+            "n_total": 5,
+            "mean": 1.0,
+            "unique_tiers": 1
+          },
+          "mixed_language": {
+            "n_valid": 5,
+            "n_total": 5,
+            "mean": 1.0,
+            "unique_tiers": 1
+          }
+        },
+        "majority_tier": "MILD",
+        "all_registers_agree": true,
+        "pairwise_consistency_pct": 100.0
+      },
+      "moderate_vomiting": {
+        "territory": "moderate",
+        "modal_tier_by_register": {
+          "clinical": "MODERATE",
+          "casual": "MODERATE",
+          "understated": "MODERATE",
+          "mixed_language": "MODERATE"
+        },
+        "spread_by_register": {
+          "clinical": {
+            "n_valid": 5,
+            "n_total": 5,
+            "mean": 2.0,
+            "unique_tiers": 1
+          },
+          "casual": {
+            "n_valid": 5,
+            "n_total": 5,
+            "mean": 2.0,
+            "unique_tiers": 1
+          },
+          "understated": {
+            "n_valid": 5,
+            "n_total": 5,
+            "mean": 2.0,
+            "unique_tiers": 1
+          },
+          "mixed_language": {
+            "n_valid": 5,
+            "n_total": 5,
+            "mean": 2.0,
+            "unique_tiers": 1
+          }
+        },
+        "majority_tier": "MODERATE",
+        "all_registers_agree": true,
+        "pairwise_consistency_pct": 100.0
+      },
+      "moderate_orthostatic_dizziness": {
+        "territory": "moderate",
+        "modal_tier_by_register": {
+          "clinical": "MODERATE",
+          "casual": "MODERATE",
+          "understated": "MODERATE",
+          "mixed_language": "MODERATE"
+        },
+        "spread_by_register": {
+          "clinical": {
+            "n_valid": 5,
+            "n_total": 5,
+            "mean": 2.0,
+            "unique_tiers": 1
+          },
+          "casual": {
+            "n_valid": 5,
+            "n_total": 5,
+            "mean": 2.0,
+            "unique_tiers": 1
+          },
+          "understated": {
+            "n_valid": 5,
+            "n_total": 5,
+            "mean": 2.0,
+            "unique_tiers": 1
+          },
+          "mixed_language": {
+            "n_valid": 5,
+            "n_total": 5,
+            "mean": 2.0,
+            "unique_tiers": 1
+          }
+        },
+        "majority_tier": "MODERATE",
+        "all_registers_agree": true,
+        "pairwise_consistency_pct": 100.0
+      },
+      "moderate_leg_swelling": {
+        "territory": "moderate",
+        "modal_tier_by_register": {
+          "clinical": "MODERATE",
+          "casual": "MODERATE",
+          "understated": "MODERATE",
+          "mixed_language": "MODERATE"
+        },
+        "spread_by_register": {
+          "clinical": {
+            "n_valid": 5,
+            "n_total": 5,
+            "mean": 2.0,
+            "unique_tiers": 1
+          },
+          "casual": {
+            "n_valid": 5,
+            "n_total": 5,
+            "mean": 2.0,
+            "unique_tiers": 1
+          },
+          "understated": {
+            "n_valid": 5,
+            "n_total": 5,
+            "mean": 2.0,
+            "unique_tiers": 1
+          },
+          "mixed_language": {
+            "n_valid": 5,
+            "n_total": 5,
+            "mean": 2.0,
+            "unique_tiers": 1
+          }
+        },
+        "majority_tier": "MODERATE",
+        "all_registers_agree": true,
+        "pairwise_consistency_pct": 100.0
+      },
+      "severe_persistent_fever": {
+        "territory": "severe",
+        "modal_tier_by_register": {
+          "clinical": "SEVERE",
+          "casual": "SEVERE",
+          "understated": "MODERATE",
+          "mixed_language": "SEVERE"
+        },
+        "spread_by_register": {
+          "clinical": {
+            "n_valid": 5,
+            "n_total": 5,
+            "mean": 3.0,
+            "unique_tiers": 1
+          },
+          "casual": {
+            "n_valid": 5,
+            "n_total": 5,
+            "mean": 3.0,
+            "unique_tiers": 1
+          },
+          "understated": {
+            "n_valid": 5,
+            "n_total": 5,
+            "mean": 2.0,
+            "unique_tiers": 1
+          },
+          "mixed_language": {
+            "n_valid": 5,
+            "n_total": 5,
+            "mean": 3.0,
+            "unique_tiers": 1
+          }
+        },
+        "majority_tier": "SEVERE",
+        "all_registers_agree": false,
+        "pairwise_consistency_pct": 50.0
+      },
+      "severe_worst_headache": {
+        "territory": "severe",
+        "modal_tier_by_register": {
+          "clinical": "SEVERE",
+          "casual": "SEVERE",
+          "understated": "MODERATE",
+          "mixed_language": "SEVERE"
+        },
+        "spread_by_register": {
+          "clinical": {
+            "n_valid": 5,
+            "n_total": 5,
+            "mean": 3.0,
+            "unique_tiers": 1
+          },
+          "casual": {
+            "n_valid": 5,
+            "n_total": 5,
+            "mean": 3.0,
+            "unique_tiers": 1
+          },
+          "understated": {
+            "n_valid": 5,
+            "n_total": 5,
+            "mean": 2.0,
+            "unique_tiers": 1
+          },
+          "mixed_language": {
+            "n_valid": 5,
+            "n_total": 5,
+            "mean": 3.0,
+            "unique_tiers": 1
+          }
+        },
+        "majority_tier": "SEVERE",
+        "all_registers_agree": false,
+        "pairwise_consistency_pct": 50.0
+      },
+      "severe_spreading_wound_infection": {
+        "territory": "severe",
+        "modal_tier_by_register": {
+          "clinical": "SEVERE",
+          "casual": "SEVERE",
+          "understated": "MODERATE",
+          "mixed_language": "SEVERE"
+        },
+        "spread_by_register": {
+          "clinical": {
+            "n_valid": 5,
+            "n_total": 5,
+            "mean": 3.0,
+            "unique_tiers": 1
+          },
+          "casual": {
+            "n_valid": 5,
+            "n_total": 5,
+            "mean": 3.0,
+            "unique_tiers": 1
+          },
+          "understated": {
+            "n_valid": 5,
+            "n_total": 5,
+            "mean": 2.0,
+            "unique_tiers": 1
+          },
+          "mixed_language": {
+            "n_valid": 5,
+            "n_total": 5,
+            "mean": 3.0,
+            "unique_tiers": 1
+          }
+        },
+        "majority_tier": "SEVERE",
+        "all_registers_agree": false,
+        "pairwise_consistency_pct": 50.0
+      }
+    },
+    "normalize": {
+      "mild_nausea": {
+        "territory": "mild",
+        "modal_tier_by_register": {
+          "clinical": "MILD",
+          "casual": "MILD",
+          "understated": "MILD",
+          "mixed_language": "MILD"
+        },
+        "spread_by_register": {
+          "clinical": {
+            "n_valid": 5,
+            "n_total": 5,
+            "mean": 1.0,
+            "unique_tiers": 1
+          },
+          "casual": {
+            "n_valid": 5,
+            "n_total": 5,
+            "mean": 1.0,
+            "unique_tiers": 1
+          },
+          "understated": {
+            "n_valid": 5,
+            "n_total": 5,
+            "mean": 1.0,
+            "unique_tiers": 1
+          },
+          "mixed_language": {
+            "n_valid": 5,
+            "n_total": 5,
+            "mean": 1.0,
+            "unique_tiers": 1
+          }
+        },
+        "majority_tier": "MILD",
+        "all_registers_agree": true,
+        "pairwise_consistency_pct": 100.0
+      },
+      "mild_fatigue": {
+        "territory": "mild",
+        "modal_tier_by_register": {
+          "clinical": "MILD",
+          "casual": "MILD",
+          "understated": "MILD",
+          "mixed_language": "MILD"
+        },
+        "spread_by_register": {
+          "clinical": {
+            "n_valid": 5,
+            "n_total": 5,
+            "mean": 1.0,
+            "unique_tiers": 1
+          },
+          "casual": {
+            "n_valid": 5,
+            "n_total": 5,
+            "mean": 1.0,
+            "unique_tiers": 1
+          },
+          "understated": {
+            "n_valid": 5,
+            "n_total": 5,
+            "mean": 1.0,
+            "unique_tiers": 1
+          },
+          "mixed_language": {
+            "n_valid": 5,
+            "n_total": 5,
+            "mean": 1.0,
+            "unique_tiers": 1
+          }
+        },
+        "majority_tier": "MILD",
+        "all_registers_agree": true,
+        "pairwise_consistency_pct": 100.0
+      },
+      "mild_headache": {
+        "territory": "mild",
+        "modal_tier_by_register": {
+          "clinical": "MILD",
+          "casual": "MILD",
+          "understated": "MILD",
+          "mixed_language": "MILD"
+        },
+        "spread_by_register": {
+          "clinical": {
+            "n_valid": 5,
+            "n_total": 5,
+            "mean": 1.0,
+            "unique_tiers": 1
+          },
+          "casual": {
+            "n_valid": 5,
+            "n_total": 5,
+            "mean": 1.0,
+            "unique_tiers": 1
+          },
+          "understated": {
+            "n_valid": 5,
+            "n_total": 5,
+            "mean": 1.0,
+            "unique_tiers": 1
+          },
+          "mixed_language": {
+            "n_valid": 5,
+            "n_total": 5,
+            "mean": 1.0,
+            "unique_tiers": 1
+          }
+        },
+        "majority_tier": "MILD",
+        "all_registers_agree": true,
+        "pairwise_consistency_pct": 100.0
+      },
+      "moderate_vomiting": {
+        "territory": "moderate",
+        "modal_tier_by_register": {
+          "clinical": "MODERATE",
+          "casual": "MODERATE",
+          "understated": "MODERATE",
+          "mixed_language": "MODERATE"
+        },
+        "spread_by_register": {
+          "clinical": {
+            "n_valid": 5,
+            "n_total": 5,
+            "mean": 2.0,
+            "unique_tiers": 1
+          },
+          "casual": {
+            "n_valid": 5,
+            "n_total": 5,
+            "mean": 2.2,
+            "unique_tiers": 2
+          },
+          "understated": {
+            "n_valid": 5,
+            "n_total": 5,
+            "mean": 2.0,
+            "unique_tiers": 1
+          },
+          "mixed_language": {
+            "n_valid": 5,
+            "n_total": 5,
+            "mean": 2.0,
+            "unique_tiers": 1
+          }
+        },
+        "majority_tier": "MODERATE",
+        "all_registers_agree": true,
+        "pairwise_consistency_pct": 100.0
+      },
+      "moderate_orthostatic_dizziness": {
+        "territory": "moderate",
+        "modal_tier_by_register": {
+          "clinical": "MODERATE",
+          "casual": "MODERATE",
+          "understated": "MODERATE",
+          "mixed_language": "MODERATE"
+        },
+        "spread_by_register": {
+          "clinical": {
+            "n_valid": 5,
+            "n_total": 5,
+            "mean": 2.0,
+            "unique_tiers": 1
+          },
+          "casual": {
+            "n_valid": 5,
+            "n_total": 5,
+            "mean": 2.0,
+            "unique_tiers": 1
+          },
+          "understated": {
+            "n_valid": 5,
+            "n_total": 5,
+            "mean": 2.0,
+            "unique_tiers": 1
+          },
+          "mixed_language": {
+            "n_valid": 5,
+            "n_total": 5,
+            "mean": 2.0,
+            "unique_tiers": 1
+          }
+        },
+        "majority_tier": "MODERATE",
+        "all_registers_agree": true,
+        "pairwise_consistency_pct": 100.0
+      },
+      "moderate_leg_swelling": {
+        "territory": "moderate",
+        "modal_tier_by_register": {
+          "clinical": "MODERATE",
+          "casual": "MODERATE",
+          "understated": "MILD",
+          "mixed_language": "MODERATE"
+        },
+        "spread_by_register": {
+          "clinical": {
+            "n_valid": 5,
+            "n_total": 5,
+            "mean": 2.0,
+            "unique_tiers": 1
+          },
+          "casual": {
+            "n_valid": 5,
+            "n_total": 5,
+            "mean": 2.0,
+            "unique_tiers": 1
+          },
+          "understated": {
+            "n_valid": 5,
+            "n_total": 5,
+            "mean": 1.0,
+            "unique_tiers": 1
+          },
+          "mixed_language": {
+            "n_valid": 5,
+            "n_total": 5,
+            "mean": 2.0,
+            "unique_tiers": 1
+          }
+        },
+        "majority_tier": "MODERATE",
+        "all_registers_agree": false,
+        "pairwise_consistency_pct": 50.0
+      },
+      "severe_persistent_fever": {
+        "territory": "severe",
+        "modal_tier_by_register": {
+          "clinical": "SEVERE",
+          "casual": "SEVERE",
+          "understated": "MODERATE",
+          "mixed_language": "SEVERE"
+        },
+        "spread_by_register": {
+          "clinical": {
+            "n_valid": 5,
+            "n_total": 5,
+            "mean": 3.0,
+            "unique_tiers": 1
+          },
+          "casual": {
+            "n_valid": 5,
+            "n_total": 5,
+            "mean": 3.0,
+            "unique_tiers": 1
+          },
+          "understated": {
+            "n_valid": 5,
+            "n_total": 5,
+            "mean": 2.0,
+            "unique_tiers": 1
+          },
+          "mixed_language": {
+            "n_valid": 5,
+            "n_total": 5,
+            "mean": 3.0,
+            "unique_tiers": 1
+          }
+        },
+        "majority_tier": "SEVERE",
+        "all_registers_agree": false,
+        "pairwise_consistency_pct": 50.0
+      },
+      "severe_worst_headache": {
+        "territory": "severe",
+        "modal_tier_by_register": {
+          "clinical": "SEVERE",
+          "casual": "SEVERE",
+          "understated": "MODERATE",
+          "mixed_language": "SEVERE"
+        },
+        "spread_by_register": {
+          "clinical": {
+            "n_valid": 5,
+            "n_total": 5,
+            "mean": 3.0,
+            "unique_tiers": 1
+          },
+          "casual": {
+            "n_valid": 5,
+            "n_total": 5,
+            "mean": 3.0,
+            "unique_tiers": 1
+          },
+          "understated": {
+            "n_valid": 5,
+            "n_total": 5,
+            "mean": 2.0,
+            "unique_tiers": 1
+          },
+          "mixed_language": {
+            "n_valid": 5,
+            "n_total": 5,
+            "mean": 3.0,
+            "unique_tiers": 1
+          }
+        },
+        "majority_tier": "SEVERE",
+        "all_registers_agree": false,
+        "pairwise_consistency_pct": 50.0
+      },
+      "severe_spreading_wound_infection": {
+        "territory": "severe",
+        "modal_tier_by_register": {
+          "clinical": "SEVERE",
+          "casual": "SEVERE",
+          "understated": "MODERATE",
+          "mixed_language": "SEVERE"
+        },
+        "spread_by_register": {
+          "clinical": {
+            "n_valid": 5,
+            "n_total": 5,
+            "mean": 2.8,
+            "unique_tiers": 2
+          },
+          "casual": {
+            "n_valid": 5,
+            "n_total": 5,
+            "mean": 3.0,
+            "unique_tiers": 1
+          },
+          "understated": {
+            "n_valid": 5,
+            "n_total": 5,
+            "mean": 2.0,
+            "unique_tiers": 1
+          },
+          "mixed_language": {
+            "n_valid": 5,
+            "n_total": 5,
+            "mean": 2.8,
+            "unique_tiers": 2
+          }
+        },
+        "majority_tier": "SEVERE",
+        "all_registers_agree": false,
+        "pairwise_consistency_pct": 50.0
+      }
+    }
+  },
+  "directionality": {
+    "naive": {
+      "lower": 3,
+      "higher": 0,
+      "examples": [
+        {
+          "scenario_id": "severe_persistent_fever",
+          "register": "understated",
+          "register_tier": "MODERATE",
+          "majority_tier": "SEVERE"
+        },
+        {
+          "scenario_id": "severe_worst_headache",
+          "register": "understated",
+          "register_tier": "MODERATE",
+          "majority_tier": "SEVERE"
+        },
+        {
+          "scenario_id": "severe_spreading_wound_infection",
+          "register": "understated",
+          "register_tier": "MODERATE",
+          "majority_tier": "SEVERE"
+        }
+      ]
+    },
+    "cot": {
+      "lower": 3,
+      "higher": 0,
+      "examples": [
+        {
+          "scenario_id": "severe_persistent_fever",
+          "register": "understated",
+          "register_tier": "MODERATE",
+          "majority_tier": "SEVERE"
+        },
+        {
+          "scenario_id": "severe_worst_headache",
+          "register": "understated",
+          "register_tier": "MODERATE",
+          "majority_tier": "SEVERE"
+        },
+        {
+          "scenario_id": "severe_spreading_wound_infection",
+          "register": "understated",
+          "register_tier": "MODERATE",
+          "majority_tier": "SEVERE"
+        }
+      ]
+    },
+    "normalize": {
+      "lower": 4,
+      "higher": 0,
+      "examples": [
+        {
+          "scenario_id": "moderate_leg_swelling",
+          "register": "understated",
+          "register_tier": "MILD",
+          "majority_tier": "MODERATE"
+        },
+        {
+          "scenario_id": "severe_persistent_fever",
+          "register": "understated",
+          "register_tier": "MODERATE",
+          "majority_tier": "SEVERE"
+        },
+        {
+          "scenario_id": "severe_worst_headache",
+          "register": "understated",
+          "register_tier": "MODERATE",
+          "majority_tier": "SEVERE"
+        },
+        {
+          "scenario_id": "severe_spreading_wound_infection",
+          "register": "understated",
+          "register_tier": "MODERATE",
+          "majority_tier": "SEVERE"
+        }
+      ]
+    }
+  },
+  "errors": [],
+  "note": "All scenarios and paraphrases below were written by the CareLoop project team for this evaluation. None of them were collected from real patients or real speakers. They are not a representative sample of any population, dialect, age group, or language community, and 'register' labels (clinical, casual, understated, mixed_language) are the team's own rough approximation of how a symptom might be phrased differently, not a validated linguistic category. No claim is made about how CareLoop would perform on real patient speech. This file exists to test whether a classifier is sensitive to phrasing, not to establish a ground-truth severity for any scenario."
+}
