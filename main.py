@@ -34,7 +34,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-DATA_DIR = Path(__file__).parent / "mock_data"
+DATA_DIR = Path(__file__).resolve().parent / "mock_data"
 WEBHOOK_SECRET = os.environ.get("CARELOOP_WEBHOOK_SECRET", "")
 
 
