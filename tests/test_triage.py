@@ -201,14 +201,19 @@ def test_llm_cannot_downgrade_a_tier0_emergency():
     assert result.llm_severity is None  # never even asked
 
 
-def test_llm_failure_holds_at_floor_and_is_visible():
-    """An unavailable or unparseable Tier 1 never silently invents a severity."""
+def test_llm_failure_fails_toward_attention():
+    """An unavailable Tier 1 escalates to MODERATE rather than assuming mild.
+
+    A dead API key or a rate limit must not quietly mark every symptom MILD.
+    """
     result = triage(
         "I've had a dull headache since I started the new pill.",
         llm_classifier=lambda t: (None, "<<garbage>>"),
     )
-    assert result.severity is Severity.MILD
-    assert "unavailable or returned an unparseable response" in result.reasoning
+    assert result.severity is Severity.MODERATE, (
+        "An unreachable classifier must fail toward attention, not toward mild."
+    )
+    assert "failing toward attention" in result.reasoning
 
 
 def test_result_serializes_for_the_api():
@@ -255,3 +260,122 @@ def test_medical_emergency_is_not_flagged_as_crisis():
 def test_crisis_flag_serializes():
     result = triage("I want to kill myself", llm_classifier=exploding_llm)
     assert result.to_dict()["is_crisis"] is True
+
+
+# ---------------------------------------------------------------------------
+# Spec conformance: the transcripts the product spec itself mandates
+#
+# These are copied verbatim from the plan's B.5 test set. The rest of this
+# file tests strings chosen to match the patterns, which proves the patterns
+# match themselves. These prove the patterns match the SPEC.
+# ---------------------------------------------------------------------------
+
+SPEC_MANDATED_EMERGENCIES = [
+    "I can't breathe, my chest feels really tight",
+    "help, I think I'm having a heart attack",
+    "my throat feels like it's closing up",
+    "he just passed out, he won't wake up",
+    "there's blood everywhere, it won't stop",
+    "my face feels weird, I can't move one side of it",
+]
+
+
+@pytest.mark.parametrize("transcript", SPEC_MANDATED_EMERGENCIES)
+def test_spec_mandated_emergencies_all_hit_tier0(transcript):
+    result = triage(transcript, llm_classifier=exploding_llm)
+    assert result.severity is Severity.EMERGENCY
+    assert result.tier == "tier_0"
+
+
+SPEC_MANDATED_NON_EMERGENCIES = [
+    "my stomach hurts a little",
+    "I have a slight headache",
+    "a bit dizzy when I stood up too fast",
+]
+
+
+@pytest.mark.parametrize("transcript", SPEC_MANDATED_NON_EMERGENCIES)
+def test_spec_false_positive_guards_do_not_fire(transcript):
+    assert detect_emergency(transcript) == []
+
+
+# ---------------------------------------------------------------------------
+# Input normalization
+# ---------------------------------------------------------------------------
+
+@pytest.mark.parametrize("transcript", [
+    "I can’t breathe",            # macOS smart apostrophe
+    "he won’t wake up",
+    "I can‘t move one side of it",
+    "I  can't    breathe",             # collapsed whitespace
+    "  I can't breathe  ",
+])
+def test_typographic_variants_still_reach_tier0(transcript):
+    """A smart quote must not be the difference between 911 and 'log it'.
+
+    macOS converts a typed apostrophe to U+2019 by default, so this is what
+    a judge typing into the console actually produces.
+    """
+    result = triage(transcript, llm_classifier=exploding_llm)
+    assert result.severity is Severity.EMERGENCY
+
+
+# ---------------------------------------------------------------------------
+# Negation, hypotheticals, and history must not escalate
+# ---------------------------------------------------------------------------
+
+NON_ESCALATING = [
+    "no chest pain today",
+    "I don't have any chest pain",
+    "I used to get chest pain but not anymore",
+    "I'm not suicidal, just a bit blue about the weather",
+    "my sister had a heart attack last year, but I'm fine",
+    "the doctor asked if I had chest pain",
+    "I had a seizure back in 2011, none since",
+    "the leaflet says to watch for throat swelling",
+    "if I ever can't breathe I'll call 911, but I'm good",
+    "I passed out once as a teenager, never again",
+]
+
+
+@pytest.mark.parametrize("transcript", NON_ESCALATING)
+def test_negated_and_historical_mentions_do_not_escalate(transcript):
+    """Reporting the absence or history of a symptom is not an emergency.
+
+    'no chest pain today' is one of the most common sentences in primary
+    care. Escalating it to 911 would make Tier 0 unusable.
+    """
+    assert detect_emergency(transcript) == [], (
+        f"False positive on a negated or historical mention: {transcript!r}"
+    )
+
+
+# ---------------------------------------------------------------------------
+# Natural, dialectal, third-party, and Spanish phrasing
+# ---------------------------------------------------------------------------
+
+NATURAL_EMERGENCIES = [
+    "my husband is grey and he's not responding to me",
+    "my mother's lips have gone blue",
+    "he done fell out on the kitchen floor",
+    "I been bleedin and it ain't stoppin",
+    "I want to die",
+    "I can't stay awake",
+    "I can't wake him up",
+    "tengo dolor en el pecho y me falta el aire",
+    "no puedo respirar",
+    "mi esposo se desmayo",
+]
+
+
+@pytest.mark.parametrize("transcript", NATURAL_EMERGENCIES)
+def test_natural_and_non_english_phrasing_reaches_tier0(transcript):
+    """Severity is a property of the symptom, not of the dialect or language.
+
+    A Tier 0 layer that only understands standard clinical English is a
+    Tier 0 layer that fails the patients most likely to be under-triaged.
+    """
+    result = triage(transcript, llm_classifier=exploding_llm)
+    assert result.severity is Severity.EMERGENCY, (
+        f"Missed a natural-phrasing emergency: {transcript!r}"
+    )

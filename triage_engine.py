@@ -89,12 +89,13 @@ EMERGENCY_RULES: List[tuple] = [
         "loss_of_consciousness",
         r"\b(unconscious|unresponsive|passed out|blacked out|black\w* out|"
         r"collaps\w*|fainted|not waking up|won'?t wake up|came to on the floor|"
-        r"woke up on the (floor|ground)|found (him|her|them|them all) on the (floor|ground))\b",
+        r"woke up on the (floor|ground)|found (him|her|them|them all) on the (floor|ground)"
+        r"|(done )?fell out (on|in|at)|fell out cold)\b",
     ),
     (
         "severe_bleeding",
-        r"\b(bleeding|blood|h?emorrhag\w*)\b[^.!?]{0,40}\b("
-        r"(wo|would|can|could|will|does)\s?n[o']?t (stop|quit|let up|slow down)|"
+        r"\b(bleed\w*|blood\w*|h?emorrhag\w*)\b[^.!?]{0,40}\b("
+        r"((wo|would|can|could|will|does|ai)\s?n[o']?t|don'?t) (stop|quit|let up|slow down)\w*|"
         r"non.?stop|heavy|heavily|badly|bad|"
         r"a lot|lots|everywhere|soak\w*|pour\w*|gush\w*|profuse\w*"
         r")\b"
@@ -106,10 +107,31 @@ EMERGENCY_RULES: List[tuple] = [
         "stroke_signs",
         r"\b(face|mouth|smile)\b[^.!?]{0,20}\bdroop\w*"
         r"|\b(slurr\w*|slurring)\b[^.!?]{0,20}\b(speech|words|speaking)\b"
-        r"|\b(can'?t|cannot|couldn'?t)\b[^.!?]{0,20}\b(speak|talk|get my words out|move my (arm|leg|side))\b"
+        r"|\b(can'?t|cannot|couldn'?t)\b[^.!?]{0,20}\b(speak|talk|get my words out)\b"
+        r"|\b(can'?t|cannot|couldn'?t)\b[^.!?]{0,15}\bmove\b[^.!?]{0,20}"
+        r"\b(my |his |her |one |that |the )?(arm|leg|side|face|hand)\b"
         r"|\b(sudden\w*|all of a sudden)\b[^.!?]{0,25}\b(numb\w*|weak\w*|paraly\w*)\b"
         r"|\b(one side|left side|right side|half of my (body|face))\b[^.!?]{0,25}\b(numb|weak|dead|won'?t move)\b"
         r"|\bstroke\b",
+    ),
+    (
+        "cyanosis",
+        r"\b(lips?|face|fingers?|skin|nails?)\b[^.!?]{0,25}\b(blue|grey|gray|purple|ashen|dusky)\b"
+        r"|\b(blue|grey|gray|ashen|dusky)\b[^.!?]{0,15}\b(lips?|face|skin)\b"
+        r"|\b(is|are|looks?|went|gone|turning)\b[^.!?]{0,10}\b(grey|gray|blue|ashen)\b",
+    ),
+    (
+        "unarousable",
+        r"\b(can'?t|cannot|couldn'?t|unable to)\b[^.!?]{0,15}\b(stay awake|keep (my )?eyes open)\b"
+        r"|\b(can'?t|cannot|couldn'?t)\b[^.!?]{0,20}\b(wake|rouse)\b[^.!?]{0,15}\b(him|her|them|up)\b"
+        r"|\b(not|isn'?t|aren'?t)\b[^.!?]{0,15}\b(respond\w*|react\w*)\b",
+    ),
+    (
+        "spanish_emergency",
+        r"\bno puedo respirar\b|\bme falta (el )?aire\b"
+        r"|\bdolor (en|de) (el )?pecho\b|\bme duele el pecho\b"
+        r"|\bse desmay\w*\b|\bno despierta\b|\bno responde\b"
+        r"|\bse est[a\u00e1] ahogando\b|\bsangrado\b|\bataque al coraz[o\u00f3]n\b",
     ),
     (
         "seizure",
@@ -117,7 +139,8 @@ EMERGENCY_RULES: List[tuple] = [
     ),
     (
         "suicidal_ideation",
-        r"\b(kill\w*\s+(myself|himself|herself|themsel\w+)|"
+        r"\b(want\w*\s+to\s+die|wanna\s+die|"
+        r"kill\w*\s+(myself|himself|herself|themsel\w+)|"
         r"end\w*\s+(it all|it|my life|his life|her life)|"
         r"tak\w*\s+(my|his|her) own life|"
         r"do(n'?t| not)\s+want\s+to\s+(be here|live|wake up|go on|exist)|"
@@ -130,6 +153,50 @@ EMERGENCY_RULES: List[tuple] = [
         r"took (all|the rest of) (my|the) (pills?|meds?|medication))\b",
     ),
 ]
+
+# Smart punctuation is the difference between EMERGENCY and MILD if we let it
+# be. macOS turns a typed apostrophe into U+2019, so "can't breathe" and
+# "can’t breathe" are different strings to a regex. Normalize first, always.
+_APOSTROPHES = {"\u2019": "'", "\u2018": "'", "\u02bc": "'", "\u00b4": "'", "`": "'"}
+
+
+def normalize_input(text: str) -> str:
+    """Fold the variations a keyboard introduces, before any pattern runs."""
+    if not text:
+        return ""
+    for fancy, plain in _APOSTROPHES.items():
+        text = text.replace(fancy, plain)
+    return re.sub(r"\s+", " ", text).strip()
+
+
+# A pattern match is not automatically a finding. "no chest pain today" and
+# "I had a seizure back in 2011" contain emergency words but report the
+# absence or the history of one. We scope each match against its context.
+_NEGATION_BEFORE = re.compile(
+    r"\b(no|not|never|none|without|deny|denies|denied|"
+    r"do(n'?t| not)|does(n'?t| not)|did(n'?t| not)|have(n'?t| not)|has(n'?t| not)|"
+    r"is(n'?t| not)|are(n'?t| not)|was(n'?t| not)|were(n'?t| not)|"
+    r"used to|if i|if you|in case|watch for|warn\w*|ask\w* if|told me to|"
+    r"call if|supposed to|any sign of|worried about|scared i)\b[^.!?]{0,15}$",
+    re.IGNORECASE,
+)
+_HISTORY_AFTER = re.compile(
+    r"^[^.!?]{0,20}\b(last (year|month|week)|years? ago|months? ago|back in \d{4}|"
+    r"as a (teen\w*|kid|child)|when i was|none since|never again|not anymore|"
+    r"but i'?m fine|but she'?s fine|but he'?s fine)\b",
+    re.IGNORECASE,
+)
+
+_NEG_WINDOW = 45
+_HIST_WINDOW = 30
+
+
+def _is_scoped_out(text: str, start: int, end: int) -> bool:
+    """True when a matched span is negated, hypothetical, or historical."""
+    before = text[max(0, start - _NEG_WINDOW):start]
+    after = text[end:end + _HIST_WINDOW]
+    return bool(_NEGATION_BEFORE.search(before) or _HISTORY_AFTER.search(after))
+
 
 # Rules that are emergencies but must NOT be answered with "call 911 and hang up".
 # A suicide disclosure routed to police and then abandoned is the single most
@@ -183,11 +250,23 @@ class TriageResult:
 def detect_emergency(transcript: str) -> List[str]:
     """Tier 0. Return the names of every emergency rule the transcript trips.
 
+    Input is normalized first, then every candidate match is scoped against
+    its context so that reporting the absence of a symptom ("no chest pain
+    today") or its history ("a seizure back in 2011") does not escalate.
+
     An empty list means Tier 0 found nothing and Tier 1 should run.
     """
-    if not transcript:
+    text = normalize_input(transcript)
+    if not text:
         return []
-    return [name for name, rx in _COMPILED_EMERGENCY_RULES if rx.search(transcript)]
+
+    matched = []
+    for name, rx in _COMPILED_EMERGENCY_RULES:
+        for m in rx.finditer(text):
+            if not _is_scoped_out(text, m.start(), m.end()):
+                matched.append(name)
+                break
+    return matched
 
 
 # --------------------------------------------------------------------------
@@ -302,6 +381,11 @@ def triage(transcript: str, llm_classifier=None) -> TriageResult:
     # has its full mild-to-severe range.
     floor = Severity.MILD
 
+    # When Tier 1 cannot answer we do NOT hold at the floor. An unreachable or
+    # rate-limited classifier marking every symptom MILD is a silent failure
+    # that fails toward less attention. We fail toward more.
+    unavailable_floor = Severity.MODERATE
+
     # --- Tier 1 -----------------------------------------------------------
     classifier = llm_classifier or classify_with_llm
     llm_severity, llm_raw = classifier(transcript)
@@ -310,12 +394,13 @@ def triage(transcript: str, llm_classifier=None) -> TriageResult:
         # The LLM was unavailable or gave us something we could not parse.
         # We hold at the floor rather than inventing a severity, and we say so.
         return TriageResult(
-            severity=floor,
+            severity=unavailable_floor,
             tier="tier_1",
             reasoning=(
                 "Tier 0 found no emergency indicators. Tier 1 classifier was "
-                "unavailable or returned an unparseable response; holding at "
-                f"{floor.label} and flagging for human review."
+                "unavailable or returned an unparseable response; failing "
+                f"toward attention at {unavailable_floor.label} rather than "
+                "assuming the symptom is mild. Flagged for human review."
             ),
             llm_raw=llm_raw,
         )
