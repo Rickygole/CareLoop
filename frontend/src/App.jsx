@@ -6,12 +6,14 @@ import ConnectPage from './pages/Connect.jsx'
 import DecisionPage from './pages/Decision.jsx'
 import EvidencePage from './pages/Evidence.jsx'
 import MedsPage from './pages/Meds.jsx'
+import SignInPage from './pages/SignIn.jsx'
 import { SessionProvider } from './lib/session.jsx'
 
 export default function App() {
   return (
     <SessionProvider>
       <Routes>
+        <Route path="/signin" element={<SignInPage />} />
         <Route element={<Layout />}>
           <Route path="/" element={<ConnectPage />} />
           <Route path="/meds" element={<MedsPage />} />

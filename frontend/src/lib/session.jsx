@@ -5,6 +5,7 @@ import { DEFAULT_PATIENT_ID } from '../data/patients.js'
 const SessionContext = createContext(null)
 
 export function SessionProvider({ children }) {
+  const [signedIn, setSignedIn] = useState(false)
   const [patientId, setPatientId] = useState(DEFAULT_PATIENT_ID)
   const [record, setRecord] = useState(null)
   const [medications, setMedications] = useState([])
@@ -12,6 +13,25 @@ export function SessionProvider({ children }) {
   const [regimen, setRegimen] = useState(null)
   const [run, setRun] = useState(null)
   const [clockShiftMs, setClockShiftMs] = useState(0)
+
+  const clearEverything = useCallback(() => {
+    setPatientId(DEFAULT_PATIENT_ID)
+    setRecord(null)
+    setMedications([])
+    setSchedule(null)
+    setRegimen(null)
+    setRun(null)
+    setClockShiftMs(0)
+  }, [])
+
+  const signIn = useCallback(() => {
+    setSignedIn(true)
+  }, [])
+
+  const signOut = useCallback(() => {
+    setSignedIn(false)
+    clearEverything()
+  }, [clearEverything])
 
   const choosePatient = useCallback((id) => {
     setPatientId(id)
@@ -48,6 +68,9 @@ export function SessionProvider({ children }) {
 
   const value = useMemo(
     () => ({
+      signedIn,
+      signIn,
+      signOut,
       patientId,
       choosePatient,
       record,
@@ -63,6 +86,9 @@ export function SessionProvider({ children }) {
       setClockShiftMs,
     }),
     [
+      signedIn,
+      signIn,
+      signOut,
       patientId,
       choosePatient,
       record,

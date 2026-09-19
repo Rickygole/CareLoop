@@ -5,7 +5,12 @@ import { afterEach, expect, test, vi } from 'vitest'
 afterEach(cleanup)
 
 function startAtFirstScreen() {
-  window.location.hash = '#/'
+  window.location.hash = '#/signin'
+}
+
+function signIn() {
+  fireEvent.click(screen.getAllByText('Fill in the demo account')[0])
+  fireEvent.click(screen.getByText('Sign in'))
 }
 
 const PATIENT = {
@@ -103,10 +108,30 @@ const events = [
   { seq: 9, timestamp: '2026-09-19T10:00:08Z', event_type: 'CALL_ENDED', payload: {} },
 ]
 
-test('the connect screen is the first screen', () => {
+test('the sign in screen is the first screen and it is an honest demo gate', () => {
   startAtFirstScreen()
   render(<HashRouter><App /></HashRouter>)
+  expect(screen.getByRole('heading', { level: 1 }).textContent).toMatch(/Sign in to CareLoop/)
+  expect(screen.getByText('demo@careloop.health')).toBeTruthy()
+  expect(screen.getByText('careloop-demo')).toBeTruthy()
+
+  fireEvent.change(screen.getByLabelText('Email address'), { target: { value: 'someone@example.com' } })
+  fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'nope' } })
+  fireEvent.click(screen.getByText('Sign in'))
+  expect(screen.getByRole('alert').textContent).toMatch(/not the demo account/)
+  expect(screen.getByRole('heading', { level: 1 }).textContent).toMatch(/Sign in to CareLoop/)
+
+  fireEvent.click(screen.getByText('Sign up'))
+  expect(screen.getByText(/There are no new accounts to create/)).toBeTruthy()
+})
+
+test('signing in with the demo account lands on the connect screen', () => {
+  startAtFirstScreen()
+  render(<HashRouter><App /></HashRouter>)
+  signIn()
   expect(screen.getByRole('heading', { level: 1 }).textContent).toMatch(/Start here/)
+  expect(screen.getByText(/Who is this check-in for\?/)).toBeTruthy()
+  expect(screen.getByText('Sign out')).toBeTruthy()
   expect(screen.getByText('Demo system. All patient data is synthetic.')).toBeTruthy()
   expect(screen.getByRole('navigation', { name: /five steps, in order/ })).toBeTruthy()
   fireEvent.click(screen.getByText(/^Connect MyHealth/))
@@ -119,6 +144,7 @@ test('the connect screen is the first screen', () => {
 test('denying shares nothing and stays on the first screen', () => {
   startAtFirstScreen()
   render(<HashRouter><App /></HashRouter>)
+  signIn()
   fireEvent.click(screen.getByText(/^Connect MyHealth/))
   fireEvent.click(screen.getByText('Deny'))
   expect(screen.getByText(/Nothing was shared/)).toBeTruthy()
@@ -128,6 +154,7 @@ test('denying shares nothing and stays on the first screen', () => {
 test('allowing syncs and lands on the medicines screen', async () => {
   startAtFirstScreen()
   render(<HashRouter><App /></HashRouter>)
+  signIn()
   fireEvent.click(screen.getByText(/^Connect MyHealth/))
   fireEvent.click(screen.getByText('Allow'))
   await screen.findByText(/CareLoop went and got these/, {}, { timeout: 4000 })
@@ -142,6 +169,7 @@ test('allowing syncs and lands on the medicines screen', async () => {
 test('adding a medicine cascades through snapshot, schedule and flag', async () => {
   startAtFirstScreen()
   render(<HashRouter><App /></HashRouter>)
+  signIn()
   fireEvent.click(screen.getByText(/^Connect MyHealth/))
   fireEvent.click(screen.getByText('Allow'))
   await screen.findByText('a1b2c3d4e5f6', {}, { timeout: 4000 })
@@ -157,12 +185,22 @@ test('adding a medicine cascades through snapshot, schedule and flag', async () 
   expect(screen.queryByText(/lisinopril and ibuprofen/i)).toBeTruthy()
 }, 15000)
 
-test('the decision screen explains itself with no run', () => {
-  window.location.hash = '#/decision'
+test('the decision screen explains itself with no run', async () => {
+  startAtFirstScreen()
   render(<HashRouter><App /></HashRouter>)
-  expect(screen.getByRole('heading', { level: 1 }).textContent).toMatch(/Nothing has been decided yet/)
+  signIn()
+  window.location.hash = '#/decision'
+  const heading = await screen.findByRole('heading', { level: 1, name: /Nothing has been decided yet/ })
+  expect(heading).toBeTruthy()
   expect(screen.getByText(/Go to the call and talk to CareLoop/)).toBeTruthy()
-  window.location.hash = '#/'
+  window.location.hash = '#/signin'
+})
+
+test('the five step flow is locked until someone signs in', () => {
+  window.location.hash = '#/meds'
+  render(<HashRouter><App /></HashRouter>)
+  expect(screen.getByRole('heading', { level: 1 }).textContent).toMatch(/Sign in to CareLoop/)
+  window.location.hash = '#/signin'
 })
 
 test('an unknown tier never renders as moderate', () => {

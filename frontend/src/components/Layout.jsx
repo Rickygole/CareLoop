@@ -1,13 +1,15 @@
 import { useEffect, useRef } from 'react'
-import { Outlet, useLocation } from 'react-router-dom'
+import { Navigate, Outlet, useLocation } from 'react-router-dom'
 
 import FlowNav, { FlowPager } from './FlowNav.jsx'
 import Masthead from './Masthead.jsx'
 import { DashboardFooter } from './Disclaimers.jsx'
 import { SCREENS, screenIndex } from '../lib/flow.js'
+import { useSession } from '../lib/session.jsx'
 
 export default function Layout() {
   const location = useLocation()
+  const { signedIn } = useSession()
   const main = useRef(null)
   const first = useRef(true)
 
@@ -31,11 +33,13 @@ export default function Layout() {
     if (main.current) main.current.focus()
   }, [location.pathname])
 
+  if (!signedIn) return <Navigate to="/signin" replace />
+
   return (
     <div>
       <a
         href="#main"
-        className="sr-only focus:not-sr-only focus:absolute focus:left-5 focus:top-5 focus:z-50 focus:rounded-control focus:bg-ink focus:px-7 focus:py-4 focus:text-sm focus:font-bold focus:text-canvas"
+        className="sr-only focus:not-sr-only focus:absolute focus:left-5 focus:top-5 focus:z-50 focus:rounded-control focus:bg-ink focus:px-6 focus:py-3 focus:text-sm focus:font-semibold focus:text-surface"
       >
         Skip to the main content
       </a>
