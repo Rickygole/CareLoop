@@ -32,7 +32,9 @@ function Bar({ arm, entry, grown, placeholder }) {
           ? '--'
           : percent(value) +
             '%' +
-            (entry && entry.stderr ? ' ± ' + percent(entry.stderr) : '')}
+            (entry && entry.stderr
+              ? ' ' + String.fromCharCode(177) + ' ' + percent(entry.stderr)
+              : '')}
       </span>
     </div>
   )
@@ -79,7 +81,8 @@ export default function FairnessChart() {
           </span>
         ) : (
           <span className="numeric font-mono text-2xs text-console-muted">
-            {evalResults.cases} cases {'×'} {evalResults.repeats_per_case}{' '}
+            {evalResults.cases} cases {String.fromCharCode(215)}{' '}
+            {evalResults.repeats_per_case}{' '}
             repeats
           </span>
         )}

@@ -43,8 +43,8 @@ export default function NextUpCard({ dose }) {
       </p>
       <p className="mt-1.5 text-sm text-ink-2">
         {dose.medication}
-        {dose.dosage ? ' · ' + dose.dosage : ''}. CareLoop calls at this
-        time to ask whether it was taken.
+        {dose.dosage ? ' ' + String.fromCharCode(183) + ' ' + dose.dosage : ''}.
+        CareLoop calls at this time to ask whether it was taken.
       </p>
     </section>
   )

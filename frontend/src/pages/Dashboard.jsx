@@ -298,7 +298,7 @@ function Portal({ patient, medications, nextTime, dose, call, onSwitch }) {
             <p className="mt-1 text-sm text-ink-2">
               {patient.insurance_display_name}
               {patient.connected_at
-                ? ' · connected ' + dateTimeLabel(patient.connected_at)
+                ? ' ' + String.fromCharCode(183) + ' connected ' + dateTimeLabel(patient.connected_at)
                 : ''}
             </p>
           </div>
@@ -376,7 +376,7 @@ function Portal({ patient, medications, nextTime, dose, call, onSwitch }) {
                   </p>
                   <p className="numeric mt-1 text-2xs text-muted">
                     {dateTimeLabel(item.timestamp)}
-                    {' · '}
+                    {' ' + String.fromCharCode(183) + ' '}
                     {String(item.action_taken || '').replace(/_/g, ' ')}
                   </p>
                 </div>

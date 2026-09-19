@@ -32,7 +32,7 @@ export default function MedicationCard({ med, index }) {
 
         <p className="mt-1.5 text-sm text-muted">
           {med.frequency}
-          {med.prescriber ? ' · ' + med.prescriber : ''}
+          {med.prescriber ? ' ' + String.fromCharCode(183) + ' ' + med.prescriber : ''}
         </p>
       </div>
 

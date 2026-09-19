@@ -18,7 +18,7 @@ const STATE_COLOR = {
 function quote(text) {
   const value = String(text || '').trim()
   if (!value) return ''
-  return '“' + value + '”'
+  return String.fromCharCode(8220) + value + String.fromCharCode(8221)
 }
 
 function titleCase(value) {
