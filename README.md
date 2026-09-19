@@ -75,18 +75,20 @@ Requires Python 3.9+.
 git clone https://github.com/Rickygole/CareLoop.git
 cd CareLoop
 python -m venv .venv
-source .venv/bin/activate      # Windows: .venv\Scripts\activate
+source .venv/bin/activate
 pip install -r requirements.txt
-
 cp .env.example .env
-# fill in GEMINI_API_KEY to enable Tier 1 (optional -- Tier 0 emergency
-# detection works with no keys at all). Fill in CARELOOP_WEBHOOK_SECRET
-# to require a shared secret on the trace stream and the voice agent
-# webhook; leave it blank for local development.
-
-python check_env.py     # confirms which keys are present, never prints values
+python check_env.py
 uvicorn main:app --reload
 ```
+
+On Windows, activate the virtual environment with `.venv\Scripts\activate`
+instead. In `.env`, fill in `GEMINI_API_KEY` to enable Tier 1 (Tier 0
+emergency detection works with no keys at all); fill in
+`CARELOOP_WEBHOOK_SECRET` to require a shared secret on the trace stream
+and the voice agent webhook, or leave it blank for local development.
+`python check_env.py` confirms which keys are present without ever
+printing a value.
 
 The API is now at `http://localhost:8000`. `GET /health` confirms it is up
 and whether Tier 1 has a Gemini key configured.
