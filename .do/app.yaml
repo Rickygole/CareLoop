@@ -1,0 +1,49 @@
+# DigitalOcean App Platform spec for the CareLoop backend.
+#
+# The backend lives here rather than on Vercel for one reason: Vercel
+# serverless functions cannot hold a WebSocket open, and /trace is exactly
+# that. The frontend is static and deploys to Vercel and GitHub Pages.
+#
+# Deploy:
+#   doctl apps create --spec .do/app.yaml
+# Then set the secrets in the App Platform dashboard, never in this file.
+
+name: careloop-api
+region: nyc
+
+services:
+  - name: api
+    github:
+      repo: Rickygole/CareLoop
+      branch: main
+      deploy_on_push: true
+
+    source_dir: /
+    environment_slug: python
+
+    run_command: uvicorn main:app --host 0.0.0.0 --port $PORT
+
+    instance_count: 1
+    instance_size_slug: basic-xxs
+
+    http_port: 8080
+
+    health_check:
+      http_path: /health
+
+    envs:
+      - key: GEMINI_API_KEY
+        scope: RUN_TIME
+        type: SECRET
+      - key: ELEVENLABS_API_KEY
+        scope: RUN_TIME
+        type: SECRET
+      - key: BACKBOARD_API_KEY
+        scope: RUN_TIME
+        type: SECRET
+      - key: CARELOOP_WEBHOOK_SECRET
+        scope: RUN_TIME
+        type: SECRET
+      - key: GEMINI_MODEL
+        scope: RUN_TIME
+        value: gemini-1.5-flash
