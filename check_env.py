@@ -6,8 +6,6 @@ from dotenv import load_dotenv
 REQUIRED = [
     ("GEMINI_API_KEY", "Tier 1 triage classifier", True),
     ("ELEVENLABS_API_KEY", "voice agent / TTS", False),
-    ("TWILIO_ACCOUNT_SID", "outbound calling", False),
-    ("TWILIO_AUTH_TOKEN", "outbound calling", False),
     ("BACKBOARD_API_KEY", "backboard", False),
     ("CARELOOP_WEBHOOK_SECRET", "gates the agent webhook and trace stream", False),
     ("GEMINI_MODEL", "overrides the Tier 1 model id", False),

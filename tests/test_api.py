@@ -1,3 +1,4 @@
+import os
 import sys
 from pathlib import Path
 
@@ -9,6 +10,22 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from main import app
 
 client = TestClient(app)
+
+WEBHOOK_SECRET = os.environ.get("CARELOOP_WEBHOOK_SECRET", "")
+
+
+def gated_webhook(payload):
+    body = dict(payload)
+    if WEBHOOK_SECRET:
+        body["secret"] = WEBHOOK_SECRET
+    return body
+
+
+def gated(payload=None):
+    body = dict(payload or {})
+    if WEBHOOK_SECRET:
+        body["secret"] = WEBHOOK_SECRET
+    return body
 
 
 def test_connect_returns_patient_and_derived_schedule():
@@ -130,31 +147,25 @@ def test_invalid_urgency_is_rejected():
 
 
 def test_webhook_report_symptom_runs_triage():
-    body = client.post(
-        "/webhook/elevenlabs",
-        json={
-            "tool_name": "report_symptom",
-            "patient_id": "p1",
-            "transcript": "I can't breathe",
-        },
-    ).json()
+    body = client.post("/webhook/elevenlabs", json=gated_webhook({
+        "tool_name": "report_symptom",
+        "patient_id": "p1",
+        "transcript": "I can't breathe",
+    })).json()
     assert body["tier"] == "emergency"
 
 
 def test_webhook_unknown_patient_is_404():
-    r = client.post(
-        "/webhook/elevenlabs",
-        json={
-            "tool_name": "report_symptom",
-            "patient_id": "ghost",
-            "transcript": "hi",
-        },
-    )
+    r = client.post("/webhook/elevenlabs", json=gated_webhook({
+        "tool_name": "report_symptom",
+        "patient_id": "ghost",
+        "transcript": "hi",
+    }))
     assert r.status_code == 404
 
 
 def test_webhook_rejects_unknown_tool():
-    r = client.post("/webhook/elevenlabs", json={"tool_name": "drop_tables", "patient_id": "p1"})
+    r = client.post("/webhook/elevenlabs", json=gated_webhook({"tool_name": "drop_tables", "patient_id": "p1"}))
     assert r.status_code == 400
 
 
@@ -186,7 +197,7 @@ def test_health_reports_key_status():
 def test_admin_reset_clears_the_trace_and_rotates_boot_id():
     before = client.get("/trace/events?since=0").json()
     client.post("/triage", json={"transcript": "hello", "patient_id": "p1"})
-    body = client.post("/admin/reset", json={}).json()
+    body = client.post("/admin/reset", json=gated()).json()
     assert body["reset"] is True
     assert body["boot_id"] != before["boot_id"]
     after = client.get("/trace/events?since=0").json()
@@ -200,7 +211,7 @@ def test_trace_events_expose_a_boot_id_for_restart_detection():
 
 
 def test_loop_run_reminds_triages_and_books_in_one_pass():
-    client.post("/admin/reset", json={})
+    client.post("/admin/reset", json=gated())
     body = client.post("/loop/run", json={
         "patient_id": "p1",
         "transcript": "I have been throwing up after every dose for three days",
@@ -218,7 +229,7 @@ def test_loop_run_reminds_triages_and_books_in_one_pass():
 
 
 def test_loop_never_books_on_an_emergency():
-    client.post("/admin/reset", json={})
+    client.post("/admin/reset", json=gated())
     body = client.post("/loop/run", json={
         "patient_id": "p1", "transcript": "my chest is killing me",
     }).json()
@@ -230,7 +241,7 @@ def test_loop_never_books_on_an_emergency():
 
 
 def test_loop_never_books_on_a_crisis():
-    client.post("/admin/reset", json={})
+    client.post("/admin/reset", json=gated())
     body = client.post("/loop/run", json={
         "patient_id": "p1", "transcript": "I want to die",
     }).json()
@@ -296,7 +307,7 @@ def test_day_plan_uses_clinic_local_time_not_utc():
 
 
 def test_adding_a_medication_cascades_snapshot_schedule_and_check():
-    client.post("/admin/reset", json={})
+    client.post("/admin/reset", json=gated())
     before = client.get("/regimen/p3").json()
     assert before["regimen"]["surfaced"] == []
 
@@ -315,7 +326,7 @@ def test_adding_a_medication_cascades_snapshot_schedule_and_check():
 
 
 def test_a_major_interaction_surfaces_with_a_cited_source():
-    client.post("/admin/reset", json={})
+    client.post("/admin/reset", json=gated())
     client.post("/meds", json={
         "patient_id": "p2", "medication": "Warfarin 5 mg tablet", "preferred_hours": [20],
     })
@@ -333,7 +344,7 @@ def test_a_major_interaction_surfaces_with_a_cited_source():
 
 
 def test_patient_message_never_tells_anyone_to_stop_a_drug():
-    client.post("/admin/reset", json={})
+    client.post("/admin/reset", json=gated())
     client.post("/meds", json={"patient_id": "p2", "medication": "Warfarin 5 mg tablet"})
     body = client.post("/meds", json={"patient_id": "p2", "medication": "Aspirin 81 mg tablet"}).json()
 
@@ -417,7 +428,7 @@ def test_crisis_episode_is_stored_but_never_returned_by_get_history(tmp_path):
 
 
 def test_second_loop_run_surfaces_prior_episode():
-    client.post("/admin/reset", json={})
+    client.post("/admin/reset", json=gated())
     first = client.post("/loop/run", json={
         "patient_id": "p2", "transcript": "feeling fine on the lisinopril",
     }).json()
@@ -431,7 +442,7 @@ def test_second_loop_run_surfaces_prior_episode():
 
 
 def test_a_crisis_episode_from_the_loop_is_never_surfaced_as_a_prior_episode():
-    client.post("/admin/reset", json={})
+    client.post("/admin/reset", json=gated())
     client.post("/loop/run", json={"patient_id": "p3", "transcript": "I want to die"})
     second = client.post("/loop/run", json={
         "patient_id": "p3", "transcript": "feeling okay now",
@@ -503,7 +514,7 @@ def test_cross_call_check_does_not_fire_without_a_contradiction():
 def test_never_contacts_emergency_services_statement_is_in_the_api_response():
     from escalation import NEVER_CONTACTS_EMERGENCY_SERVICES
 
-    client.post("/admin/reset", json={})
+    client.post("/admin/reset", json=gated())
     body = client.post("/loop/run", json={
         "patient_id": "p1", "transcript": "feeling okay today",
     }).json()
@@ -515,7 +526,7 @@ def test_never_contacts_emergency_services_statement_is_in_the_api_response():
 
 
 def test_escalations_endpoint_returns_records_for_a_patient():
-    client.post("/admin/reset", json={})
+    client.post("/admin/reset", json=gated())
     client.post("/loop/run", json={
         "patient_id": "p1",
         "transcript": "I have been throwing up after every dose for three days",
