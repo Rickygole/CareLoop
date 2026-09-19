@@ -20,7 +20,9 @@ export default function Layout() {
       first.current = false
       return
     }
-    if (typeof window !== 'undefined') window.scrollTo(0, 0)
+    if (typeof document !== 'undefined') {
+      document.documentElement.scrollTop = 0
+    }
     if (main.current) main.current.focus()
   }, [location.pathname])
 

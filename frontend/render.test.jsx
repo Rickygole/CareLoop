@@ -4,6 +4,10 @@ import { afterEach, expect, test, vi } from 'vitest'
 
 afterEach(cleanup)
 
+function startAtFirstScreen() {
+  window.location.hash = '#/'
+}
+
 const PATIENT = {
   name: 'Maria Santos',
   insurance_display_name: 'Aetna',
@@ -18,11 +22,54 @@ const PATIENT = {
 }
 
 const PLAN = {
-  next_dose: { medication: 'Metformin', dosage: '500mg', time: '20:00', status: 'upcoming' },
+  as_of: '2026-09-19T06:00:00-04:00',
+  next_dose: { medication: 'Metformin', dosage: '500mg', medication_id: 'med1', time: '20:00', status: 'upcoming', due_at: '2026-09-19T20:00:00-04:00' },
   doses: [
-    { medication: 'Metformin', dosage: '500mg', medication_id: 'med1', prescriber: 'Dr. Elena Vance', time: '08:00', status: 'taken' },
-    { medication: 'Metformin', dosage: '500mg', medication_id: 'med1', prescriber: 'Dr. Elena Vance', time: '20:00', status: 'upcoming' },
+    { medication: 'Metformin', dosage: '500mg', medication_id: 'med1', prescriber: 'Dr. Elena Vance', time: '08:00', due_at: '2026-09-19T08:00:00-04:00', status: 'taken' },
+    { medication: 'Metformin', dosage: '500mg', medication_id: 'med1', prescriber: 'Dr. Elena Vance', time: '20:00', due_at: '2026-09-19T20:00:00-04:00', status: 'upcoming' },
   ],
+  doses_total: 2,
+}
+
+const REGIMEN = {
+  patient_id: 'p1',
+  medications: PATIENT.medication_requests,
+  schedule: PLAN,
+  regimen: {
+    content_hash: 'a1b2c3d4e5f6',
+    findings: [],
+    surfaced: [],
+    patient_message: null,
+    limitations: 'Not a formulary check and not a drug interaction database.',
+  },
+}
+
+const AFTER_ADD = {
+  added: true,
+  medication_id: 'med-2-p1',
+  medications: [
+    ...PATIENT.medication_requests,
+    { medication_id: 'med-2-p1', medication: 'Warfarin', frequency: 'once daily', prescriber: 'Dr. Ana Reyes' },
+  ],
+  schedule: {
+    ...PLAN,
+    doses: [
+      ...PLAN.doses,
+      { medication: 'Warfarin', dosage: '5mg', medication_id: 'med-2-p1', prescriber: 'Dr. Ana Reyes', time: '18:00', due_at: '2026-09-19T18:00:00-04:00', status: 'upcoming' },
+    ],
+  },
+  regimen: {
+    content_hash: '9f9f9f9f9f9f',
+    findings: [
+      { check_id: 'regimen_pair', ingredients: ['warfarin', 'aspirin'], severity: 'major', concern: 'additive bleeding risk', source: 'FDA label, Coumadin, Drug Interactions', surfaced: true },
+      { check_id: 'regimen_pair', ingredients: ['lisinopril', 'ibuprofen'], severity: 'moderate', concern: 'reduced antihypertensive effect', source: 'FDA label, Zestril, Drug Interactions', surfaced: false },
+    ],
+    surfaced: [
+      { check_id: 'regimen_pair', ingredients: ['warfarin', 'aspirin'], severity: 'major', concern: 'additive bleeding risk', source: 'FDA label, Coumadin, Drug Interactions', surfaced: true },
+    ],
+    patient_message: 'Something on your list looks worth checking.',
+    limitations: 'Not a formulary check and not a drug interaction database.',
+  },
 }
 
 vi.mock('./src/lib/api.js', async () => {
@@ -31,6 +78,8 @@ vi.mock('./src/lib/api.js', async () => {
     ...actual,
     health: vi.fn(async () => ({ status: 'ok' })),
     connectPatient: vi.fn(async () => ({ patient: PATIENT })),
+    regimenState: vi.fn(async () => REGIMEN),
+    addMedication: vi.fn(async () => AFTER_ADD),
     schedule: vi.fn(async () => PLAN),
   }
 })
@@ -40,6 +89,7 @@ import RunNarrative from './src/components/RunNarrative.jsx'
 import TriageResult from './src/components/TriageResult.jsx'
 import ClinicCall from './src/components/ClinicCall.jsx'
 import MedicationCard from './src/components/MedicationCard.jsx'
+import { tierMeta } from './src/components/TierBadge.jsx'
 
 const events = [
   { seq: 1, timestamp: '2026-09-19T10:00:00Z', event_type: 'CALL_INITIATED', payload: { patient: 'Maria Santos' } },
@@ -53,17 +103,92 @@ const events = [
   { seq: 9, timestamp: '2026-09-19T10:00:08Z', event_type: 'CALL_ENDED', payload: {} },
 ]
 
-test('page renders', () => {
+test('the connect screen is the first screen', () => {
+  startAtFirstScreen()
   render(<HashRouter><App /></HashRouter>)
-  expect(screen.getByRole('heading', { level: 1 })).toBeTruthy()
-  expect(document.getElementById('free-text')).toBeTruthy()
-  fireEvent.click(screen.getByText('Connect the portal'))
-  expect(screen.getByRole('dialog')).toBeTruthy()
+  expect(screen.getByRole('heading', { level: 1 }).textContent).toMatch(/We call you/)
+  expect(screen.getByText('Demo system. All patient data is synthetic.')).toBeTruthy()
+  expect(screen.getByRole('navigation', { name: /five screens, in order/ })).toBeTruthy()
+  fireEvent.click(screen.getByText('Connect MyHealth'))
+  const dialog = screen.getByRole('dialog')
+  expect(dialog.textContent).toMatch(/MyHealth will share with CareLoop/)
+  expect(screen.getByText('Allow')).toBeTruthy()
+  expect(screen.getByText('Deny')).toBeTruthy()
+})
+
+test('denying shares nothing and stays on the first screen', () => {
+  startAtFirstScreen()
+  render(<HashRouter><App /></HashRouter>)
+  fireEvent.click(screen.getByText('Connect MyHealth'))
+  fireEvent.click(screen.getByText('Deny'))
+  expect(screen.getByText(/Nothing was shared/)).toBeTruthy()
+  expect(screen.getByRole('heading', { level: 1 }).textContent).toMatch(/We call you/)
+})
+
+test('allowing syncs and lands on the medicines screen', async () => {
+  startAtFirstScreen()
+  render(<HashRouter><App /></HashRouter>)
+  fireEvent.click(screen.getByText('Connect MyHealth'))
+  fireEvent.click(screen.getByText('Allow'))
+  await screen.findByText(/The list MyHealth sent over/, {}, { timeout: 4000 })
+  expect(screen.getAllByText('Metformin').length).toBeGreaterThan(0)
+  expect(screen.getByText('a1b2c3d4e5f6')).toBeTruthy()
+  expect(screen.getByText(/Not a formulary check/)).toBeTruthy()
+  expect(screen.getByText('Add to the list')).toBeTruthy()
+  expect(screen.getByText('Move the clock to the next dose')).toBeTruthy()
+  expect(screen.getByRole('heading', { name: /Nothing on this list conflicts/ })).toBeTruthy()
+}, 10000)
+
+test('adding a medicine cascades through snapshot, schedule and flag', async () => {
+  startAtFirstScreen()
+  render(<HashRouter><App /></HashRouter>)
+  fireEvent.click(screen.getByText('Connect MyHealth'))
+  fireEvent.click(screen.getByText('Allow'))
+  await screen.findByText('a1b2c3d4e5f6', {}, { timeout: 4000 })
+
+  fireEvent.click(screen.getByText('Add to the list'))
+
+  await screen.findByText('9f9f9f9f9f9f', {}, { timeout: 4000 })
+  expect(screen.getAllByText(/replaces a1b2c3d4e5f6/).length).toBeGreaterThan(0)
+  await screen.findByText(/18:00|6:00 PM/, {}, { timeout: 4000 })
+  await screen.findByText(/warfarin and aspirin/i, {}, { timeout: 4000 })
+  expect(screen.getByText(/FDA label, Coumadin/)).toBeTruthy()
+  expect(screen.getByText(/1 finding was detected and held back/)).toBeTruthy()
+  expect(screen.queryByText(/lisinopril and ibuprofen/i)).toBeTruthy()
+}, 15000)
+
+test('the decision screen explains itself with no run', () => {
+  window.location.hash = '#/decision'
+  render(<HashRouter><App /></HashRouter>)
+  expect(screen.getByRole('heading', { level: 1 }).textContent).toMatch(/Nothing has been decided yet/)
+  expect(screen.getByText(/Go to the call and talk to CareLoop/)).toBeTruthy()
+  window.location.hash = '#/'
+})
+
+test('an unknown tier never renders as moderate', () => {
+  expect(tierMeta('moderate')).toBeTruthy()
+  expect(tierMeta('')).toBe(null)
+  expect(tierMeta(null)).toBe(null)
+  expect(tierMeta('tier_9')).toBe(null)
+
+  render(<TriageResult result={{ tier: 'tier_9', source: 'llm' }} latencyMs={10} booking={null} />)
+  expect(screen.getByText(/could not decide this time/)).toBeTruthy()
+  expect(screen.queryByText(/worth a visit/i)).toBe(null)
+})
+
+test('no booking claim is made unless a booking came back', () => {
+  render(<TriageResult result={{ tier: 'moderate', source: 'llm', suggested_agent_response: 'ok' }} latencyMs={412} booking={null} />)
+  expect(screen.getByText(/No appointment was booked on this call/)).toBeTruthy()
+  expect(screen.queryByText(/booked the appointment for you/)).toBe(null)
+  cleanup()
+
+  render(<TriageResult result={{ tier: 'moderate', source: 'llm', suggested_agent_response: 'ok' }} latencyMs={412} booking={{ provider_name: 'Dr Vance', time: '2026-09-21T10:00:00Z' }} />)
+  expect(screen.getByText(/CareLoop phoned Dr Vance and booked an appointment/)).toBeTruthy()
 })
 
 test('run pieces render', () => {
   render(<div>
-    <TriageResult result={{ tier: 'moderate', source: 'llm', reasoning: 'r', suggested_agent_response: 'ok' }} latencyMs={412} />
+    <TriageResult result={{ tier: 'moderate', source: 'llm', reasoning: 'r', suggested_agent_response: 'ok' }} latencyMs={412} booking={{ provider_name: 'Dr Vance', time: '2026-09-21T10:00:00Z' }} />
     <RunNarrative events={events} startIndex={2} />
     <ClinicCall events={events} booking={{ provider_name: 'Dr Vance', disclosure: 'This is an automated call.' }} tier="moderate" />
     <ul><MedicationCard index={0} med={{ key: 'm', medication: 'Metformin', dosage: '500 mg', frequency: 'twice a day', prescriber: 'Dr Vance', doses: [{ time: '08:00', status: 'taken' }, { time: '20:00', status: 'upcoming' }] }} /></ul>
@@ -87,20 +212,6 @@ test('narrator humanizes real payloads', async () => {
   expect(actionSentence('logged')).toBe('CareLoop made a note of it on your record.')
 })
 
-test('portal connects and the prescription list arrives', async () => {
-  render(<HashRouter><App /></HashRouter>)
-  fireEvent.click(screen.getByText('Connect the portal'))
-  fireEvent.click(screen.getByText('Yes, connect my portal'))
-  await screen.findByText('Maria Santos')
-  expect(screen.getByText('Metformin')).toBeTruthy()
-  expect(screen.getByText(/twice daily/)).toBeTruthy()
-  expect(screen.getByText(/mild nausea/)).toBeTruthy()
-  expect(screen.getByText(/did not pick up/)).toBeTruthy()
-  expect(screen.getByText('CareLoop made a note of it on your record.')).toBeTruthy()
-  expect(screen.getByText(/tried again on the next round/)).toBeTruthy()
-  expect(screen.getAllByText('Nothing urgent').length).toBeGreaterThan(0)
-})
-
 test('no booking explains itself', () => {
   render(<ClinicCall events={[]} booking={null} tier="emergency" />)
   expect(screen.getByText(/never books an appointment for an emergency/)).toBeTruthy()
@@ -108,6 +219,18 @@ test('no booking explains itself', () => {
   render(<ClinicCall events={[]} booking={null} tier="mild" />)
   expect(screen.getByText(/only rings the clinic when/)).toBeTruthy()
   cleanup()
+  render(<ClinicCall events={[]} booking={null} tier="tier_9" />)
+  expect(screen.getByText(/No appointment exists/)).toBeTruthy()
+  cleanup()
   const { container } = render(<ClinicCall events={[]} booking={null} tier={null} />)
   expect(container.textContent).toBe('')
+})
+
+test('the clock helper moves the day forward', async () => {
+  const { applyClockShift, nextDoseShiftMs, clockAfterShift } = await import('./src/lib/clock.js')
+  const shift = nextDoseShiftMs(PLAN)
+  expect(shift).toBeGreaterThan(0)
+  const moved = applyClockShift(PLAN, shift)
+  expect(moved.next_dose.status).toBe('due_now')
+  expect(clockAfterShift(PLAN.as_of, shift)).toBe('20:00')
 })
