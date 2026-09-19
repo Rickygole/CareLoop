@@ -40,6 +40,7 @@ from escalation import (
     unacknowledged_for_patient,
 )
 from memory import InMemoryBackend, summarize_episode
+import followup
 import portal
 from providers import find_provider, specialties
 from scheduler import build_day_plan
@@ -1097,6 +1098,123 @@ async def call_start(
     await _emit_call_result(session, "checkin", to, result)
 
     return {"configured": True, **result}
+
+
+@app.get("/followups/{patient_id}")
+def followups(patient_id: str, session: SessionState = Depends(get_session)):
+    patient = session.patients.get(patient_id)
+    if patient is None:
+        raise HTTPException(404, "unknown_patient")
+
+    now = datetime.now(timezone.utc)
+    visits = followup.plan_with_reminders(patient, today=now.date(), now=now)
+    booked = [v for v in visits if v["status"] == followup.STATUS_BOOKED]
+    return {
+        "patient_id": patient_id,
+        "as_of": now.isoformat(),
+        "payer_display": patient.get("insurance_display_name"),
+        "payer_id": patient.get("insurance_payer_id"),
+        "preferred_contact_window": patient.get("preferred_contact_window"),
+        "visits": visits,
+        "booked_count": len(booked),
+        "reminders": [r for v in booked for r in v["reminders"]],
+        "disclosure": FRONT_DESK_DISCLOSURE,
+    }
+
+
+def _find_reminder(patient: dict, note_id: str, kind: str) -> Optional[dict]:
+    now = datetime.now(timezone.utc)
+    for visit in followup.plan_with_reminders(patient, today=now.date(), now=now):
+        if visit["note_id"] != note_id:
+            continue
+        for reminder in visit["reminders"]:
+            if reminder["kind"] == kind:
+                return reminder
+        for reminder in followup.reminder_plan(visit, now=visit["starts_at"]) if visit.get("starts_at") else []:
+            if reminder["kind"] == kind:
+                return reminder
+    return None
+
+
+@app.api_route("/voice/reminder", methods=["GET", "POST"])
+async def voice_reminder(
+    patient_id: str = DEFAULT_DEMO_PATIENT_ID,
+    note_id: str = "",
+    kind: str = followup.KIND_DAY_BEFORE,
+    session: SessionState = Depends(get_session),
+):
+    patient = session.patients.get(patient_id)
+    if patient is None:
+        raise HTTPException(404, "unknown_patient")
+
+    await session.bus.emit("CALL_CONNECTED", {"patient_id": patient_id, "leg": "reminder"})
+
+    reminder = _find_reminder(patient, note_id, kind)
+    if reminder is None:
+        return _twiml(
+            _say("CareLoop has no appointment reminder for you right now. Goodbye.")
+            + "<Hangup/>"
+        )
+
+    await session.bus.emit("APPOINTMENT_REMINDER_SPOKEN", {
+        "patient_id": patient_id,
+        "note_id": note_id,
+        "kind": kind,
+        "visit_at": reminder["visit_at"],
+    })
+    return _twiml(_say(reminder["script"]) + "<Hangup/>")
+
+
+class ReminderCallRequest(BaseModel):
+    secret: Optional[str] = None
+    patient_id: Optional[str] = None
+    note_id: Optional[str] = None
+    kind: str = followup.KIND_DAY_BEFORE
+
+
+@app.post("/call/reminder")
+async def call_reminder(
+    body: ReminderCallRequest, request: Request, session: SessionState = Depends(get_session),
+):
+    _authorize_call(body.secret)
+
+    missing = telephony.missing_env_vars()
+    if missing:
+        return _telephony_not_configured(missing)
+
+    if not session.call_limiter.allow():
+        raise HTTPException(429, "call_rate_limited")
+
+    patient_id = body.patient_id or DEFAULT_DEMO_PATIENT_ID
+    patient = session.patients.get(patient_id)
+    if patient is None:
+        raise HTTPException(404, "unknown_patient")
+
+    note_id = body.note_id
+    if not note_id:
+        now = datetime.now(timezone.utc)
+        booked = [
+            v for v in followup.plan_with_reminders(patient, today=now.date(), now=now)
+            if v["status"] == followup.STATUS_BOOKED
+        ]
+        if not booked:
+            raise HTTPException(409, "no_booked_followup")
+        note_id = booked[0]["note_id"]
+
+    params = {
+        "patient_id": patient_id,
+        "note_id": note_id,
+        "kind": body.kind,
+        SESSION_QUERY_PARAM: session.session_id,
+    }
+    twiml_url = str(request.base_url).rstrip("/") + "/voice/reminder?" + urlencode(params)
+
+    to = telephony.demo_phone_number()
+    result = telephony.place_call(to, twiml_url=twiml_url)
+    session.call_limiter.record()
+    await _emit_call_result(session, "reminder", to, result)
+
+    return {"configured": True, "note_id": note_id, "kind": body.kind, **result}
 
 
 class ClinicCallStartRequest(BaseModel):
