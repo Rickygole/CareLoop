@@ -555,6 +555,7 @@ class RunLoopRequest(BaseModel):
     patient_id: str
     transcript: str
     auto_book: bool = True
+    call_clinic: bool = False
 
 
 @app.post("/loop/run")
@@ -641,7 +642,13 @@ async def run_loop(
             })
 
             missing = telephony.missing_env_vars()
-            if missing:
+            if not body.call_clinic:
+                await session.bus.emit("PHONE_CALL_NOT_PLACED", {
+                    "leg": "clinic",
+                    "reason": "not_requested",
+                    "detail": "The booking ran. No telephone was dialled, because this run did not ask for one.",
+                })
+            elif missing:
                 await session.bus.emit("PHONE_CALL_NOT_CONFIGURED", {
                     "leg": "clinic", "missing": missing,
                 })

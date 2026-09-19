@@ -786,6 +786,7 @@ def test_loop_run_does_not_dial_when_telephony_is_not_configured(monkeypatch):
     body = client.post("/loop/run", json={
         "patient_id": "p1",
         "transcript": "I have been throwing up after every dose for three days",
+        "call_clinic": True,
     }, headers=headers).json()
 
     assert body["booking"]["confirmed"] is True

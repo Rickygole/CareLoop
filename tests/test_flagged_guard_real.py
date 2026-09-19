@@ -72,3 +72,55 @@ def test_no_spoken_path_pushes_a_flagged_dose_on_the_real_record():
     spoken = " ".join(re.findall(r"<Say[^>]*>(.*?)</Say>", xml)).lower()
     assert "reminder to take your" not in spoken
     assert "i am not going to ask you to take it" in spoken
+
+
+def test_the_written_check_in_never_rings_a_phone_on_its_own(monkeypatch):
+    import telephony
+
+    dialled = []
+    monkeypatch.setenv("TWILIO_ACCOUNT_SID", "AC" + "0" * 32)
+    monkeypatch.setenv("TWILIO_AUTH_TOKEN", "x" * 32)
+    monkeypatch.setenv("TWILIO_FROM_NUMBER", "+15550001111")
+    monkeypatch.setenv("DEMO_PHONE_NUMBER", "+15550002222")
+    monkeypatch.setattr(
+        telephony, "place_call",
+        lambda to, **kw: dialled.append(to) or {"ok": True, "call_sid": "CA1", "status": "queued"},
+    )
+
+    body = client.post(
+        "/loop/run",
+        json={"patient_id": "p1", "transcript": "I have been dizzy for two days and my ankles are swollen"},
+        headers={"X-CareLoop-Session": "written-no-dial"},
+    ).json()
+
+    assert body["triage"]["tier"] == "moderate"
+    assert body["booking"], "the booking must still run, it is the point of the screen"
+    assert dialled == [], (
+        "the written check-in must not dial a real telephone. A judge reading "
+        "instead of talking would have made the presenter's phone ring."
+    )
+
+
+def test_a_run_that_asks_for_the_clinic_call_still_gets_one(monkeypatch):
+    import telephony
+
+    dialled = []
+    monkeypatch.setenv("TWILIO_ACCOUNT_SID", "AC" + "0" * 32)
+    monkeypatch.setenv("TWILIO_AUTH_TOKEN", "x" * 32)
+    monkeypatch.setenv("TWILIO_FROM_NUMBER", "+15550001111")
+    monkeypatch.setenv("DEMO_PHONE_NUMBER", "+15550002222")
+    monkeypatch.setattr(
+        telephony, "place_call",
+        lambda to, **kw: dialled.append(to) or {"ok": True, "call_sid": "CA1", "status": "queued"},
+    )
+
+    client.post(
+        "/loop/run",
+        json={
+            "patient_id": "p1",
+            "transcript": "I have been dizzy for two days and my ankles are swollen",
+            "call_clinic": True,
+        },
+        headers={"X-CareLoop-Session": "written-yes-dial"},
+    )
+    assert dialled == ["+15550002222"]
