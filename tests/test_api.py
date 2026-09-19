@@ -276,3 +276,20 @@ def test_returned_events_are_only_this_requests_events():
     }).json()
     texts = [e["payload"].get("text") for e in body["events"] if e["event_type"] == "PATIENT_SPEECH"]
     assert texts == ["my chest is killing me"]
+
+
+def test_day_plan_uses_clinic_local_time_not_utc():
+    import json as _json
+    from datetime import datetime, timezone as _tz
+    from scheduler import build_day_plan
+
+    patient = _json.load(open("mock_data/patients.json"))["patients"][0]
+    judging_morning = datetime(2026, 9, 20, 13, 0, tzinfo=_tz.utc)
+    plan = build_day_plan(patient, judging_morning)
+
+    statuses = {d["time"]: d["status"] for d in plan["doses"]}
+    assert statuses["08:00"] == "due_now", (
+        "At 09:00 local the 08:00 dose must read due_now. Treating the hour as "
+        "UTC made it read missed at exactly demo time."
+    )
+    assert plan["next_dose"]["time"] == "08:00"

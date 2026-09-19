@@ -1,8 +1,21 @@
+import os
 from datetime import datetime, timedelta, timezone
 from typing import List, Optional
 
 REMINDER_WINDOW_MINUTES = 90
 LATE_AFTER_MINUTES = 120
+
+
+def clinic_timezone() -> timezone:
+    try:
+        offset = float(os.environ.get("CARELOOP_UTC_OFFSET_HOURS", "-4"))
+    except ValueError:
+        offset = -4.0
+    return timezone(timedelta(hours=offset))
+
+
+def clinic_now() -> datetime:
+    return datetime.now(clinic_timezone())
 
 
 def dose_times_today(medication_requests: List[dict], now: datetime) -> List[dict]:
@@ -36,7 +49,7 @@ def dose_status(due_at: datetime, now: datetime, taken: bool) -> str:
 
 
 def build_day_plan(patient: dict, now: Optional[datetime] = None) -> dict:
-    now = now or datetime.now(timezone.utc)
+    now = now.astimezone(clinic_timezone()) if now else clinic_now()
     taken_ids = {
         entry.get("medication_id")
         for entry in patient.get("history", [])
