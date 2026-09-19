@@ -246,3 +246,33 @@ def test_schedule_endpoint_returns_a_day_plan():
 
 def test_schedule_unknown_patient_is_404():
     assert client.get("/schedule/ghost").status_code == 404
+
+
+def test_triage_returns_its_own_events_for_stateless_hosts():
+    body = client.post("/triage", json={
+        "transcript": "my chest is killing me", "patient_id": "p1",
+    }).json()
+    types = [e["event_type"] for e in body["events"]]
+    assert "PATIENT_SPEECH" in types
+    assert "TIER_0_MATCH" in types
+    assert "EMERGENCY_ESCALATION" in types
+
+
+def test_loop_returns_its_own_events_for_stateless_hosts():
+    body = client.post("/loop/run", json={
+        "patient_id": "p1", "transcript": "I keep throwing up after every dose",
+    }).json()
+    types = [e["event_type"] for e in body["events"]]
+    assert "REMINDER_DUE" in types
+    assert "CLINIC_CALL_INITIATED" in types
+    assert "CALL_ENDED" in types
+    assert body["boot_id"]
+
+
+def test_returned_events_are_only_this_requests_events():
+    client.post("/triage", json={"transcript": "feeling fine", "patient_id": "p1"})
+    body = client.post("/triage", json={
+        "transcript": "my chest is killing me", "patient_id": "p1",
+    }).json()
+    texts = [e["payload"].get("text") for e in body["events"] if e["event_type"] == "PATIENT_SPEECH"]
+    assert texts == ["my chest is killing me"]

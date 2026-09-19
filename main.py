@@ -115,6 +115,10 @@ class TraceBus:
                 self.disconnect(client)
         return event
 
+    @property
+    def current_seq(self) -> int:
+        return self._seq
+
     def since(self, seq: int) -> List[dict]:
         return [e for e in self._events if e["seq"] > seq]
 
@@ -249,7 +253,10 @@ async def run_triage(transcript: str, patient_id: Optional[str] = None) -> dict:
 
 @app.post("/triage")
 async def triage_transcript(body: TriageRequest):
-    return await run_triage(body.transcript, body.patient_id)
+    start = bus.current_seq
+    result = await run_triage(body.transcript, body.patient_id)
+    result["events"] = bus.since(start)
+    return result
 
 
 URGENCIES = {"routine", "urgent"}
@@ -344,6 +351,7 @@ async def run_loop(body: RunLoopRequest):
     if patient is None:
         raise HTTPException(404, "unknown_patient")
 
+    start = bus.current_seq
     plan = build_day_plan(patient)
     await bus.emit("CALL_INITIATED", {
         "patient_id": body.patient_id, "patient": patient["name"],
@@ -405,7 +413,13 @@ async def run_loop(body: RunLoopRequest):
     })
     await bus.emit("CALL_ENDED", {"patient_id": body.patient_id})
 
-    return {"triage": result, "plan": plan, "booking": booking}
+    return {
+        "triage": result,
+        "plan": plan,
+        "booking": booking,
+        "events": bus.since(start),
+        "boot_id": bus.boot_id,
+    }
 
 
 @app.get("/schedule/{patient_id}")
