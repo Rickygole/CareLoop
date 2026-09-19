@@ -5,7 +5,7 @@ import ConsentModal, { SHARED_ITEMS } from '../components/ConsentModal.jsx'
 import Notice from '../components/Notice.jsx'
 import Screen from '../components/Screen.jsx'
 import { connectPatient, regimenState } from '../lib/api.js'
-import { BTN_HERO, BTN_PRIMARY, BTN_QUIET, SELECT } from '../lib/ui.js'
+import { BTN_HERO, BTN_PRIMARY, BTN_QUIET } from '../lib/ui.js'
 import { useSession } from '../lib/session.jsx'
 import { PATIENTS, patientName } from '../data/patients.js'
 
@@ -116,12 +116,70 @@ export default function ConnectPage() {
 
       {!connected && !syncing ? (
         <div>
+          <fieldset className="border-0 p-0">
+            <legend className="display text-xl text-ink">
+              Who is this check-in for?
+            </legend>
+            <p className="measure mt-3 text-ink-2">
+              CareLoop does not know yet. Pick the record it should read, and
+              every screen after this one belongs to that person.
+            </p>
+
+            <div className="mt-8 grid gap-5 sm:grid-cols-2">
+              {PATIENTS.map((person) => {
+                const chosen = person.id === patientId
+                return (
+                  <label
+                    key={person.id}
+                    className={
+                      'pressable ledge block cursor-pointer rounded-card border-2 px-6 py-6 ' +
+                      (chosen
+                        ? 'ledge-ink border-ink bg-sand'
+                        : 'ledge-strong border-edge-strong bg-surface')
+                    }
+                  >
+                    <span className="flex items-baseline justify-between gap-4">
+                      <span className="display-tight text-lg text-ink">
+                        {person.name}
+                      </span>
+                      <input
+                        type="radio"
+                        name="patient"
+                        value={person.id}
+                        checked={chosen}
+                        onChange={() => choosePatient(person.id)}
+                        className="h-6 w-6 shrink-0 accent-[var(--ink)]"
+                      />
+                    </span>
+                    <span className="mt-4 block text-sm text-ink-2">
+                      Insured with {person.insurer}
+                    </span>
+                    <span className="mt-1 block text-sm text-ink-2">
+                      {person.medicines === 1
+                        ? '1 medicine on the record'
+                        : person.medicines + ' medicines on the record'}
+                    </span>
+                    <span
+                      className={
+                        'smallcaps mt-5 block text-micro ' +
+                        (chosen ? 'text-ink' : 'text-ink-2 opacity-0')
+                      }
+                      aria-hidden={!chosen}
+                    >
+                      Chosen
+                    </span>
+                  </label>
+                )
+              })}
+            </div>
+          </fieldset>
+
           <button
             type="button"
             onClick={() => setConsentOpen(true)}
-            className={BTN_HERO + ' w-full sm:w-auto'}
+            className={BTN_HERO + ' mt-12 w-full sm:w-auto'}
           >
-            Connect MyHealth
+            Connect MyHealth for {patientName(patientId)}
           </button>
           <p className="measure mt-5 text-ink-2">
             MyHealth is the portal your pharmacy and your clinic already use.
@@ -152,23 +210,6 @@ export default function ConnectPage() {
             </Notice>
           ) : null}
 
-          <div className="mt-16">
-            <label htmlFor="patient" className="smallcaps text-micro text-ink-2">
-              Record
-            </label>
-            <select
-              id="patient"
-              value={patientId}
-              onChange={(event) => choosePatient(event.target.value)}
-              className={SELECT + ' mt-3'}
-            >
-              {PATIENTS.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
-            </select>
-          </div>
         </div>
       ) : null}
 

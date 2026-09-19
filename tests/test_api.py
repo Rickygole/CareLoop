@@ -45,7 +45,7 @@ def test_connect_returns_patient_and_derived_schedule():
 
 
 def test_connect_flattens_multiple_medications():
-    body = client.post("/portal/connect", json={"patient_id": "p4"}).json()
+    body = client.post("/portal/connect", json={"patient_id": "p2"}).json()
     assert len(body["patient"]["medication_requests"]) == 2
     assert len(body["derived_schedule"]) == 3
 
@@ -197,7 +197,7 @@ def test_trace_events_are_monotonic():
 def test_health_reports_key_status():
     body = client.get("/health").json()
     assert body["status"] == "ok"
-    assert body["patients_loaded"] == 4
+    assert body["patients_loaded"] == 2
     assert "gemini_configured" in body
 
 
@@ -315,11 +315,11 @@ def test_day_plan_uses_clinic_local_time_not_utc():
 
 def test_adding_a_medication_cascades_snapshot_schedule_and_check():
     client.post("/admin/reset", json=gated())
-    before = client.get("/regimen/p3").json()
+    before = client.get("/regimen/p1").json()
     assert before["regimen"]["surfaced"] == []
 
     body = client.post("/meds", json={
-        "patient_id": "p3", "medication": "Warfarin 5 mg tablet",
+        "patient_id": "p1", "medication": "Warfarin 5 mg tablet",
         "dosage_text": "5mg", "frequency": "once daily", "preferred_hours": [20],
     }).json()
 
@@ -462,9 +462,9 @@ def test_second_loop_run_surfaces_prior_episode():
 
 def test_a_crisis_episode_from_the_loop_is_never_surfaced_as_a_prior_episode():
     client.post("/admin/reset", json=gated())
-    client.post("/loop/run", json={"patient_id": "p3", "transcript": "I want to die"})
+    client.post("/loop/run", json={"patient_id": "p1", "transcript": "I want to die"})
     second = client.post("/loop/run", json={
-        "patient_id": "p3", "transcript": "feeling okay now",
+        "patient_id": "p1", "transcript": "feeling okay now",
     }).json()
     assert second["prior_episode"] is None
 
@@ -626,15 +626,15 @@ def test_adding_a_medication_does_not_affect_a_brand_new_session():
 
 
 def test_baseline_fixture_is_never_mutated_by_any_session():
-    original = client.get("/regimen/p4", headers=session_headers("probe-original")).json()
+    original = client.get("/regimen/p2", headers=session_headers("probe-original")).json()
     original_count = len(original["medications"])
 
     for i in range(5):
         client.post("/meds", json={
-            "patient_id": "p4", "medication": f"Stress Med {i}",
+            "patient_id": "p2", "medication": f"Stress Med {i}",
         }, headers=session_headers(f"stress-session-{i}"))
 
-    brand_new = client.get("/regimen/p4", headers=session_headers("probe-after-stress")).json()
+    brand_new = client.get("/regimen/p2", headers=session_headers("probe-after-stress")).json()
     assert len(brand_new["medications"]) == original_count
 
 
@@ -781,7 +781,7 @@ def test_call_start_places_a_call_when_configured(monkeypatch):
     set_telephony_env(monkeypatch)
     calls = []
 
-    def fake_place_call(to, twiml_url=None, twiml=None):
+    def fake_place_call(to, twiml_url=None, twiml=None, status_callback=None, ring_seconds=None):
         calls.append((to, twiml_url))
         return {"ok": True, "call_sid": "CAtest123", "status": "queued"}
 
@@ -805,7 +805,7 @@ def test_call_start_never_dials_an_arbitrary_number(monkeypatch):
     calls = []
     monkeypatch.setattr(
         telephony, "place_call",
-        lambda to, twiml_url=None, twiml=None: calls.append(to) or {"ok": True, "call_sid": "CAtest124"},
+        lambda to, twiml_url=None, twiml=None, **kw: calls.append(to) or {"ok": True, "call_sid": "CAtest124"},
     )
     r = client.post(
         "/call/start",
@@ -820,7 +820,7 @@ def test_call_start_is_rate_limited_per_session(monkeypatch):
     set_telephony_env(monkeypatch)
     monkeypatch.setattr(
         telephony, "place_call",
-        lambda to, twiml_url=None, twiml=None: {"ok": True, "call_sid": "CAlimit", "status": "queued"},
+        lambda to, twiml_url=None, twiml=None, **kw: {"ok": True, "call_sid": "CAlimit", "status": "queued"},
     )
     headers = session_headers("tel-rate-limit-1")
     statuses = []

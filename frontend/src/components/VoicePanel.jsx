@@ -24,6 +24,7 @@ export default function VoicePanel({
   busy,
   error,
   onReply,
+  onRing,
 }) {
   const configured = isConfigured()
   const firstName = String(patientName || '').trim().split(/\s+/)[0] || ''
@@ -37,6 +38,7 @@ export default function VoicePanel({
         busy={busy}
         error={error}
         onReply={onReply}
+        onRing={onRing}
       />
     )
   }

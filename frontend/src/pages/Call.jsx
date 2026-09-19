@@ -6,7 +6,7 @@ import Notice from '../components/Notice.jsx'
 import PhoneCallCard from '../components/PhoneCallCard.jsx'
 import Screen from '../components/Screen.jsx'
 import VoicePanel from '../components/VoicePanel.jsx'
-import { runLoop } from '../lib/api.js'
+import { ringPatient, runLoop } from '../lib/api.js'
 import { applyClockShift } from '../lib/clock.js'
 import { clockLabel } from '../lib/format.js'
 import { isConfigured } from '../lib/voice.js'
@@ -48,6 +48,14 @@ export default function CallPage() {
     },
     [patientId, recordRun],
   )
+
+  const ring = useCallback(async () => {
+    try {
+      return await ringPatient(patientId)
+    } catch {
+      return null
+    }
+  }, [patientId])
 
   const start = useCallback(
     async (transcript) => {
@@ -105,6 +113,7 @@ export default function CallPage() {
         busy={busy}
         error={failed ? FAILED : null}
         onReply={check}
+        onRing={ring}
       />
 
       {spoken ? (

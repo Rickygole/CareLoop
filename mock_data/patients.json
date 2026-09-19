@@ -14,7 +14,13 @@
           "medication": "Metformin",
           "dosage_text": "500mg",
           "frequency": "twice daily",
-          "timing": { "times_per_day": 2, "preferred_hours": [8, 20] },
+          "timing": {
+            "times_per_day": 2,
+            "preferred_hours": [
+              8,
+              20
+            ]
+          },
           "prescriber": "Dr. Elena Vance",
           "status": "active",
           "start_date": "2026-08-01"
@@ -33,54 +39,10 @@
     },
     {
       "patient_id": "p2",
-      "name": "James Okafor",
-      "phone": "+15551234002",
-      "insurance_payer_id": "carefirst-001",
-      "insurance_display_name": "CareFirst BlueCross",
-      "connected": false,
-      "connected_at": null,
-      "medication_requests": [
-        {
-          "medication_id": "med2",
-          "medication": "Lisinopril",
-          "dosage_text": "10mg",
-          "frequency": "once daily",
-          "timing": { "times_per_day": 1, "preferred_hours": [8] },
-          "prescriber": "Dr. Sarah Lin",
-          "status": "active",
-          "start_date": "2026-07-15"
-        }
-      ],
-      "history": []
-    },
-    {
-      "patient_id": "p3",
-      "name": "Wei Chen",
-      "phone": "+15551234003",
-      "insurance_payer_id": "united-001",
-      "insurance_display_name": "UnitedHealthcare",
-      "connected": false,
-      "connected_at": null,
-      "medication_requests": [
-        {
-          "medication_id": "med3",
-          "medication": "Atorvastatin",
-          "dosage_text": "20mg",
-          "frequency": "once daily, evening",
-          "timing": { "times_per_day": 1, "preferred_hours": [20] },
-          "prescriber": "Dr. Sarah Lin",
-          "status": "active",
-          "start_date": "2026-06-02"
-        }
-      ],
-      "history": []
-    },
-    {
-      "patient_id": "p4",
       "name": "Dorothy Klein",
       "phone": "+15551234004",
-      "insurance_payer_id": "aetna-001",
-      "insurance_display_name": "Aetna",
+      "insurance_payer_id": "carefirst-001",
+      "insurance_display_name": "CareFirst BlueCross",
       "connected": false,
       "connected_at": null,
       "medication_requests": [
@@ -89,7 +51,13 @@
           "medication": "Metformin",
           "dosage_text": "500mg",
           "frequency": "twice daily",
-          "timing": { "times_per_day": 2, "preferred_hours": [8, 20] },
+          "timing": {
+            "times_per_day": 2,
+            "preferred_hours": [
+              8,
+              20
+            ]
+          },
           "prescriber": "Dr. Raj Patel",
           "status": "active",
           "start_date": "2026-05-20"
@@ -99,7 +67,12 @@
           "medication": "Lisinopril",
           "dosage_text": "10mg",
           "frequency": "once daily",
-          "timing": { "times_per_day": 1, "preferred_hours": [8] },
+          "timing": {
+            "times_per_day": 1,
+            "preferred_hours": [
+              8
+            ]
+          },
           "prescriber": "Dr. Raj Patel",
           "status": "active",
           "start_date": "2026-05-20"

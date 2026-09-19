@@ -16,3 +16,5 @@ eval/results_v2.dryrun.json
 
 memory_store.json
 
+.vercel
+.env*

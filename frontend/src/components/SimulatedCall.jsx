@@ -5,6 +5,13 @@ import CheckIn from './CheckIn.jsx'
 import Notice from './Notice.jsx'
 import { clockLabel, dateTimeLabel } from '../lib/format.js'
 import { BTN_HERO, BTN_PRIMARY, BTN_QUIET, PANEL } from '../lib/ui.js'
+import {
+  CALL_STATUS,
+  callSidFrom,
+  isConfigured as phoneConfigured,
+  missingFrom,
+  statusFromPayload,
+} from '../lib/telephony.js'
 
 export const SIMULATION_DISCLOSURE =
   'Simulated call. CareLoop is not speaking to you; this is a scripted stand-in for the voice agent.'
@@ -117,6 +124,12 @@ function Turn({ turn, index }) {
   )
 }
 
+const RING_WORDING = {
+  [CALL_STATUS.DIALLING]: 'Placing the call. Keep your phone to hand.',
+  [CALL_STATUS.RINGING]:
+    'Your phone is ringing now. Pick up and CareLoop will greet you by name. If you miss it, it rings you back.',
+}
+
 export default function SimulatedCall({
   patientName,
   nextDose,
@@ -124,9 +137,13 @@ export default function SimulatedCall({
   busy,
   error,
   onReply,
+  onRing,
 }) {
   const [turns, setTurns] = useState([])
   const [phase, setPhase] = useState('idle')
+  const [ringState, setRingState] = useState(CALL_STATUS.IDLE)
+  const [ringSid, setRingSid] = useState('')
+  const [ringMissing, setRingMissing] = useState([])
   const alive = useRef(true)
   const seq = useRef(0)
 
@@ -188,6 +205,22 @@ export default function SimulatedCall({
     [onReply, say],
   )
 
+  const phoneLive = phoneConfigured() && typeof onRing === 'function'
+
+  const ring = useCallback(async () => {
+    setRingState(CALL_STATUS.DIALLING)
+    setRingMissing([])
+    let payload = null
+    try {
+      payload = await onRing()
+    } catch {
+      payload = null
+    }
+    setRingSid(callSidFrom(payload))
+    setRingMissing(missingFrom(payload))
+    setRingState(statusFromPayload(payload))
+  }, [onRing])
+
   const speaking = phase === 'greeting'
   const thinking = phase === 'thinking'
 
@@ -201,9 +234,9 @@ export default function SimulatedCall({
           A simulated check-in call
         </h2>
         <p className="measure mt-3 text-ink-2">
-          The spoken version needs a voice service that is not switched on
-          here, so the call plays out in writing, turn by turn. Every decision
-          in it comes from the real CareLoop service.
+          {phoneLive
+            ? 'Ring your own phone and CareLoop will greet you by name and ask you to take your dose, or read the same check-in here instead. Either way the decision comes from the real CareLoop service.'
+            : 'The spoken version needs a voice service that is not switched on here, so the call plays out in writing, turn by turn. Every decision in it comes from the real CareLoop service.'}
         </p>
 
         <Notice tone="caution" word="Simulated" className="mt-7">
@@ -249,10 +282,52 @@ export default function SimulatedCall({
         </div>
 
         {phase === 'idle' ? (
-          <button type="button" onClick={begin} className={BTN_HERO + ' mt-9'}>
-            Start the simulated call
-          </button>
+          <div className="mt-9 flex flex-wrap items-center gap-x-6 gap-y-4">
+            {phoneLive ? (
+              <button
+                type="button"
+                onClick={ring}
+                disabled={
+                  ringState === CALL_STATUS.DIALLING ||
+                  ringState === CALL_STATUS.RINGING
+                }
+                className={BTN_HERO}
+              >
+                {ringState === CALL_STATUS.DIALLING
+                  ? 'Ringing your phone...'
+                  : 'Call my phone now'}
+              </button>
+            ) : null}
+            <button
+              type="button"
+              onClick={begin}
+              className={phoneLive ? BTN_QUIET : BTN_HERO}
+            >
+              Start the simulated call
+            </button>
+          </div>
         ) : null}
+
+        <div role="status" aria-live="polite" className="empty:hidden">
+          {RING_WORDING[ringState] ? (
+            <p className="measure mt-6 text-sm font-bold text-ink">
+              {RING_WORDING[ringState]}
+              {ringSid ? (
+                <span className="numeric ml-3 font-mono text-xs font-normal text-ink-2">
+                  {ringSid}
+                </span>
+              ) : null}
+            </p>
+          ) : null}
+          {ringState === CALL_STATUS.UNAVAILABLE ? (
+            <p className="measure mt-6 text-sm font-bold text-severe">
+              The call was not placed.
+              {ringMissing.length
+                ? ' Missing settings: ' + ringMissing.join(', ') + '.'
+                : ' Nothing was dialled and nothing was recorded.'}
+            </p>
+          ) : null}
+        </div>
 
         {phase === 'ended' ? (
           <div className="mt-9 flex flex-wrap items-center gap-x-6 gap-y-4">

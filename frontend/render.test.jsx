@@ -109,7 +109,7 @@ test('the connect screen is the first screen', () => {
   expect(screen.getByRole('heading', { level: 1 }).textContent).toMatch(/Start here/)
   expect(screen.getByText('Demo system. All patient data is synthetic.')).toBeTruthy()
   expect(screen.getByRole('navigation', { name: /five steps, in order/ })).toBeTruthy()
-  fireEvent.click(screen.getByText('Connect MyHealth'))
+  fireEvent.click(screen.getByText(/^Connect MyHealth/))
   const dialog = screen.getByRole('dialog')
   expect(dialog.textContent).toMatch(/MyHealth will share with CareLoop/)
   expect(screen.getByText('Allow')).toBeTruthy()
@@ -119,7 +119,7 @@ test('the connect screen is the first screen', () => {
 test('denying shares nothing and stays on the first screen', () => {
   startAtFirstScreen()
   render(<HashRouter><App /></HashRouter>)
-  fireEvent.click(screen.getByText('Connect MyHealth'))
+  fireEvent.click(screen.getByText(/^Connect MyHealth/))
   fireEvent.click(screen.getByText('Deny'))
   expect(screen.getByText(/Nothing was shared/)).toBeTruthy()
   expect(screen.getByRole('heading', { level: 1 }).textContent).toMatch(/Start here/)
@@ -128,7 +128,7 @@ test('denying shares nothing and stays on the first screen', () => {
 test('allowing syncs and lands on the medicines screen', async () => {
   startAtFirstScreen()
   render(<HashRouter><App /></HashRouter>)
-  fireEvent.click(screen.getByText('Connect MyHealth'))
+  fireEvent.click(screen.getByText(/^Connect MyHealth/))
   fireEvent.click(screen.getByText('Allow'))
   await screen.findByText(/CareLoop went and got these/, {}, { timeout: 4000 })
   expect(screen.getAllByText('Metformin').length).toBeGreaterThan(0)
@@ -142,7 +142,7 @@ test('allowing syncs and lands on the medicines screen', async () => {
 test('adding a medicine cascades through snapshot, schedule and flag', async () => {
   startAtFirstScreen()
   render(<HashRouter><App /></HashRouter>)
-  fireEvent.click(screen.getByText('Connect MyHealth'))
+  fireEvent.click(screen.getByText(/^Connect MyHealth/))
   fireEvent.click(screen.getByText('Allow'))
   await screen.findByText('a1b2c3d4e5f6', {}, { timeout: 4000 })
 

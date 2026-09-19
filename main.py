@@ -737,11 +737,30 @@ async def add_medication(body: AddMedicationRequest, session: SessionState = Dep
 DEFAULT_DEMO_PATIENT_ID = "p1"
 
 CHECKIN_GREETING = (
-    "Hi {patient_first_name}, this is CareLoop calling to check in on your "
-    "{medication}. Quick note, I'm an automated check-in assistant, not a "
-    "medical professional, and this is a demonstration. Do you have a couple "
-    "of minutes?"
+    "Hello {patient_first_name}. This is CareLoop, your medication assistant. "
+    "Quick note before we start. I am an automated assistant, not a medical "
+    "professional, and this is a demonstration."
 )
+
+CHECKIN_DOSE_PROMPT = (
+    "{patient_first_name}, it is time for your {medication}. Please take it "
+    "now if you have not already. When you have, tell me you took it, and "
+    "tell me how you have been feeling since."
+)
+
+CHECKIN_NO_ANSWER = (
+    "I did not hear anything, so I will try you again shortly. Please "
+    "remember to take your {medication}. Goodbye for now."
+)
+
+CHECKIN_CLOSING = (
+    "Thank you, {patient_first_name}. I have made a note of that on your "
+    "record. Please keep taking your medication as your prescriber directed. "
+    "I will check in with you again. Take care."
+)
+
+MAX_CALL_ATTEMPTS = 3
+ANSWERED_CALL_SECONDS = 22
 
 CLINIC_CALL_SELF_IDENTIFICATION = (
     "This is an automated call placed by CareLoop, a medication check-in "
@@ -767,6 +786,21 @@ def _demo_medication_name(patient: dict) -> str:
         return plan["next_dose"]["medication"]
     active = [m for m in patient["medication_requests"] if m.get("status") == "active"]
     return active[0]["medication"] if active else "your medication"
+
+
+def _spoken_medication(patient: Optional[dict]) -> str:
+    if not patient:
+        return "your medication"
+    plan = build_day_plan(patient)
+    dose = plan["next_dose"]
+    if dose:
+        dosage = (dose.get("dosage") or "").strip()
+        return f"{dosage} {dose['medication']}".strip() if dosage else dose["medication"]
+    return _demo_medication_name(patient)
+
+
+def _first_name(patient: Optional[dict]) -> str:
+    return patient["name"].split()[0] if patient else "there"
 
 
 def _telephony_not_configured(missing: List[str]) -> dict:
@@ -795,21 +829,24 @@ async def voice_checkin(
     patient = session.patients.get(patient_id) or session.patients.get(DEFAULT_DEMO_PATIENT_ID)
     await session.bus.emit("CALL_CONNECTED", {"patient_id": patient_id, "leg": "checkin"})
 
-    first_name = patient["name"].split()[0] if patient else "there"
-    medication = _demo_medication_name(patient) if patient else "your medication"
-    greeting = CHECKIN_GREETING.format(patient_first_name=first_name, medication=medication)
+    first_name = _first_name(patient)
+    medication = _spoken_medication(patient)
 
     action = "/voice/checkin/respond?" + urlencode({
         "patient_id": patient_id, SESSION_QUERY_PARAM: session.session_id,
     })
-    gather = (
-        f'<Gather input="speech" action="{xml_escape(action)}" method="POST" '
-        'speechTimeout="auto" timeout="6" language="en-US">'
-        f"{_say(greeting)}"
-        "</Gather>"
-        f'{_say("Sorry, I did not hear a response. Goodbye.")}'
+    return _twiml(
+        _say(CHECKIN_GREETING.format(patient_first_name=first_name))
+        + '<Pause length="1"/>'
+        + f'<Gather input="speech" action="{xml_escape(action)}" method="POST" '
+        'speechTimeout="auto" timeout="8" language="en-US">'
+        + _say(CHECKIN_DOSE_PROMPT.format(
+            patient_first_name=first_name, medication=medication,
+        ))
+        + "</Gather>"
+        + _say(CHECKIN_NO_ANSWER.format(medication=medication))
+        + "<Hangup/>"
     )
-    return _twiml(gather)
 
 
 @app.post("/voice/checkin/respond")
@@ -818,14 +855,62 @@ async def voice_checkin_respond(
     patient_id: str = DEFAULT_DEMO_PATIENT_ID,
     session: SessionState = Depends(get_session),
 ):
+    patient = session.patients.get(patient_id) or session.patients.get(DEFAULT_DEMO_PATIENT_ID)
+    first_name = _first_name(patient)
+
     raw_body = (await request.body()).decode("utf-8")
     fields = dict(parse_qsl(raw_body))
     transcript = (fields.get("SpeechResult") or "").strip()
     if not transcript:
-        return _twiml(_say("Sorry, I did not catch that. Goodbye.") + "<Hangup/>")
+        return _twiml(
+            _say(CHECKIN_NO_ANSWER.format(medication=_spoken_medication(patient)))
+            + "<Hangup/>"
+        )
 
     result = await run_triage(session, transcript, patient_id)
-    return _twiml(_say(result["suggested_agent_response"]) + "<Hangup/>")
+    return _twiml(
+        _say(result["suggested_agent_response"])
+        + '<Pause length="1"/>'
+        + _say(CHECKIN_CLOSING.format(patient_first_name=first_name))
+        + "<Hangup/>"
+    )
+
+
+@app.post("/voice/checkin/status")
+async def voice_checkin_status(
+    request: Request,
+    patient_id: str = DEFAULT_DEMO_PATIENT_ID,
+    attempt: int = 1,
+    session: SessionState = Depends(get_session),
+):
+    fields = dict(parse_qsl((await request.body()).decode("utf-8")))
+    status = (fields.get("CallStatus") or "").strip().lower()
+    answered_by = (fields.get("AnsweredBy") or "").strip().lower()
+    try:
+        duration = int(fields.get("CallDuration") or 0)
+    except ValueError:
+        duration = 0
+
+    picked_up = (
+        status == "completed"
+        and duration >= ANSWERED_CALL_SECONDS
+        and not answered_by.startswith("machine")
+    )
+    if picked_up or attempt >= MAX_CALL_ATTEMPTS:
+        await session.bus.emit("PHONE_CALL_ENDED", {
+            "leg": "checkin", "status": status, "duration": duration, "attempt": attempt,
+        })
+        return Response(status_code=204)
+
+    await session.bus.emit("PHONE_CALL_RETRY", {
+        "leg": "checkin", "status": status, "duration": duration, "attempt": attempt + 1,
+    })
+    to = telephony.demo_phone_number()
+    result = _dial_checkin(
+        str(request.base_url).rstrip("/"), session, patient_id, to, attempt + 1,
+    )
+    await _emit_call_result(session, "checkin", to, result)
+    return Response(status_code=204)
 
 
 @app.api_route("/voice/clinic", methods=["GET", "POST"])
@@ -854,6 +939,29 @@ async def voice_clinic(
     return _twiml("".join(lines))
 
 
+CALL_TOKEN = os.environ.get("CARELOOP_CALL_TOKEN", "")
+
+
+def _authorize_call(supplied: Optional[str]) -> None:
+    expected = CALL_TOKEN or WEBHOOK_SECRET
+    if expected and supplied != expected:
+        raise HTTPException(401, "unauthorized")
+
+
+def _dial_checkin(
+    base_url: str, session: SessionState, patient_id: str, to: str, attempt: int,
+) -> dict:
+    twiml_url = base_url + "/voice/checkin?" + urlencode({
+        "patient_id": patient_id, SESSION_QUERY_PARAM: session.session_id,
+    })
+    status_url = base_url + "/voice/checkin/status?" + urlencode({
+        "patient_id": patient_id,
+        "attempt": attempt,
+        SESSION_QUERY_PARAM: session.session_id,
+    })
+    return telephony.place_call(to, twiml_url=twiml_url, status_callback=status_url)
+
+
 class CallStartRequest(BaseModel):
     secret: Optional[str] = None
     patient_id: Optional[str] = None
@@ -863,8 +971,7 @@ class CallStartRequest(BaseModel):
 async def call_start(
     body: CallStartRequest, request: Request, session: SessionState = Depends(get_session),
 ):
-    if WEBHOOK_SECRET and body.secret != WEBHOOK_SECRET:
-        raise HTTPException(401, "unauthorized")
+    _authorize_call(body.secret)
 
     missing = telephony.missing_env_vars()
     if missing:
@@ -877,13 +984,10 @@ async def call_start(
     if patient_id not in session.patients:
         raise HTTPException(404, "unknown_patient")
 
-    base_url = str(request.base_url).rstrip("/")
-    twiml_url = base_url + "/voice/checkin?" + urlencode({
-        "patient_id": patient_id, SESSION_QUERY_PARAM: session.session_id,
-    })
-
     to = telephony.demo_phone_number()
-    result = telephony.place_call(to, twiml_url=twiml_url)
+    result = _dial_checkin(
+        str(request.base_url).rstrip("/"), session, patient_id, to, attempt=1,
+    )
     session.call_limiter.record()
     await _emit_call_result(session, "checkin", to, result)
 
@@ -900,8 +1004,7 @@ class ClinicCallStartRequest(BaseModel):
 async def call_clinic(
     body: ClinicCallStartRequest, request: Request, session: SessionState = Depends(get_session),
 ):
-    if WEBHOOK_SECRET and body.secret != WEBHOOK_SECRET:
-        raise HTTPException(401, "unauthorized")
+    _authorize_call(body.secret)
 
     missing = telephony.missing_env_vars()
     if missing:

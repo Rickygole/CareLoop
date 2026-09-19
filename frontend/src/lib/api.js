@@ -1,3 +1,5 @@
+import { CALL_ENDPOINTS } from './telephony.js'
+
 const LOCAL_HOSTS = ['localhost', '127.0.0.1', '0.0.0.0']
 
 function defaultApiBase() {
@@ -107,6 +109,23 @@ export function book(specialty, urgency, patientId) {
     specialty,
     urgency,
     patient_id: patientId || null,
+  })
+}
+
+export const CALL_TOKEN = import.meta.env.VITE_CALL_TOKEN || ''
+
+export function ringPatient(patientId) {
+  return post(CALL_ENDPOINTS.patient, {
+    patient_id: patientId || null,
+    secret: CALL_TOKEN || null,
+  })
+}
+
+export function ringClinic(patientId, specialty) {
+  return post(CALL_ENDPOINTS.clinic, {
+    patient_id: patientId || null,
+    specialty: specialty || null,
+    secret: CALL_TOKEN || null,
   })
 }
 
