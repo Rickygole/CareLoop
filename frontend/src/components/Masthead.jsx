@@ -33,7 +33,7 @@ export default function Masthead() {
       <div className="mx-auto flex max-w-[72rem] flex-wrap items-center justify-between gap-x-8 gap-y-2 px-6 py-4 sm:px-8">
         <div className="flex flex-wrap items-baseline gap-x-5 gap-y-1">
           <Wordmark />
-          <p className="text-2xs text-muted">
+          <p className="text-sm text-muted">
             Demo system. All patient data is synthetic.
           </p>
         </div>

@@ -77,7 +77,7 @@ export default function FlowNav() {
               {position < SCREENS.length - 1 ? (
                 <span
                   aria-hidden="true"
-                  className="px-1 text-micro text-line-strong"
+                  className="px-1 text-micro text-muted"
                 >
                   {CHEVRON}
                 </span>
