@@ -535,6 +535,15 @@ async def add_medication(body: AddMedicationRequest):
     }
 
 
+def describe_env(name: str) -> str:
+    if name not in os.environ:
+        return "absent"
+    value = os.environ[name].strip()
+    if not value:
+        return "present but empty"
+    return f"set ({len(value)} chars)"
+
+
 @app.get("/health")
 def health():
     from triage_engine import DEFAULT_MODEL
@@ -546,10 +555,6 @@ def health():
         "gemini_configured": bool(key),
         "gemini_key_length": len(key),
         "model": os.environ.get("GEMINI_MODEL") or DEFAULT_MODEL,
-        "env_keys_present": [k for k in EXPECTED_ENV_KEYS if os.environ.get(k)],
-        "env_namespace": sorted(
-            k for k in os.environ
-            if not k.startswith(("AWS_", "LAMBDA_", "_", "LD_", "PATH", "LANG", "TZ"))
-        )[:40],
+        "env": {name: describe_env(name) for name in EXPECTED_ENV_KEYS},
         "runtime": os.environ.get("VERCEL_ENV", "local"),
     }

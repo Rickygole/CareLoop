@@ -364,3 +364,17 @@ def test_regimen_endpoint_carries_its_own_limitations():
     body = client.get("/regimen/p1").json()
     assert body["regimen"]["limitations"] == LIMITATIONS
     assert "not a formulary check" in LIMITATIONS.lower()
+
+
+def test_health_distinguishes_absent_from_present_but_empty(monkeypatch):
+    monkeypatch.delenv("BACKBOARD_API_KEY", raising=False)
+    monkeypatch.setenv("CARELOOP_WEBHOOK_SECRET", "")
+    monkeypatch.setenv("GEMINI_MODEL", "some-model")
+
+    env = client.get("/health").json()["env"]
+    assert env["BACKBOARD_API_KEY"] == "absent"
+    assert env["CARELOOP_WEBHOOK_SECRET"] == "present but empty", (
+        "A variable that exists with an empty value must not report as absent. "
+        "That distinction cost an hour of misdiagnosis in production."
+    )
+    assert env["GEMINI_MODEL"].startswith("set (")
