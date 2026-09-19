@@ -5,6 +5,12 @@ from fastapi.testclient import TestClient
 
 import main
 
+
+def trace_url(since=0):
+    base = f"/trace/events?since={since}"
+    return base + (f"&token={main.WEBHOOK_SECRET}" if main.WEBHOOK_SECRET else "")
+
+
 client = TestClient(main.app)
 
 INSTRUCTIONS = ["please take it", "take it now", "you should take", "go ahead and take"]
@@ -80,7 +86,7 @@ def test_withholding_the_prompt_is_recorded_on_the_trace():
     greeting("p2", session)
     types = [
         e["event_type"]
-        for e in client.get("/trace/events?since=0", headers=headers(session)).json()["events"]
+        for e in client.get(trace_url(0), headers=headers(session)).json()["events"]
     ]
     assert "DOSE_PROMPT_WITHHELD" in types
 

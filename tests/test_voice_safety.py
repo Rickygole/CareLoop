@@ -98,3 +98,34 @@ def test_every_callback_url_in_the_twiml_is_absolute():
             f"{target} is relative. Twilio resolves it against the host root, which drops "
             "the /api prefix the deployment routes on, and the caller hears an error."
         )
+
+
+def test_a_runaway_medication_name_is_not_read_out_in_full():
+    session = "spoken-clamp"
+    long_name = "Metformin " + "extended release hydrochloride " * 30
+    client.post(
+        "/meds",
+        json={"patient_id": "p1", "medication": long_name, "dosage_text": "500mg",
+              "frequency": "once daily", "preferred_hours": [9], "prescriber": "Dr X"},
+        headers={"X-CareLoop-Session": session},
+    )
+    spoken = said(
+        client.get("/voice/checkin?patient_id=p1", headers={"X-CareLoop-Session": session}).text
+    )
+    assert len(spoken) < 900, f"the call would read {len(spoken)} characters aloud"
+
+
+def test_the_activity_log_is_not_readable_without_the_token():
+    if not main.WEBHOOK_SECRET:
+        return
+    r = client.get("/trace/events?since=0", headers={"X-CareLoop-Session": "trace-noauth"})
+    assert r.status_code == 403
+
+
+def test_the_activity_log_opens_with_the_token():
+    token = f"&token={main.WEBHOOK_SECRET}" if main.WEBHOOK_SECRET else ""
+    r = client.get(
+        f"/trace/events?since=0{token}", headers={"X-CareLoop-Session": "trace-auth"}
+    )
+    assert r.status_code == 200
+    assert "events" in r.json()

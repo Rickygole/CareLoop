@@ -57,6 +57,65 @@ def normalize_ingredient(name: str) -> str:
     return (name or "").strip().lower()
 
 
+BRAND_TO_INGREDIENT = {
+    "coumadin": "warfarin",
+    "jantoven": "warfarin",
+    "bayer": "aspirin",
+    "ecotrin": "aspirin",
+    "bufferin": "aspirin",
+    "motrin": "ibuprofen",
+    "advil": "ibuprofen",
+    "aleve": "naproxen",
+    "naprosyn": "naproxen",
+    "anaprox": "naproxen",
+    "diflucan": "fluconazole",
+    "zestril": "lisinopril",
+    "prinivil": "lisinopril",
+    "aldactone": "spironolactone",
+    "carospir": "spironolactone",
+    "k-dur": "potassium chloride",
+    "klor-con": "potassium chloride",
+    "k-tab": "potassium chloride",
+    "glucophage": "metformin",
+    "fortamet": "metformin",
+    "riomet": "metformin",
+    "omnipaque": "contrast media",
+    "isovue": "contrast media",
+    "lipitor": "atorvastatin",
+    "biaxin": "clarithromycin",
+    "lopid": "gemfibrozil",
+    "zoloft": "sertraline",
+    "ultram": "tramadol",
+    "conzip": "tramadol",
+    "zyvox": "linezolid",
+    "synthroid": "levothyroxine",
+    "levoxyl": "levothyroxine",
+    "unithroid": "levothyroxine",
+    "tums": "calcium carbonate",
+    "caltrate": "calcium carbonate",
+    "oscal": "calcium carbonate",
+    "lasix": "furosemide",
+    "furoscix": "furosemide",
+}
+
+
+def _token_pattern(name: str) -> re.Pattern:
+    return re.compile(r"(?<![a-z0-9])" + re.escape(name) + r"(?![a-z0-9])")
+
+
+_COMPILED_BRANDS = [
+    (_token_pattern(brand), ingredient)
+    for brand, ingredient in sorted(BRAND_TO_INGREDIENT.items(), key=lambda kv: -len(kv[0]))
+]
+
+
+def resolve_brand(text: str) -> Optional[str]:
+    for pattern, ingredient in _COMPILED_BRANDS:
+        if pattern.search(text):
+            return ingredient
+    return None
+
+
 KNOWN_INGREDIENTS = sorted(
     {pair["a"] for pair in INTERACTION_PAIRS} | {pair["b"] for pair in INTERACTION_PAIRS},
     key=len,
@@ -72,8 +131,11 @@ def active_ingredients(medication_requests: List[dict]) -> List[str]:
         text = normalize_ingredient(request.get("medication", ""))
         if not text:
             continue
-        match = next((known for known in KNOWN_INGREDIENTS if known in text), None)
-        out.append(match or text.split()[0])
+        match = next(
+            (known for known in KNOWN_INGREDIENTS if _token_pattern(known).search(text)),
+            None,
+        )
+        out.append(match or resolve_brand(text) or text.split()[0])
     return [i for i in out if i]
 
 
@@ -147,10 +209,11 @@ def check_cross_call(transcript: str, prior_episode: Optional[dict]) -> List[dic
 
 LIMITATIONS = (
     "Hand curated demonstration table of a small number of ingredient pairs. "
-    "Not a formulary check and not a drug interaction database. Only the exact "
-    "ingredient names in this table are recognised, so brand names and "
-    "combination products are not resolved and a duplicate ingredient inside a "
-    "combination product will be missed. There is no indication, renal "
+    "Not a formulary check and not a drug interaction database. Only the "
+    "ingredient names in this table are recognised, together with a short hand "
+    "written list of their common brand names, so a brand outside that list is "
+    "not resolved and a duplicate ingredient inside a combination product will "
+    "be missed. There is no indication, renal "
     "function, dose or timing context. No "
     "clinician reviewed this table, and the labels named in each row were not "
     "consulted when the row was written. A pair missing from this list is not "

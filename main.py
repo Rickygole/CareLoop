@@ -279,7 +279,13 @@ async def trace_socket(
 
 
 @app.get("/trace/events")
-def trace_events(since: int = 0, session: SessionState = Depends(get_session)):
+def trace_events(
+    since: int = 0,
+    token: str = Query(default=""),
+    session: SessionState = Depends(get_session),
+):
+    if WEBHOOK_SECRET and token != WEBHOOK_SECRET:
+        raise HTTPException(403, "unauthorized")
     return {"events": session.bus.since(since), "boot_id": session.bus.boot_id}
 
 
@@ -650,7 +656,7 @@ async def run_loop(
                 base_url = str(request.base_url).rstrip("/")
                 twiml_url = base_url + "/voice/clinic?" + urlencode(params)
                 to = telephony.demo_phone_number()
-                dial_result = telephony.place_call(to, twiml_url=twiml_url)
+                dial_result = await _offload(telephony.place_call, to, twiml_url=twiml_url)
                 session.call_limiter.record()
                 await _emit_call_result(session, "clinic", to, dial_result)
 
@@ -939,6 +945,14 @@ def _demo_medication_name(patient: dict) -> str:
     return active[0]["medication"] if active else "your medication"
 
 
+SPOKEN_MAX_CHARS = 90
+
+
+def _clamp_spoken(text: str) -> str:
+    collapsed = " ".join(str(text or "").split())
+    return collapsed[:SPOKEN_MAX_CHARS].rstrip() if len(collapsed) > SPOKEN_MAX_CHARS else collapsed
+
+
 def _spoken_medication(patient: Optional[dict]) -> str:
     if not patient:
         return "your medication"
@@ -946,8 +960,9 @@ def _spoken_medication(patient: Optional[dict]) -> str:
     dose = plan["next_dose"]
     if dose:
         dosage = _spell_dosage(dose.get("dosage"))
-        return f"{dose['medication']}, {dosage}" if dosage else dose["medication"]
-    return _demo_medication_name(patient)
+        named = f"{dose['medication']}, {dosage}" if dosage else dose["medication"]
+        return _clamp_spoken(named)
+    return _clamp_spoken(_demo_medication_name(patient))
 
 
 def _spell_dosage(dosage: Optional[str]) -> str:
@@ -975,7 +990,7 @@ def _spoken_indication(patient: Optional[dict]) -> str:
             continue
         if wanted and request.get("medication_id") != wanted:
             continue
-        return (request.get("indication") or "").strip()
+        return _clamp_spoken(request.get("indication"))
     return ""
 
 
@@ -1247,7 +1262,7 @@ async def voice_checkin_status(
     if not session.call_limiter.allow():
         sent = {"ok": False, "sid": None, "error": "text_rate_limited"}
     else:
-        sent = telephony.send_sms(to, body)
+        sent = await _offload(telephony.send_sms, to, body)
         session.call_limiter.record()
 
     _set_call_state(
@@ -1358,7 +1373,11 @@ def _sms_body(template: str, first_name: str, medication: str) -> str:
     return template.format(patient_first_name=name, medication=medication)
 
 
-def _dial_checkin(
+async def _offload(fn, *args, **kwargs):
+    return await asyncio.to_thread(fn, *args, **kwargs)
+
+
+async def _dial_checkin(
     base_url: str, session: SessionState, patient_id: str, to: str, attempt: int,
 ) -> dict:
     twiml_url = base_url + "/voice/checkin?" + urlencode({
@@ -1372,7 +1391,9 @@ def _dial_checkin(
         "sig": _callback_signature(patient_id, session.session_id, attempt, nonce),
         SESSION_QUERY_PARAM: session.session_id,
     })
-    return telephony.place_call(to, twiml_url=twiml_url, status_callback=status_url)
+    return await _offload(
+        telephony.place_call, to, twiml_url=twiml_url, status_callback=status_url
+    )
 
 
 class CallStartRequest(BaseModel):
@@ -1398,7 +1419,7 @@ async def call_start(
         raise HTTPException(404, "unknown_patient")
 
     to = telephony.demo_phone_number()
-    result = _dial_checkin(
+    result = await _dial_checkin(
         str(request.base_url).rstrip("/"), session, patient_id, to, attempt=1,
     )
     session.call_limiter.record()
@@ -1522,7 +1543,7 @@ async def call_reminder(
     twiml_url = str(request.base_url).rstrip("/") + "/voice/reminder?" + urlencode(params)
 
     to = telephony.demo_phone_number()
-    result = telephony.place_call(to, twiml_url=twiml_url)
+    result = await _offload(telephony.place_call, to, twiml_url=twiml_url)
     session.call_limiter.record()
     await _emit_call_result(session, "reminder", to, result)
 
@@ -1580,7 +1601,7 @@ async def call_clinic(
     twiml_url = base_url + "/voice/clinic?" + urlencode(params)
 
     to = telephony.demo_phone_number()
-    result = telephony.place_call(to, twiml_url=twiml_url)
+    result = await _offload(telephony.place_call, to, twiml_url=twiml_url)
     session.call_limiter.record()
     await _emit_call_result(session, "clinic", to, result)
 

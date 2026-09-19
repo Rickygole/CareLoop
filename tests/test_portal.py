@@ -4,6 +4,12 @@ from fastapi.testclient import TestClient
 import main
 import portal
 
+
+def trace_url(since=0):
+    base = f"/trace/events?since={since}"
+    return base + (f"&token={main.WEBHOOK_SECRET}" if main.WEBHOOK_SECRET else "")
+
+
 client = TestClient(main.app)
 
 
@@ -91,7 +97,7 @@ def test_the_change_is_announced_on_the_trace():
     sync(session, accept=True)
     types = [
         e["event_type"]
-        for e in client.get("/trace/events?since=0", headers=headers(session)).json()["events"]
+        for e in client.get(trace_url(0), headers=headers(session)).json()["events"]
     ]
     assert "PORTAL_SYNC" in types
     assert "REGIMEN_SNAPSHOT" in types

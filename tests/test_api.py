@@ -1,3 +1,4 @@
+import main
 import os
 import sys
 import xml.etree.ElementTree as ET
@@ -11,6 +12,12 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 import telephony
 from clinic import FRONT_DESK_DISCLOSURE
 from main import SESSION_HEADER, app
+
+
+def trace_url(since=0):
+    base = f"/trace/events?since={since}"
+    return base + (f"&token={main.WEBHOOK_SECRET}" if main.WEBHOOK_SECRET else "")
+
 
 client = TestClient(app)
 
@@ -187,10 +194,10 @@ def test_webhook_rejects_unknown_tool():
 
 
 def test_triage_emits_trace_events_in_order():
-    before = client.get("/trace/events?since=0").json()["events"]
+    before = client.get(trace_url(0)).json()["events"]
     cursor = before[-1]["seq"] if before else 0
     client.post("/triage", json={"transcript": "my chest is killing me", "patient_id": "p1"})
-    new = client.get(f"/trace/events?since={cursor}").json()["events"]
+    new = client.get(trace_url(cursor)).json()["events"]
     types = [e["event_type"] for e in new]
     assert "PATIENT_SPEECH" in types
     assert "TIER_0_CHECK" in types
@@ -199,7 +206,7 @@ def test_triage_emits_trace_events_in_order():
 
 
 def test_trace_events_are_monotonic():
-    events = client.get("/trace/events?since=0").json()["events"]
+    events = client.get(trace_url(0)).json()["events"]
     seqs = [e["seq"] for e in events]
     assert seqs == sorted(seqs)
 
@@ -212,18 +219,18 @@ def test_health_reports_key_status():
 
 
 def test_admin_reset_clears_the_trace_and_rotates_boot_id():
-    before = client.get("/trace/events?since=0").json()
+    before = client.get(trace_url(0)).json()
     client.post("/triage", json={"transcript": "hello", "patient_id": "p1"})
     body = client.post("/admin/reset", json=gated()).json()
     assert body["reset"] is True
     assert body["boot_id"] != before["boot_id"]
-    after = client.get("/trace/events?since=0").json()
+    after = client.get(trace_url(0)).json()
     assert after["events"] == []
     assert after["boot_id"] == body["boot_id"]
 
 
 def test_trace_events_expose_a_boot_id_for_restart_detection():
-    body = client.get("/trace/events?since=0").json()
+    body = client.get(trace_url(0)).json()
     assert isinstance(body["boot_id"], str) and body["boot_id"]
 
 
@@ -239,7 +246,7 @@ def test_loop_run_reminds_triages_and_books_in_one_pass():
     assert body["booking"]["simulated_front_desk"] is True
     assert "simulated front desk" in body["booking"]["disclosure"]
 
-    types = [e["event_type"] for e in client.get("/trace/events?since=0").json()["events"]]
+    types = [e["event_type"] for e in client.get(trace_url(0)).json()["events"]]
     for expected in ["REMINDER_DUE", "PATIENT_SPEECH", "CLINIC_CALL_INITIATED",
                      "CLINIC_DESK_SPEECH", "BOOKING_CONFIRMED", "PATIENT_CONFIRMED"]:
         assert expected in types, f"{expected} missing from the loop trace"
@@ -252,7 +259,7 @@ def test_loop_never_books_on_an_emergency():
     }).json()
     assert body["triage"]["tier"] == "emergency"
     assert body["booking"] is None
-    types = [e["event_type"] for e in client.get("/trace/events?since=0").json()["events"]]
+    types = [e["event_type"] for e in client.get(trace_url(0)).json()["events"]]
     assert "CLINIC_CALL_INITIATED" not in types
     assert "EMERGENCY_ESCALATION" in types
 
@@ -337,7 +344,7 @@ def test_adding_a_medication_cascades_snapshot_schedule_and_check():
     assert body["regimen"]["content_hash"] != before["regimen"]["content_hash"]
     assert body["schedule"]["doses_total"] > before["schedule"]["doses_total"]
 
-    types = [e["event_type"] for e in client.get("/trace/events?since=0").json()["events"]]
+    types = [e["event_type"] for e in client.get(trace_url(0)).json()["events"]]
     assert "REGIMEN_SNAPSHOT" in types
     assert "SCHEDULE_RECOMPUTED" in types
 
@@ -356,7 +363,7 @@ def test_a_major_interaction_surfaces_with_a_cited_source():
     assert surfaced[0]["severity"] == "major"
     assert surfaced[0]["source"]
 
-    types = [e["event_type"] for e in client.get("/trace/events?since=0").json()["events"]]
+    types = [e["event_type"] for e in client.get(trace_url(0)).json()["events"]]
     assert "CONTRADICTION_FLAGGED" in types
 
 
@@ -652,15 +659,15 @@ def test_trace_events_do_not_cross_sessions():
     sess_x = "trace-session-x"
     sess_y = "trace-session-y"
 
-    baseline_y = client.get("/trace/events?since=0", headers=session_headers(sess_y)).json()
+    baseline_y = client.get(trace_url(0), headers=session_headers(sess_y)).json()
     assert baseline_y["events"] == []
 
     client.post("/triage", json={
         "transcript": "my chest is killing me", "patient_id": "p1",
     }, headers=session_headers(sess_x))
 
-    events_x = client.get("/trace/events?since=0", headers=session_headers(sess_x)).json()["events"]
-    events_y = client.get("/trace/events?since=0", headers=session_headers(sess_y)).json()["events"]
+    events_x = client.get(trace_url(0), headers=session_headers(sess_x)).json()["events"]
+    events_y = client.get(trace_url(0), headers=session_headers(sess_y)).json()["events"]
 
     assert "PATIENT_SPEECH" in [e["event_type"] for e in events_x]
     assert events_y == []
@@ -675,8 +682,8 @@ def test_admin_reset_clears_only_the_calling_session():
 
     client.post("/admin/reset", json=gated(), headers=session_headers(sess_p))
 
-    after_p = client.get("/trace/events?since=0", headers=session_headers(sess_p)).json()
-    after_q = client.get("/trace/events?since=0", headers=session_headers(sess_q)).json()
+    after_p = client.get(trace_url(0), headers=session_headers(sess_p)).json()
+    after_q = client.get(trace_url(0), headers=session_headers(sess_q)).json()
 
     assert after_p["events"] == []
     assert after_q["events"] != []
@@ -806,7 +813,7 @@ def test_call_start_places_a_call_when_configured(monkeypatch):
     assert len(calls) == 1
     assert calls[0][0] == "+15550002222"
 
-    types = [e["event_type"] for e in client.get("/trace/events?since=0", headers=headers).json()["events"]]
+    types = [e["event_type"] for e in client.get(trace_url(0), headers=headers).json()["events"]]
     assert "PHONE_CALL_DIALED" in types
 
 

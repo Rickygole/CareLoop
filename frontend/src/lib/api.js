@@ -187,7 +187,8 @@ export function followups(patientId, signal) {
 }
 
 export function fetchEventsSince(since, signal) {
-  return request('/trace/events?since=' + since, { signal })
+  const token = TRACE_TOKEN ? '&token=' + encodeURIComponent(TRACE_TOKEN) : ''
+  return request('/trace/events?since=' + since + token, { signal })
 }
 
 export function health(signal) {
