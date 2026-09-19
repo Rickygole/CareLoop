@@ -187,17 +187,6 @@
     animation: trace-flash 1100ms var(--ease-out-soft) both;
   }
 
-  .skeleton {
-    background: linear-gradient(
-      90deg,
-      var(--color-sunken) 25%,
-      #e5e5df 37%,
-      var(--color-sunken) 63%
-    );
-    background-size: 400% 100%;
-    animation: skeleton-pan 1.4s ease-in-out infinite;
-  }
-
   .numeric {
     font-variant-numeric: tabular-nums;
     font-feature-settings: "tnum" 1, "cv05" 1;
@@ -241,15 +230,6 @@
   }
   100% {
     background-color: rgba(227, 161, 59, 0);
-  }
-}
-
-@keyframes skeleton-pan {
-  from {
-    background-position: 100% 50%;
-  }
-  to {
-    background-position: 0 50%;
   }
 }
 

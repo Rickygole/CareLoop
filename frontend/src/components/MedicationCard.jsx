@@ -1,6 +1,22 @@
 import { clockLabel } from '../lib/format.js'
 
-export default function MedicationCard({ med, index, nextTime }) {
+const STATUS_LABEL = {
+  taken: 'Taken',
+  due_soon: 'Due soon',
+  due_now: 'Due now',
+  missed: 'Missed',
+  upcoming: 'Upcoming',
+}
+
+const STATUS_STYLE = {
+  taken: 'border-mild/40 bg-mild-tint text-mild',
+  due_soon: 'border-line-strong bg-surface text-ink-2',
+  due_now: 'border-brand bg-brand text-white',
+  missed: 'border-severe/40 bg-severe-tint text-severe',
+  upcoming: 'border-line-strong bg-surface text-ink-2',
+}
+
+export default function MedicationCard({ med, index }) {
   return (
     <li
       className="enter-rise group relative flex flex-col overflow-hidden rounded-card border border-line bg-surface shadow-card transition-[box-shadow,border-color,transform] duration-200 ease-out hover:-translate-y-px hover:border-line-strong hover:shadow-lift"
@@ -16,7 +32,7 @@ export default function MedicationCard({ med, index, nextTime }) {
 
         <p className="mt-1.5 text-sm text-muted">
           {med.frequency}
-          {med.prescriber ? ' \u00b7 ' + med.prescriber : ''}
+          {med.prescriber ? ' · ' + med.prescriber : ''}
         </p>
       </div>
 
@@ -25,33 +41,21 @@ export default function MedicationCard({ med, index, nextTime }) {
           Doses today
         </p>
         <ul className="mt-2.5 flex flex-wrap gap-2">
-          {med.times.map((time) => {
-            const isNext = time === nextTime
-            return (
-              <li key={time}>
-                <span
-                  className={
-                    'numeric inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-2xs font-medium ' +
-                    (isNext
-                      ? 'border-brand bg-brand text-white'
-                      : 'border-line bg-surface text-ink-2')
-                  }
-                >
-                  {isNext ? (
-                    <span className="text-micro font-semibold uppercase opacity-80">
-                      Next
-                    </span>
-                  ) : (
-                    <span
-                      aria-hidden="true"
-                      className="size-1.5 rounded-full bg-line-strong"
-                    />
-                  )}
-                  {clockLabel(time)}
+          {med.doses.map((dose) => (
+            <li key={dose.time}>
+              <span
+                className={
+                  'numeric inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-2xs font-medium ' +
+                  (STATUS_STYLE[dose.status] || STATUS_STYLE.upcoming)
+                }
+              >
+                <span className="text-micro font-semibold uppercase opacity-80">
+                  {STATUS_LABEL[dose.status] || dose.status}
                 </span>
-              </li>
-            )
-          })}
+                {clockLabel(dose.time)}
+              </span>
+            </li>
+          ))}
         </ul>
       </div>
     </li>

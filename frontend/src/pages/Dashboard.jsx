@@ -8,8 +8,8 @@ import MedicationCard from '../components/MedicationCard.jsx'
 import NextUpCard from '../components/NextUpCard.jsx'
 import TierBadge from '../components/TierBadge.jsx'
 import { DashboardFooter } from '../components/Disclaimers.jsx'
-import { API_BASE, connectPatient } from '../lib/api.js'
-import { dateTimeLabel, groupSchedule, nextDose, nextDoseTime } from '../lib/format.js'
+import { API_BASE, connectPatient, schedule } from '../lib/api.js'
+import { dateTimeLabel, groupSchedule } from '../lib/format.js'
 import { useTrace } from '../lib/useTrace.js'
 import { DEFAULT_PATIENT_ID, PATIENTS, patientName } from '../data/patients.js'
 
@@ -18,6 +18,7 @@ export default function Dashboard() {
   const [consentOpen, setConsentOpen] = useState(false)
   const [phase, setPhase] = useState('idle')
   const [data, setData] = useState(null)
+  const [plan, setPlan] = useState(null)
   const [error, setError] = useState(null)
   const [sinceSeq, setSinceSeq] = useState(0)
 
@@ -28,8 +29,12 @@ export default function Dashboard() {
     setError(null)
     setSinceSeq(fromSeq)
     try {
-      const result = await connectPatient(id)
-      setData(result)
+      const [patientResult, planResult] = await Promise.all([
+        connectPatient(id),
+        schedule(id),
+      ])
+      setData(patientResult)
+      setPlan(planResult)
       setPhase('ready')
     } catch (err) {
       setError(err.message)
@@ -48,10 +53,17 @@ export default function Dashboard() {
     document.title = 'CareLoop portal'
   }, [])
 
-  const schedule = (data && data.derived_schedule) || []
-  const medications = useMemo(() => groupSchedule(schedule), [schedule])
-  const nextTime = useMemo(() => nextDoseTime(schedule), [schedule])
-  const dose = useMemo(() => nextDose(schedule), [schedule])
+  const doses = (plan && plan.doses) || []
+  const medications = useMemo(() => {
+    const requests = (data && data.patient && data.patient.medication_requests) || []
+    const frequencyById = new Map(requests.map((r) => [r.medication_id, r.frequency]))
+    return groupSchedule(doses).map((med) => ({
+      ...med,
+      frequency: frequencyById.get(med.key) || '',
+    }))
+  }, [doses, data])
+  const nextDose = plan && plan.next_dose
+  const nextCallTime = plan && plan.next_call && plan.next_call.time
   const call = useCallStatus(events, patientId, sinceSeq)
 
   return (
@@ -80,12 +92,13 @@ export default function Dashboard() {
           <Portal
             patient={data.patient}
             medications={medications}
-            nextTime={nextTime}
-            dose={dose}
+            nextTime={nextCallTime}
+            dose={nextDose}
             call={call}
             onSwitch={() => {
               setPhase('idle')
               setData(null)
+              setPlan(null)
             }}
           />
         ) : null}
@@ -171,83 +184,85 @@ function Monogram({ name }) {
 function ConnectPanel({ patientId, onPatientChange, onConnect, error }) {
   return (
     <div>
-      <div className="grid items-start gap-12 lg:grid-cols-[1fr_21rem] lg:gap-16">
-      <div className="max-w-[38ch]">
-        <h1 className="font-display text-3xl font-semibold tracking-[-0.012em] text-ink">
-          Connect your patient portal
-        </h1>
-        <p className="mt-5 max-w-[58ch] text-ink-2">
-          CareLoop calls to check whether you took your medication and listens
-          for anything that needs a clinician. Connect a portal to see the
-          schedule it will call about.
-        </p>
+      <div className="grid items-start gap-12 lg:grid-cols-[1fr_18rem] lg:gap-16">
+        <div>
+          <h1 className="font-display max-w-[30ch] text-3xl font-semibold tracking-[-0.012em] text-ink">
+            A check-in call that triages what you say and books the visit for
+            you
+          </h1>
+          <p className="mt-5 max-w-[58ch] text-ink-2">
+            CareLoop calls to check whether you took your medication, listens
+            for anything that needs a clinician, and calls the clinic to book
+            the visit when it does. You never log in and never type anything;
+            once a portal is connected, the rest runs on its own.
+          </p>
 
-        {error ? (
-          <div
-            role="alert"
-            className="enter-fade mt-8 rounded-card border border-emergency/30 bg-emergency-tint px-5 py-4"
-          >
-            <p className="flex items-center gap-2 text-sm font-semibold text-emergency">
-              <span aria-hidden="true" className="font-mono">
-                [!]
-              </span>
-              Could not connect the portal
+          {error ? (
+            <div
+              role="alert"
+              className="enter-fade mt-8 rounded-card border border-emergency/30 bg-emergency-tint px-5 py-4"
+            >
+              <p className="flex items-center gap-2 text-sm font-semibold text-emergency">
+                <span aria-hidden="true" className="font-mono">
+                  [!]
+                </span>
+                Could not connect the portal
+              </p>
+              <p className="mt-1.5 text-sm text-ink-2">{error}</p>
+              <p className="mt-3 font-mono text-2xs leading-relaxed text-muted">
+                API base: {API_BASE}. Start the backend with uvicorn main:app,
+                or set VITE_API_BASE and rebuild.
+              </p>
+            </div>
+          ) : null}
+
+          <div className="mt-10 text-sm">
+            <LoopStrip compact />
+          </div>
+        </div>
+
+        <div className="overflow-hidden rounded-card border border-dashed border-line-strong bg-surface-2 shadow-card">
+          <div className="p-5">
+            <p className="text-micro font-semibold uppercase text-muted">
+              Demo control, not part of the product
             </p>
-            <p className="mt-1.5 text-sm text-ink-2">{error}</p>
-            <p className="mt-3 font-mono text-2xs leading-relaxed text-muted">
-              API base: {API_BASE}. Start the backend with uvicorn main:app, or
-              set VITE_API_BASE and rebuild.
+            <label
+              htmlFor="patient"
+              className="mt-3 block text-2xs font-semibold uppercase text-muted"
+            >
+              Preview a synthetic record
+            </label>
+            <select
+              id="patient"
+              value={patientId}
+              onChange={(event) => onPatientChange(event.target.value)}
+              className="field-select mt-2 w-full rounded-control border border-line bg-surface px-3 py-2 text-sm font-medium text-ink transition-colors duration-150 hover:border-line-strong"
+            >
+              {PATIENTS.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name} ({p.id})
+                </option>
+              ))}
+            </select>
+            <p className="mt-2.5 text-2xs leading-relaxed text-muted">
+              In the real product this step does not exist. A patient
+              connects their portal once and CareLoop takes it from there.
             </p>
           </div>
-        ) : null}
-      </div>
 
-      <div className="overflow-hidden rounded-card border border-line bg-surface shadow-card">
-        <div className="p-6">
-          <label
-            htmlFor="patient"
-            className="block text-micro font-semibold uppercase text-muted"
-          >
-            Demo patient record
-          </label>
-          <select
-            id="patient"
-            value={patientId}
-            onChange={(event) => onPatientChange(event.target.value)}
-            className="field-select mt-2.5 w-full rounded-control border border-line bg-surface-2 px-3.5 py-3 text-sm font-medium text-ink transition-colors duration-150 hover:border-line-strong"
-          >
-            {PATIENTS.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name} ({p.id})
-              </option>
-            ))}
-          </select>
-          <p className="mt-3 text-2xs leading-relaxed text-muted">
-            Synthetic records. No real patient data is used anywhere in
-            CareLoop.
-          </p>
+          <div className="border-t border-line bg-surface p-5">
+            <button
+              type="button"
+              onClick={onConnect}
+              className="w-full rounded-control border border-line-strong bg-surface px-3.5 py-2.5 text-sm font-semibold text-ink transition-colors duration-150 hover:bg-sunken"
+            >
+              Connect this portal
+            </button>
+            <p className="mt-2.5 text-2xs text-muted">
+              You will be asked to consent before anything is read.
+            </p>
+          </div>
         </div>
-
-        <div className="border-t border-line bg-surface-2 p-6">
-          <button
-            type="button"
-            onClick={onConnect}
-            className="w-full rounded-control bg-brand px-4 py-3 text-sm font-semibold text-white shadow-card transition-[background-color,transform] duration-150 ease-out hover:bg-brand-deep active:scale-[0.99]"
-          >
-            Connect portal
-          </button>
-          <p className="mt-3 text-2xs text-muted">
-            You will be asked to consent before anything is read.
-          </p>
-        </div>
-        </div>
-      </div>
-
-      <div className="mt-16">
-        <p className="mb-5 text-micro font-semibold uppercase text-muted">
-          What CareLoop does, end to end
-        </p>
-        <LoopStrip />
       </div>
     </div>
   )
@@ -256,20 +271,7 @@ function ConnectPanel({ patientId, onPatientChange, onConnect, error }) {
 function LoadingPortal() {
   return (
     <div aria-busy="true" aria-live="polite">
-      <span className="sr-only">Connecting your portal</span>
-      <div className="flex items-center gap-4">
-        <div className="skeleton size-12 rounded-full" />
-        <div>
-          <div className="skeleton h-7 w-48 rounded-md" />
-          <div className="skeleton mt-2 h-4 w-64 rounded" />
-        </div>
-      </div>
-      <div className="skeleton mt-8 h-[92px] w-full rounded-card" />
-      <div className="skeleton mt-14 h-4 w-40 rounded" />
-      <div className="mt-6 grid gap-5 sm:grid-cols-2">
-        <div className="skeleton h-44 rounded-card" />
-        <div className="skeleton h-44 rounded-card" />
-      </div>
+      <p className="text-sm font-medium text-muted">Connecting your portal...</p>
     </div>
   )
 }
@@ -296,7 +298,7 @@ function Portal({ patient, medications, nextTime, dose, call, onSwitch }) {
             <p className="mt-1 text-sm text-ink-2">
               {patient.insurance_display_name}
               {patient.connected_at
-                ? ' \u00b7 connected ' + dateTimeLabel(patient.connected_at)
+                ? ' · connected ' + dateTimeLabel(patient.connected_at)
                 : ''}
             </p>
           </div>
@@ -339,12 +341,7 @@ function Portal({ patient, medications, nextTime, dose, call, onSwitch }) {
         {medications.length ? (
           <ul className="mt-6 grid gap-5 sm:grid-cols-2">
             {medications.map((med, index) => (
-              <MedicationCard
-                key={med.key}
-                med={med}
-                index={index}
-                nextTime={nextTime}
-              />
+              <MedicationCard key={med.key} med={med} index={index} />
             ))}
           </ul>
         ) : (
@@ -379,7 +376,7 @@ function Portal({ patient, medications, nextTime, dose, call, onSwitch }) {
                   </p>
                   <p className="numeric mt-1 text-2xs text-muted">
                     {dateTimeLabel(item.timestamp)}
-                    {' \u00b7 '}
+                    {' · '}
                     {String(item.action_taken || '').replace(/_/g, ' ')}
                   </p>
                 </div>

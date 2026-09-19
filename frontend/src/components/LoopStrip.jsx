@@ -37,7 +37,9 @@ export default function LoopStrip({ activeId, compact }) {
               </p>
               <h3
                 className={
-                  'font-display mt-1 text-base font-semibold tracking-[-0.006em] ' +
+                  'font-display mt-1 tracking-[-0.006em] font-semibold ' +
+                  (compact ? 'text-sm' : 'text-base') +
+                  ' ' +
                   (active ? 'text-brand-deep' : 'text-ink')
                 }
               >

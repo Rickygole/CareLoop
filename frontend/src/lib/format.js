@@ -18,68 +18,23 @@ export function dateTimeLabel(iso) {
   })
 }
 
-export function groupSchedule(schedule) {
+export function groupSchedule(doses) {
   const byMedication = new Map()
-  for (const dose of schedule || []) {
+  for (const dose of doses || []) {
     const key = dose.medication_id || dose.medication
     if (!byMedication.has(key)) {
       byMedication.set(key, {
         key,
         medication: dose.medication,
         dosage: dose.dosage,
-        frequency: dose.frequency,
         prescriber: dose.prescriber,
-        times: [],
+        doses: [],
       })
     }
-    byMedication.get(key).times.push(dose.time)
+    byMedication.get(key).doses.push({ time: dose.time, status: dose.status })
   }
   return Array.from(byMedication.values()).map((med) => ({
     ...med,
-    times: med.times.slice().sort(),
+    doses: med.doses.slice().sort((a, b) => a.time.localeCompare(b.time)),
   }))
-}
-
-export function nextDoseTime(schedule, now = new Date()) {
-  const times = (schedule || []).map((d) => d.time).sort()
-  if (!times.length) return null
-  const minutes = now.getHours() * 60 + now.getMinutes()
-  const upcoming = times.find((t) => {
-    const [h, m] = t.split(':').map(Number)
-    return h * 60 + m >= minutes
-  })
-  return upcoming || times[0]
-}
-
-export function nextDose(schedule, now = new Date()) {
-  const doses = (schedule || [])
-    .slice()
-    .sort((a, b) => String(a.time).localeCompare(String(b.time)))
-  if (!doses.length) return null
-  const minutes = now.getHours() * 60 + now.getMinutes()
-  const upcoming = doses.find((d) => {
-    const [h, m] = String(d.time).split(':').map(Number)
-    return h * 60 + m >= minutes
-  })
-  return upcoming || doses[0]
-}
-
-export function minutesUntil(hhmm, now = new Date()) {
-  const [h, m] = String(hhmm || '').split(':').map(Number)
-  if (Number.isNaN(h)) return null
-  const target = h * 60 + (m || 0)
-  const current = now.getHours() * 60 + now.getMinutes()
-  const delta = target - current
-  return delta >= 0 ? delta : delta + 24 * 60
-}
-
-export function relativeLabel(hhmm, now = new Date()) {
-  const delta = minutesUntil(hhmm, now)
-  if (delta === null) return ''
-  if (delta === 0) return 'now'
-  if (delta < 60) return 'in ' + delta + ' min'
-  const hours = Math.floor(delta / 60)
-  const mins = delta % 60
-  if (hours >= 12) return 'tomorrow'
-  return 'in ' + hours + 'h' + (mins ? ' ' + mins + 'm' : '')
 }

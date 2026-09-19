@@ -1,16 +1,9 @@
-import { clockLabel, relativeLabel } from '../lib/format.js'
+import { clockLabel } from '../lib/format.js'
 
-function Pane({ label, children, bordered }) {
-  return (
-    <div
-      className={
-        'px-6 py-5 ' + (bordered ? 'border-t border-line sm:border-l sm:border-t-0' : '')
-      }
-    >
-      <p className="text-micro font-semibold uppercase text-muted">{label}</p>
-      {children}
-    </div>
-  )
+const STATUS_LABEL = {
+  upcoming: 'Upcoming',
+  due_soon: 'Due soon',
+  due_now: 'Due now',
 }
 
 export default function NextUpCard({ dose }) {
@@ -21,47 +14,38 @@ export default function NextUpCard({ dose }) {
           Next dose
         </p>
         <p className="mt-2 text-sm text-muted">
-          Nothing scheduled, so CareLoop has no reason to call yet.
+          Nothing due right now, so CareLoop has no reason to call yet.
         </p>
       </section>
     )
   }
 
-  const relative = relativeLabel(dose.time)
-
   return (
     <section
       aria-label="What happens next"
-      className="grid overflow-hidden rounded-card border border-line bg-surface shadow-card sm:grid-cols-2"
+      className="overflow-hidden rounded-card border border-line bg-surface px-6 py-5 shadow-card"
     >
-      <Pane label="Next dose">
-        <p className="mt-2 flex items-baseline gap-2.5">
-          <span className="numeric font-display text-2xl font-semibold tracking-[-0.01em] text-ink">
-            {clockLabel(dose.time)}
-          </span>
-          <span className="numeric text-sm text-muted">{relative}</span>
-        </p>
-        <p className="mt-1.5 text-sm text-ink-2">
-          {dose.medication}
-          {dose.dosage ? ' · ' + dose.dosage : ''}
-        </p>
-      </Pane>
-
-      <Pane label="Next check-in call" bordered>
-        <p className="mt-2 flex items-center gap-2.5">
-          <span
-            aria-hidden="true"
-            className="size-2 shrink-0 rounded-full bg-brand"
-            style={{ animation: 'pulse-ring 2.6s ease-out infinite' }}
-          />
-          <span className="numeric font-display text-2xl font-semibold tracking-[-0.01em] text-ink">
-            {clockLabel(dose.time)}
-          </span>
-        </p>
-        <p className="mt-1.5 max-w-[34ch] text-sm text-ink-2">
-          CareLoop calls when the dose is due and asks whether you took it.
-        </p>
-      </Pane>
+      <p className="text-micro font-semibold uppercase text-muted">
+        Next dose and check-in call
+      </p>
+      <p className="mt-2 flex items-center gap-2.5">
+        <span
+          aria-hidden="true"
+          className="size-2 shrink-0 rounded-full bg-brand"
+          style={{ animation: 'pulse-ring 2.6s ease-out infinite' }}
+        />
+        <span className="numeric font-display text-2xl font-semibold tracking-[-0.01em] text-ink">
+          {clockLabel(dose.time)}
+        </span>
+        <span className="numeric text-sm text-muted">
+          {STATUS_LABEL[dose.status] || dose.status}
+        </span>
+      </p>
+      <p className="mt-1.5 text-sm text-ink-2">
+        {dose.medication}
+        {dose.dosage ? ' · ' + dose.dosage : ''}. CareLoop calls at this
+        time to ask whether it was taken.
+      </p>
     </section>
   )
 }
