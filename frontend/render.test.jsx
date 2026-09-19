@@ -106,9 +106,9 @@ const events = [
 test('the connect screen is the first screen', () => {
   startAtFirstScreen()
   render(<HashRouter><App /></HashRouter>)
-  expect(screen.getByRole('heading', { level: 1 }).textContent).toMatch(/We call you/)
+  expect(screen.getByRole('heading', { level: 1 }).textContent).toMatch(/Start here/)
   expect(screen.getByText('Demo system. All patient data is synthetic.')).toBeTruthy()
-  expect(screen.getByRole('navigation', { name: /five screens, in order/ })).toBeTruthy()
+  expect(screen.getByRole('navigation', { name: /five steps, in order/ })).toBeTruthy()
   fireEvent.click(screen.getByText('Connect MyHealth'))
   const dialog = screen.getByRole('dialog')
   expect(dialog.textContent).toMatch(/MyHealth will share with CareLoop/)
@@ -122,7 +122,7 @@ test('denying shares nothing and stays on the first screen', () => {
   fireEvent.click(screen.getByText('Connect MyHealth'))
   fireEvent.click(screen.getByText('Deny'))
   expect(screen.getByText(/Nothing was shared/)).toBeTruthy()
-  expect(screen.getByRole('heading', { level: 1 }).textContent).toMatch(/We call you/)
+  expect(screen.getByRole('heading', { level: 1 }).textContent).toMatch(/Start here/)
 })
 
 test('allowing syncs and lands on the medicines screen', async () => {
@@ -130,7 +130,7 @@ test('allowing syncs and lands on the medicines screen', async () => {
   render(<HashRouter><App /></HashRouter>)
   fireEvent.click(screen.getByText('Connect MyHealth'))
   fireEvent.click(screen.getByText('Allow'))
-  await screen.findByText(/The list MyHealth sent over/, {}, { timeout: 4000 })
+  await screen.findByText(/CareLoop went and got these/, {}, { timeout: 4000 })
   expect(screen.getAllByText('Metformin').length).toBeGreaterThan(0)
   expect(screen.getByText('a1b2c3d4e5f6')).toBeTruthy()
   expect(screen.getByText(/Not a formulary check/)).toBeTruthy()

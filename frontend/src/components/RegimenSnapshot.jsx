@@ -5,12 +5,12 @@ export default function RegimenSnapshot({ hash, previousHash, count, flash }) {
     <section
       aria-labelledby="snapshot-heading"
       className={
-        'mt-10 rounded-card border border-line bg-surface-2 px-6 py-5 ' +
+        'mt-9 rounded-card border border-line bg-surface-2 px-6 py-5 ' +
         (flash ? 'trace-flash' : '')
       }
     >
       <h2 id="snapshot-heading" className="smallcaps text-micro text-muted">
-        Regimen snapshot
+        Which version of the list this is
       </h2>
       <p className="mt-2.5 flex flex-wrap items-baseline gap-x-5 gap-y-1">
         <span className="numeric font-mono text-lg font-semibold text-ink">

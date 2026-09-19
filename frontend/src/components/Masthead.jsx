@@ -29,12 +29,12 @@ function Wordmark() {
 
 export default function Masthead() {
   return (
-    <header className="border-b-2 border-line-ink bg-surface">
-      <div className="mx-auto flex max-w-[72rem] flex-wrap items-center justify-between gap-x-8 gap-y-3 px-6 py-5 sm:px-8">
+    <header className="border-b border-line bg-surface">
+      <div className="mx-auto flex max-w-[72rem] flex-wrap items-center justify-between gap-x-8 gap-y-2 px-6 py-4 sm:px-8">
         <div className="flex flex-wrap items-baseline gap-x-5 gap-y-1">
           <Wordmark />
-          <p className="text-2xs text-ink-2">
-            A check-in call for people who take medicine every day
+          <p className="text-2xs text-muted">
+            Demo system. All patient data is synthetic.
           </p>
         </div>
         <ApiStatus />

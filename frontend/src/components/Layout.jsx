@@ -1,7 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { Outlet, useLocation } from 'react-router-dom'
 
-import DemoBanner from './DemoBanner.jsx'
 import FlowNav, { FlowPager } from './FlowNav.jsx'
 import Masthead from './Masthead.jsx'
 import { DashboardFooter } from './Disclaimers.jsx'
@@ -14,7 +13,13 @@ export default function Layout() {
 
   useEffect(() => {
     const screen = SCREENS[screenIndex(location.pathname)]
-    document.title = 'CareLoop, ' + screen.title
+    document.title =
+      'CareLoop, step ' +
+      (SCREENS.indexOf(screen) + 1) +
+      ' of ' +
+      SCREENS.length +
+      ', ' +
+      screen.title
 
     if (first.current) {
       first.current = false
@@ -36,7 +41,6 @@ export default function Layout() {
       </a>
 
       <Masthead />
-      <DemoBanner />
       <FlowNav />
 
       <main

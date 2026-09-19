@@ -22,17 +22,8 @@ export default function AddMedication({ busy, error, onAdd }) {
   }
 
   return (
-    <form onSubmit={submit} className="mt-12 border-t-2 border-line-ink pt-8">
-      <h3 className="font-display text-xl font-semibold text-ink">
-        Add a medicine to this list
-      </h3>
-      <p className="measure mt-2.5 text-sm text-ink-2">
-        A prescriber adds something. Nothing else is entered anywhere, and no
-        button is pressed twice. The snapshot, the call schedule and the safety
-        check all catch up on their own.
-      </p>
-
-      <div className="mt-6 flex flex-wrap items-end gap-x-6 gap-y-5">
+    <form onSubmit={submit} className="mt-8">
+      <div className="flex flex-wrap items-end gap-x-6 gap-y-5">
         <div>
           <label
             htmlFor="new-medication"

@@ -5,6 +5,7 @@ import AddMedication from '../components/AddMedication.jsx'
 import CallSchedule from '../components/CallSchedule.jsx'
 import InteractionFlags from '../components/InteractionFlags.jsx'
 import MedicationCard from '../components/MedicationCard.jsx'
+import NextUpCard from '../components/NextUpCard.jsx'
 import RegimenSnapshot from '../components/RegimenSnapshot.jsx'
 import Screen from '../components/Screen.jsx'
 import TimeTravel from '../components/TimeTravel.jsx'
@@ -159,16 +160,21 @@ export default function MedsPage() {
   }, [plan, shownRequests])
 
   const who = record ? record.name : patientName(patientId)
+  const count = (shownRequests || []).length
 
   return (
     <Screen
       mark="02"
-      label="Your medicines"
-      title={'The list MyHealth sent over'}
+      label="Step 2 of 5"
+      title="CareLoop went and got these"
       lead={
-        'This is what CareLoop knows about ' +
-        who +
-        '. Nobody typed any of it in. Every call time beside it was worked out from the list, and it is worked out again the moment the list changes.'
+        count
+          ? count +
+            (count === 1 ? ' medicine came ' : ' medicines came ') +
+            'across from MyHealth for ' +
+            who +
+            '. Nobody typed a word of it. CareLoop worked out the hour of every dose, and the call that goes with it, from the list itself.'
+          : 'CareLoop reads the medicine list straight out of MyHealth and works out the hour of every dose, and the call that goes with it, from the list itself.'
       }
     >
       {!connected ? (
@@ -219,17 +225,12 @@ export default function MedsPage() {
 
       {!loading && !loadFailed && plan ? (
         <div>
-          <RegimenSnapshot
-            hash={shownHash}
-            previousHash={cascading ? prior.regimen.content_hash : null}
-            count={(shownRequests || []).length}
-            flash={cascading && stage >= 1}
-          />
+          <NextUpCard dose={plan.next_dose} />
 
-          <div className="mt-12 grid gap-x-14 gap-y-12 lg:grid-cols-[minmax(0,1fr)_18rem]">
+          <div className="mt-16 grid gap-x-14 gap-y-14 lg:grid-cols-[minmax(0,1fr)_18rem]">
             <div className="min-w-0">
               <h2 className="font-display border-b-2 border-line-ink pb-2 text-2xl font-semibold text-ink">
-                Today
+                Your medicines, and when the call comes
               </h2>
 
               {list.length ? (
@@ -244,54 +245,9 @@ export default function MedsPage() {
                   to call about. Add one below and the whole list wakes up.
                 </p>
               )}
-
-              <AddMedication busy={adding} error={addFailed} onAdd={add} />
-
-              <div role="status" aria-live="polite" className="mt-7">
-                {cascading ? (
-                  <div className="enter-fade rounded-card border border-line bg-surface-2 px-6 py-5">
-                    <p className="smallcaps text-micro text-muted">
-                      What that just set off
-                    </p>
-                    <ol className="mt-3.5">
-                      {CASCADE_STEPS.map((label, index) => {
-                        const done = stage > index
-                        return (
-                          <li
-                            key={label}
-                            className="flex items-baseline gap-3.5 py-1.5"
-                          >
-                            <span
-                              aria-hidden="true"
-                              className={
-                                done ? 'text-mild' : 'text-line-strong'
-                              }
-                            >
-                              {done
-                                ? String.fromCharCode(10003)
-                                : String.fromCharCode(9675)}
-                            </span>
-                            <span
-                              className={
-                                'text-sm ' +
-                                (done ? 'font-semibold text-ink' : 'text-muted')
-                              }
-                            >
-                              {label}
-                            </span>
-                          </li>
-                        )
-                      })}
-                    </ol>
-                    <p className="measure mt-3 text-sm text-ink-2">
-                      {announcement}
-                    </p>
-                  </div>
-                ) : null}
-              </div>
             </div>
 
-            <aside className="border-t-2 border-line-ink pt-7 lg:border-l lg:border-t-0 lg:pl-10 lg:pt-2">
+            <aside className="border-t-2 border-line-ink pt-7 lg:border-l lg:border-t-0 lg:pl-10 lg:pt-1">
               <CallSchedule plan={plan} flash={cascading && stage >= 2} />
               <TimeTravel
                 plan={shownPlanRaw}
@@ -305,6 +261,73 @@ export default function MedsPage() {
             regimen={shownRegimen}
             flash={cascading && stage >= 3}
           />
+
+          <section
+            aria-labelledby="change-heading"
+            className="mt-20 border-t-2 border-line-ink pt-8"
+          >
+            <h2
+              id="change-heading"
+              className="font-display text-2xl font-semibold text-ink"
+            >
+              If the list changes, the times change on their own
+            </h2>
+            <p className="measure mt-4 text-ink-2">
+              Say a prescriber adds something tomorrow. Nobody tells CareLoop
+              and nobody edits a schedule. Press the button and watch the call
+              times and the safety check above redo themselves.
+            </p>
+
+            <AddMedication busy={adding} error={addFailed} onAdd={add} />
+
+            <div role="status" aria-live="polite" className="mt-8">
+              {cascading ? (
+                <div className="enter-fade rounded-card border border-line bg-surface-2 px-6 py-5">
+                  <p className="smallcaps text-micro text-muted">
+                    What that just set off
+                  </p>
+                  <ol className="mt-3.5">
+                    {CASCADE_STEPS.map((label, index) => {
+                      const done = stage > index
+                      return (
+                        <li
+                          key={label}
+                          className="flex items-baseline gap-3.5 py-1.5"
+                        >
+                          <span
+                            aria-hidden="true"
+                            className={done ? 'text-mild' : 'text-line-strong'}
+                          >
+                            {done
+                              ? String.fromCharCode(10003)
+                              : String.fromCharCode(9675)}
+                          </span>
+                          <span
+                            className={
+                              'text-sm ' +
+                              (done ? 'font-semibold text-ink' : 'text-muted')
+                            }
+                          >
+                            {label}
+                          </span>
+                        </li>
+                      )
+                    })}
+                  </ol>
+                  <p className="measure mt-3 text-sm text-ink-2">
+                    {announcement}
+                  </p>
+                </div>
+              ) : null}
+            </div>
+
+            <RegimenSnapshot
+              hash={shownHash}
+              previousHash={cascading ? prior.regimen.content_hash : null}
+              count={(shownRequests || []).length}
+              flash={cascading && stage >= 1}
+            />
+          </section>
         </div>
       ) : null}
     </Screen>
