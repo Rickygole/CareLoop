@@ -1,16 +1,14 @@
 import { Link } from 'react-router-dom'
 
-import Notice from '../components/Notice.jsx'
 import { LoadFailed, Loading } from '../components/LoadState.jsx'
 import Screen from '../components/Screen.jsx'
 import { zoneLabel } from '../components/PortalShared.jsx'
 import { Rule } from '../components/Block.jsx'
 import { clockLabel, dateTimeLabel } from '../lib/format.js'
-import { BTN_PRIMARY, CARD } from '../lib/ui.js'
+import { BTN_PRIMARY } from '../lib/ui.js'
 import { bookedVisits, unbookedVisits, useFollowups } from '../lib/useFollowups.js'
 import { useSession } from '../lib/session.jsx'
 
-const CHECK = String.fromCharCode(10003)
 const RING = String.fromCharCode(9679)
 
 const KIND = {
@@ -22,92 +20,175 @@ function reminderLabel(kind) {
   return KIND[kind] || 'Reminder call'
 }
 
-function Visit({ visit }) {
-  const reminders = visit.reminders || []
+function dayLabel(value) {
+  const parts = String(value || '').slice(0, 10).split('-').map(Number)
+  if (parts.length !== 3 || parts.some((n) => Number.isNaN(n))) return ''
+  const day = new Date(Date.UTC(parts[0], parts[1] - 1, parts[2]))
+  if (Number.isNaN(day.getTime())) return ''
+  return day.toLocaleDateString('en-US', {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+    timeZone: 'UTC',
+  })
+}
 
+function timeLabel(value) {
+  const found = /T(\d{2}:\d{2})/.exec(String(value || ''))
+  return found ? clockLabel(found[1]) : ''
+}
+
+function whenLabel(visit) {
+  if (visit.status === 'booked') {
+    if (visit.slot_local) return visit.slot_local
+    const day = dayLabel(visit.starts_at || visit.slot)
+    const time = timeLabel(visit.starts_at || visit.slot)
+    if (day && time) return day + ' at ' + time
+    return day || 'Time not given by the clinic'
+  }
+  const due = dayLabel(visit.due_date)
+  return due ? 'Due by ' + due : 'No due date on the note'
+}
+
+function visitDay(visit) {
+  return String(visit.starts_at || visit.slot || visit.due_date || '').slice(0, 10)
+}
+
+function byDay(a, b) {
+  return visitDay(a).localeCompare(visitDay(b))
+}
+
+const COUNT_WORD = ['No', 'One', 'Two', 'Three', 'Four', 'Five']
+
+function countWord(n) {
+  return COUNT_WORD[n] || String(n)
+}
+
+function coverageLine(booked, unbooked) {
+  if (!booked.length) return 'No visit has been booked in network yet.'
+  const rest = unbooked.length
+    ? ' ' +
+      countWord(unbooked.length) +
+      (unbooked.length === 1
+        ? ' visit below could not be booked at all, and says why.'
+        : ' visits below could not be booked at all, and each says why.')
+    : ''
+  if (booked.every((visit) => visit.in_network)) {
+    return (
+      (unbooked.length
+        ? 'Every visit CareLoop booked was with a provider in network.'
+        : 'Every visit below was booked with a provider in network.') + rest
+    )
+  }
+  return 'Not every visit below is in network. Each visit says which.' + rest
+}
+
+function Marker({ booked }) {
   return (
-    <li className={CARD + ' px-6 py-6 sm:px-8'}>
-      <p className="flex items-center gap-3 text-mild">
-        <span aria-hidden="true" className="text-[1.1em] leading-none">
-          {CHECK}
-        </span>
-        <span className="smallcaps text-micro">Booked</span>
-      </p>
-
-      <h3 className="display-tight mt-3 text-xl text-ink">
-        {visit.provider_name}
-      </h3>
-      <p className="mt-1 text-sm text-ink-2">{visit.specialty}</p>
-      <p className="numeric mt-4 text-lg font-semibold text-ink">
-        {visit.slot_local}
-      </p>
-
-      <dl className="mt-5 flex flex-col gap-3">
-        <div>
-          <dt className="smallcaps text-micro text-clay">Reason</dt>
-          <dd className="measure mt-1 text-sm text-ink">{visit.reason}</dd>
-        </div>
-        <div>
-          <dt className="smallcaps text-micro text-clay">Insurance</dt>
-          <dd className="mt-1 text-sm text-ink">
-            {visit.in_network ? 'In network with ' : 'Out of network with '}
-            {visit.payer_display}
-          </dd>
-        </div>
-      </dl>
-
-      {reminders.length ? (
-        <div className="mt-6 rounded-card border border-line bg-sunken px-5 py-4">
-          <p className="smallcaps text-micro text-clay">
-            Reminder calls CareLoop would make
-          </p>
-          <ul className="mt-3 flex flex-col gap-3">
-            {reminders.map((reminder) => (
-              <li key={reminder.kind} className="flex items-baseline gap-3">
-                <span aria-hidden="true" className="text-ink-2">
-                  {RING}
-                </span>
-                <span className="text-sm text-ink">
-                  <span className="font-semibold">
-                    {reminderLabel(reminder.kind)}
-                  </span>
-                  , planned for {dateTimeLabel(reminder.fire_at)} about{' '}
-                  {reminder.provider_name}.
-                </span>
-              </li>
-            ))}
-          </ul>
-          <p className="measure mt-4 text-sm text-ink-2">
-            Nothing in this prototype runs on a timer, so neither of these
-            calls will place itself. Please keep your own note of the visit.
-          </p>
-        </div>
-      ) : (
-        <p className="measure mt-6 text-sm text-ink-2">
-          CareLoop has no reminder call planned for this visit.
-        </p>
-      )}
-    </li>
+    <span
+      aria-hidden="true"
+      className={
+        'absolute left-0 top-[0.2rem] h-4 w-4 ' +
+        (booked ? 'rounded-full bg-mild' : 'rotate-45 bg-moderate')
+      }
+    />
   )
 }
 
-function NotBooked({ visit }) {
+function Reminders({ reminders }) {
+  if (!reminders.length) {
+    return (
+      <p className="measure mt-6 text-sm text-ink-2">
+        CareLoop has no reminder call planned for this visit.
+      </p>
+    )
+  }
+
   return (
-    <li>
-      <Notice tone="caution" word="Not booked">
-        <p className="text-ink">
-          <strong className="font-semibold">{visit.specialty}</strong>, asked
-          for by {visit.prescriber}
-          {visit.due_date ? ', due by ' + visit.due_date : ''}.
-        </p>
-        <p className="measure mt-3 text-sm text-ink">
-          {visit.issue_detail || 'The clinic could not offer a time.'}
-        </p>
-        <p className="measure mt-3 text-sm text-ink-2">
-          Nothing was booked and nothing was held. Your clinic decides what
-          happens next.
-        </p>
-      </Notice>
+    <div className="mt-7">
+      <p className="smallcaps text-micro text-clay">
+        Reminder calls CareLoop would make
+      </p>
+      <ul className="mt-3 flex flex-col gap-2">
+        {reminders.map((reminder) => (
+          <li key={reminder.kind} className="flex items-baseline gap-3">
+            <span aria-hidden="true" className="text-ink-2">
+              {RING}
+            </span>
+            <span className="measure text-sm text-ink">
+              <span className="font-semibold">
+                {reminderLabel(reminder.kind)}
+              </span>
+              , planned for {dateTimeLabel(reminder.fire_at)} about{' '}
+              {reminder.provider_name}.
+            </span>
+          </li>
+        ))}
+      </ul>
+      <p className="measure mt-3 text-sm text-ink-2">
+        Nothing in this prototype runs on a timer, so no reminder call will
+        place itself. Please keep your own note of the visit.
+      </p>
+    </div>
+  )
+}
+
+function Entry({ visit, last }) {
+  const booked = visit.status === 'booked'
+
+  return (
+    <li className={'relative pl-9 ' + (last ? '' : 'pb-12')}>
+      {last ? null : (
+        <span
+          aria-hidden="true"
+          className="absolute bottom-0 left-[7px] top-7 w-px bg-line"
+        />
+      )}
+      <Marker booked={booked} />
+
+      <p
+        className={
+          'smallcaps text-micro ' + (booked ? 'text-mild' : 'text-moderate')
+        }
+      >
+        {booked ? 'Booked' : 'Not booked'}
+      </p>
+
+      <h3 className="display-tight measure-tight mt-3 text-xl text-ink">
+        {whenLabel(visit)}
+      </h3>
+
+      <p className="mt-3 text-lg font-semibold text-ink">
+        {booked ? visit.provider_name : visit.specialty}
+      </p>
+      <p className="measure mt-1 text-sm text-ink-2">
+        {booked
+          ? visit.specialty +
+            '. ' +
+            (visit.in_network ? 'In network with ' : 'Out of network with ') +
+            visit.payer_display +
+            '.'
+          : 'Asked for by ' + visit.prescriber + '.'}
+      </p>
+
+      <p className="measure mt-4 text-ink">{visit.reason}</p>
+
+      {booked ? (
+        <Reminders reminders={visit.reminders || []} />
+      ) : (
+        <div className="mt-6 border-l-4 border-l-clay pl-5">
+          <p className="smallcaps text-micro text-clay">
+            Why CareLoop did not book it
+          </p>
+          <p className="measure mt-2 text-ink">
+            {visit.issue_detail || 'The clinic could not offer a time.'}
+          </p>
+          <p className="measure mt-3 text-sm text-ink-2">
+            Nothing was booked and nothing was held. Your clinic decides what
+            happens next.
+          </p>
+        </div>
+      )}
     </li>
   )
 }
@@ -143,10 +224,18 @@ export default function AppointmentsPage() {
 
   const booked = bookedVisits(data)
   const unbooked = unbookedVisits(data)
+  const timeline = booked.concat(unbooked).sort(byDay)
   const contactWindow = data && data.preferred_contact_window
 
   return (
-    <Screen title="Appointments">
+    <Screen
+      title="Appointments"
+      lead={
+        data
+          ? 'Every follow-up visit your prescriber asked for, in the order it falls, and what CareLoop did about each one.'
+          : undefined
+      }
+    >
       {loading ? <Loading what="Reading your appointments." /> : null}
 
       {failed ? (
@@ -159,40 +248,41 @@ export default function AppointmentsPage() {
 
       {!loading && !failed && data ? (
         <div>
-          <section aria-labelledby="coverage-heading" className={CARD + ' px-6 py-6 sm:px-8'}>
+          <section aria-labelledby="coverage-heading">
             <h2 id="coverage-heading" className="smallcaps text-micro text-clay">
               Your insurance
             </h2>
-            <p className="mt-3 text-xl font-semibold text-ink">
+            <p className="display mt-3 text-2xl text-ink">
               {data.payer_display || 'No insurance on file'}
             </p>
-            <p className="measure mt-4 text-sm text-ink">
-              {booked.length
-                ? booked.every((visit) => visit.in_network)
-                  ? 'Every visit below was booked with a provider in network.'
-                  : 'Not every visit below is in network. Each card says which.'
-                : 'No visit has been booked in network yet.'}
+            <p className="measure mt-4 text-ink">
+              {coverageLine(booked, unbooked)}
             </p>
             {contactWindow ? (
-              <p className="measure mt-4 text-sm text-ink-2">
+              <p className="measure mt-3 text-sm text-ink-2">
                 Calls only between {clockLabel(contactWindow.start)} and{' '}
                 {clockLabel(contactWindow.end)},{' '}
                 {zoneLabel(contactWindow.timezone)}.
               </p>
             ) : null}
+            <Rule />
           </section>
 
-          <section aria-labelledby="booked-heading" className="mt-12">
-            <h2 id="booked-heading" className="display text-2xl text-ink">
-              Upcoming visits
+          <section aria-labelledby="visits-heading" className="mt-12">
+            <h2 id="visits-heading" className="display text-2xl text-ink">
+              What your prescriber asked for
             </h2>
             <Rule />
-            {booked.length ? (
-              <ul className="mt-8 flex flex-col gap-6">
-                {booked.map((visit) => (
-                  <Visit key={visit.note_id} visit={visit} />
+            {timeline.length ? (
+              <ol className="mt-9">
+                {timeline.map((visit, index) => (
+                  <Entry
+                    key={visit.note_id}
+                    visit={visit}
+                    last={index === timeline.length - 1}
+                  />
                 ))}
-              </ul>
+              </ol>
             ) : (
               <p className="measure mt-8 text-ink-2">
                 No visit is booked at the moment.
@@ -200,25 +290,7 @@ export default function AppointmentsPage() {
             )}
           </section>
 
-          {unbooked.length ? (
-            <section aria-labelledby="unbooked-heading" className="mt-12">
-              <h2 id="unbooked-heading" className="display text-2xl text-ink">
-                Asked for, not booked
-              </h2>
-              <Rule />
-              <p className="measure mt-6 text-ink-2">
-                These were requested by a prescriber and CareLoop could not
-                book them. The reason is written out rather than hidden.
-              </p>
-              <ul className="mt-8 flex flex-col gap-6">
-                {unbooked.map((visit) => (
-                  <NotBooked key={visit.note_id} visit={visit} />
-                ))}
-              </ul>
-            </section>
-          ) : null}
-
-          <section aria-labelledby="how-heading" className="mt-12">
+          <section aria-labelledby="how-heading" className="mt-14">
             <h2 id="how-heading" className="display text-2xl text-ink">
               How these were booked
             </h2>

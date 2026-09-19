@@ -1,10 +1,39 @@
-import Notice from './Notice.jsx'
 import { Rule } from './Block.jsx'
 import { humanizeTimes } from '../lib/narrate.js'
 import { tierMeta } from './TierBadge.jsx'
 
 function speakerLabel(eventType) {
   return eventType === 'CLINIC_DESK_SPEECH' ? 'Front desk' : 'CareLoop'
+}
+
+function textOf(event) {
+  return String((event.payload && event.payload.text) || '')
+}
+
+function bookingTurnIndex(turns) {
+  let found = -1
+  turns.forEach((event, index) => {
+    if (
+      event.event_type === 'CLINIC_DESK_SPEECH' &&
+      /booked with/i.test(textOf(event))
+    ) {
+      found = index
+    }
+  })
+  return found
+}
+
+function Disclosure({ text, className = '' }) {
+  return (
+    <div className={className}>
+      <p className="smallcaps text-micro text-clay">About this call</p>
+      <p className="measure mt-2 text-sm text-ink-2">{text}</p>
+      <p className="measure mt-2 text-sm text-ink-2">
+        No confirmation was sent to anyone. The front desk here is simulated,
+        so nothing left this prototype.
+      </p>
+    </div>
+  )
 }
 
 export default function ClinicCall({ events, booking, tier }) {
@@ -17,7 +46,7 @@ export default function ClinicCall({ events, booking, tier }) {
         <h3 id="clinic-heading" className="display text-xl text-ink">
           No call to the clinic this time
         </h3>
-        <Rule tone="sand" width="w-14" />
+        <Rule />
         <p className="measure mt-6 text-ink-2">
           {level === 'emergency'
             ? 'CareLoop never books an appointment for an emergency. An appointment is too slow, so it tells you to get help now and writes down the alert it would send. Nobody is notified by this prototype.'
@@ -34,13 +63,14 @@ export default function ClinicCall({ events, booking, tier }) {
       event.event_type === 'CLINIC_AGENT_SPEECH' ||
       event.event_type === 'CLINIC_DESK_SPEECH',
   )
+  const bookedAt = bookingTurnIndex(turns)
 
   return (
     <section aria-labelledby="clinic-heading" className="mt-16">
       <h3 id="clinic-heading" className="display text-xl text-ink">
         The call CareLoop made for you
       </h3>
-      <Rule tone="sand" width="w-14" />
+      <Rule />
 
       <p className="measure mt-6 text-ink-2">
         You did not have to phone anyone. CareLoop ran the booking call with{' '}
@@ -49,34 +79,52 @@ export default function ClinicCall({ events, booking, tier }) {
         below says.
       </p>
 
-      <Notice tone="caution" word="Disclosed on the call" className="mt-7">
-        {booking.disclosure}
-      </Notice>
-
-      <ol className="mt-8 flex flex-col gap-5">
+      <ol className="mt-9 flex flex-col gap-7">
         {turns.map((event, index) => {
           const desk = event.event_type === 'CLINIC_DESK_SPEECH'
+
+          if (index === bookedAt) {
+            return (
+              <li
+                key={event.seq}
+                className="enter-rise border-l-8 border-l-brand pl-6 sm:pl-7"
+                style={{ '--i': index }}
+              >
+                <p className="smallcaps text-micro text-brand">
+                  The front desk booked it
+                </p>
+                <p className="display-tight measure mt-3 text-xl text-ink">
+                  {humanizeTimes(textOf(event))}
+                </p>
+                <Disclosure text={booking.disclosure} className="mt-6" />
+              </li>
+            )
+          }
+
           return (
             <li
               key={event.seq}
-              className={
-                'enter-rise ledge ledge-strong rounded-card border px-6 py-5 ' +
-                (desk
-                  ? 'border-line bg-sunken sm:ml-10'
-                  : 'border-line bg-surface sm:mr-10')
-              }
+              className={'enter-rise ' + (desk ? 'sm:pl-14' : '')}
               style={{ '--i': index }}
             >
-              <p className="smallcaps text-micro text-ink">
+              <p
+                className={
+                  'smallcaps text-micro ' + (desk ? 'text-clay' : 'text-ink')
+                }
+              >
                 {speakerLabel(event.event_type)}
               </p>
-              <p className="measure mt-3 text-ink">
-                {humanizeTimes(event.payload && event.payload.text)}
+              <p className="measure mt-2 text-ink">
+                {humanizeTimes(textOf(event))}
               </p>
             </li>
           )
         })}
       </ol>
+
+      {bookedAt === -1 ? (
+        <Disclosure text={booking.disclosure} className="mt-9" />
+      ) : null}
     </section>
   )
 }

@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 
 import { Rule } from './Block.jsx'
-import { CARD } from '../lib/ui.js'
 import evalResults from '../data/eval_results.json'
 
 export const CAPTION =
@@ -16,17 +15,17 @@ function Row({ arm, entry, grown, placeholder }) {
   const width = grown && !placeholder ? percent(value) : 0
 
   return (
-    <div className="flex flex-wrap items-center gap-x-5 gap-y-2 py-4">
-      <span className="w-full text-sm font-semibold text-ink sm:w-48 sm:shrink-0">
+    <div className="flex flex-wrap items-center gap-x-5 gap-y-1">
+      <span className="w-full text-sm font-semibold text-ink sm:w-56 sm:shrink-0">
         {arm.label}
       </span>
-      <div className="relative h-5 min-w-[6rem] flex-1 overflow-hidden rounded-control border border-line bg-sunken">
+      <div className="relative h-3.5 min-w-[6rem] flex-1 overflow-hidden rounded-control bg-sand-deep">
         <div
           className="h-full rounded-control bg-brand transition-[width] duration-700 ease-out"
           style={{ width: width + '%' }}
         />
       </div>
-      <span className="numeric w-28 shrink-0 text-right text-sm font-semibold text-ink">
+      <span className="numeric w-24 shrink-0 text-right text-sm font-semibold text-ink">
         {placeholder
           ? '--'
           : percent(value) +
@@ -37,6 +36,10 @@ function Row({ arm, entry, grown, placeholder }) {
       </span>
     </div>
   )
+}
+
+function isHeadlineCategory(category) {
+  return String(category || '').toLowerCase().includes('casual and dialect')
 }
 
 function runLabel(stamp) {
@@ -75,61 +78,66 @@ export default function FairnessChart() {
   const arms = evalResults.arms || []
   const categories = evalResults.categories || []
   const directionality = evalResults.directionality || {}
+  const noiseFloor =
+    typeof evalResults.noise_floor === 'number' ? evalResults.noise_floor : null
 
   return (
     <div>
-      <section aria-labelledby="arms-heading">
-        <h2 id="arms-heading" className="display text-2xl text-ink">
+      {headline ? (
+        <div className="rounded-card border-l-8 border border-l-moderate border-line bg-surface px-7 py-7 sm:px-9">
+          <p className="smallcaps flex items-center gap-3 text-micro text-moderate">
+            <span aria-hidden="true">{String.fromCharCode(9670)}</span>
+            <span>What the test found, against us</span>
+          </p>
+          <p className="display-tight measure mt-4 text-2xl text-ink">
+            On casual and dialect phrasing CareLoop raised{' '}
+            {Math.round(headline.full * 100)} percent of moderate cases too
+            high, against {Math.round(headline.best * 100)} percent for the
+            simpler baselines.
+          </p>
+          <p className="measure mt-4 text-ink-2">
+            We wrote down what would count as failure before we looked, so we
+            report this. It is also why the emergency floor is a fixed rule
+            and not a model: the rule can raise what the model says and can
+            never lower it.
+          </p>
+        </div>
+      ) : null}
+
+      {placeholder ? (
+        <p className="mt-8 text-sm font-semibold text-moderate">
+          The test has not been run yet, so every bar is empty on purpose.
+        </p>
+      ) : null}
+
+      <section aria-labelledby="arms-heading" className="mt-14">
+        <h2 id="arms-heading" className="display text-xl text-ink">
           The three ways of deciding
         </h2>
-        <Rule tone="sand" />
-        <dl className="mt-8 flex flex-col gap-4">
+        <Rule />
+        <dl className="mt-6 divide-y divide-line">
           {arms.map((arm) => (
             <div
               key={arm.id}
-              className={
-                CARD + ' flex flex-wrap gap-x-8 gap-y-2 px-6 py-5 sm:px-8'
-              }
+              className="flex flex-wrap gap-x-8 gap-y-1 py-4 first:pt-0 last:pb-0"
             >
-              <dt className="w-full font-semibold text-ink sm:w-56">{arm.label}</dt>
+              <dt className="w-full font-semibold text-ink sm:w-64">
+                {arm.label}
+              </dt>
               <dd className="min-w-0 flex-1 text-ink-2">{arm.note}</dd>
             </div>
           ))}
         </dl>
       </section>
 
-      <section aria-labelledby="conditions-heading" className="mt-12">
-        <h2 id="conditions-heading" className="display text-2xl text-ink">
+      <section aria-labelledby="conditions-heading" className="mt-14">
+        <h2 id="conditions-heading" className="display text-xl text-ink">
           How often a moderate case was raised above moderate
         </h2>
-        <Rule tone="sand" />
+        <Rule />
 
-        {headline ? (
-          <div className="mt-8 rounded-card border-l-8 border border-l-moderate border-line bg-surface px-7 py-6">
-            <p className="smallcaps flex items-center gap-3 text-micro text-moderate">
-              <span aria-hidden="true">{String.fromCharCode(9670)}</span>
-              <span>What the test found, against us</span>
-            </p>
-            <p className="display-tight measure mt-4 text-2xl text-ink">
-              On casual and dialect phrasing CareLoop raised{' '}
-              {Math.round(headline.full * 100)} percent of moderate cases too
-              high, against {Math.round(headline.best * 100)} percent for the
-              simpler baselines.
-            </p>
-            <p className="measure mt-4 text-ink-2">
-              We wrote down what would count as failure before we looked, so we
-              report this. It is also why the emergency floor is a fixed rule
-              and not a model: the rule can raise what the model says and can
-              never lower it.
-            </p>
-          </div>
-        ) : null}
-        {placeholder ? (
-          <p className="mt-4 text-sm font-semibold text-moderate">
-            The test has not been run yet, so every bar is empty on purpose.
-          </p>
-        ) : (
-          <p className="numeric mt-4 text-sm text-ink-2">
+        {placeholder ? null : (
+          <p className="numeric mt-6 text-sm text-ink-2">
             {evalResults.cases} cases, {evalResults.repeats_per_case} repeats
             each, {evalResults.model}
             {evalResults.generated_at ? ', run ' + runLabel(evalResults.generated_at) : ''}
@@ -137,11 +145,27 @@ export default function FairnessChart() {
           </p>
         )}
 
-        <div className="mt-10 grid gap-x-12 gap-y-10 lg:grid-cols-2">
+        {!placeholder && noiseFloor !== null ? (
+          <p className="measure mt-3 text-sm text-ink-2">
+            <span className="numeric font-semibold text-ink">
+              {percent(noiseFloor)}%.
+            </span>{' '}
+            {evalResults.noise_floor_label}
+          </p>
+        ) : null}
+
+        <div className="mt-8 divide-y divide-line">
           {categories.map((category) => (
-            <div key={category} className={CARD + ' px-6 py-6 sm:px-8'}>
-              <h3 className="smallcaps text-micro text-clay">{category}</h3>
-              <div className="mt-3 divide-y-2 divide-line">
+            <div key={category} className="py-5 first:pt-0 last:pb-0">
+              <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
+                <h3 className="smallcaps text-micro text-clay">{category}</h3>
+                {headline && isHeadlineCategory(category) ? (
+                  <span className="smallcaps text-micro text-moderate">
+                    The finding above
+                  </span>
+                ) : null}
+              </div>
+              <div className="mt-3 flex flex-col gap-2.5">
                 {arms.map((arm) => (
                   <Row
                     key={arm.id}
@@ -158,28 +182,26 @@ export default function FairnessChart() {
       </section>
 
       {!placeholder && Object.keys(directionality).length ? (
-        <section aria-labelledby="direction-heading" className="mt-12">
-          <h2 id="direction-heading" className="display text-2xl text-ink">
+        <section aria-labelledby="direction-heading" className="mt-14">
+          <h2 id="direction-heading" className="display text-xl text-ink">
             Which way the disagreements went
           </h2>
-          <Rule tone="sand" />
-          <p className="measure mt-8 text-ink-2">
+          <Rule />
+          <p className="measure mt-6 text-ink-2">
             When an arm disagreed with itself across phrasings, it matters which
             way it slipped. Rating an understated description as less urgent
             than the same case stated plainly is the dangerous direction.
           </p>
-          <dl className="mt-8 flex flex-col gap-4">
+          <dl className="mt-6 divide-y divide-line">
             {arms.map((arm) => {
               const entry = directionality[arm.id]
               if (!entry) return null
               return (
                 <div
                   key={arm.id}
-                  className={
-                    CARD + ' flex flex-wrap gap-x-8 gap-y-2 px-6 py-5 sm:px-8'
-                  }
+                  className="flex flex-wrap gap-x-8 gap-y-1 py-4 first:pt-0 last:pb-0"
                 >
-                  <dt className="w-full font-semibold text-ink sm:w-56">
+                  <dt className="w-full font-semibold text-ink sm:w-64">
                     {arm.label}
                   </dt>
                   <dd className="numeric min-w-0 flex-1 text-ink-2">
@@ -193,7 +215,7 @@ export default function FairnessChart() {
         </section>
       ) : null}
 
-      <div className="ledge mt-12 rounded-card border border-line bg-sunken px-6 py-7 text-ink sm:px-9">
+      <div className="ledge mt-14 rounded-card border border-line bg-sunken px-6 py-7 text-ink sm:px-9">
         <p className="smallcaps text-micro text-clay">
           What this does not prove
         </p>
