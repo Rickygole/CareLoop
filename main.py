@@ -1231,7 +1231,7 @@ def _agent_turns(session: SessionState, patient_id: str) -> int:
 
 
 async def _keep_talking(
-    session: SessionState, patient: dict, patient_id: str, lead: str = "",
+    session: SessionState, patient: dict, patient_id: str, base_url: str, lead: str = "",
 ) -> str:
     first_name = _first_name(patient)
     closing = _say(CHECKIN_CLOSING.format(patient_first_name=first_name)) + "<Hangup/>"
@@ -1274,7 +1274,7 @@ async def _keep_talking(
             "transcript": recent[-1] if recent else "",
         }
 
-    action = "/voice/checkin/respond?" + urlencode({
+    action = base_url.rstrip("/") + "/voice/checkin/respond?" + urlencode({
         "patient_id": patient_id, SESSION_QUERY_PARAM: session.session_id,
     })
     return (
@@ -1521,12 +1521,13 @@ async def voice_checkin_respond(
                 "I could not find an opening right now, so please call the "
                 "clinic yourself."
             )
-        return _twiml(await _keep_talking(session, patient, patient_id, ack))
+        return _twiml(await _keep_talking(session, patient, patient_id, str(request.base_url), ack))
 
     if pending and _declines_appointment(transcript):
         session.pending_bookings.pop(patient_id, None)
         return _twiml(await _keep_talking(
-            session, patient, patient_id, "No problem, I will not book anything."
+            session, patient, patient_id, str(request.base_url),
+            "No problem, I will not book anything.",
         ))
 
     if result["tier"] in ("moderate", "severe"):
@@ -1535,7 +1536,7 @@ async def voice_checkin_respond(
             "tier": result["tier"],
             "transcript": transcript,
         }
-        action = "/voice/checkin/respond?" + urlencode({
+        action = str(request.base_url).rstrip("/") + "/voice/checkin/respond?" + urlencode({
             "patient_id": patient_id, SESSION_QUERY_PARAM: session.session_id,
         })
         _remember_turn(session, patient_id, "agent", result["suggested_agent_response"])
@@ -1552,7 +1553,7 @@ async def voice_checkin_respond(
         )
 
     return _twiml(await _keep_talking(
-        session, patient, patient_id, result["suggested_agent_response"]
+        session, patient, patient_id, str(request.base_url), result["suggested_agent_response"],
     ))
 
 

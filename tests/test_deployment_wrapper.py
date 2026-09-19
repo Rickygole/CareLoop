@@ -60,3 +60,37 @@ def test_the_url_the_gather_names_actually_answers():
 @pytest.mark.parametrize("path", ["/api/health", "/api/followups/p1", "/api/call/state"])
 def test_the_routes_a_judge_can_reach_are_served_under_the_prefix(path):
     assert client.get(path, headers=headers("wrap-routes")).status_code == 200
+
+
+def test_every_hop_of_a_multi_turn_call_keeps_the_prefix(monkeypatch):
+    import conversation
+
+    monkeypatch.setattr(conversation, "is_configured", lambda: True)
+    monkeypatch.setattr(
+        conversation, "reply",
+        lambda history, context: {
+            "say": "Tell me more about that.", "end_call": False, "offer_booking": False,
+        },
+    )
+
+    session = headers("wrap-multi-turn")
+    xml = client.get("/api/voice/checkin?patient_id=p1", headers=session).text
+    for turn in range(3):
+        urls = callback_urls(xml)
+        assert urls, f"turn {turn} of the call has nothing for the caller to speak into"
+        for url in urls:
+            assert url.startswith("http"), f"turn {turn}: {url} is relative"
+            assert "/api/" in url, (
+                f"turn {turn}: {url} drops the /api prefix. On a live phone call "
+                "Twilio resolves this relative to the deployment root, gets the "
+                "single page app back instead of TwiML, and the call dies."
+            )
+        path = urls[0].split("testserver", 1)[1]
+        response = client.post(
+            path, data={"SpeechResult": "I have been feeling dizzy", "CallSid": "CAmultiturn"},
+            headers=session,
+        )
+        assert response.status_code == 200
+        xml = response.text
+        if "<Gather" not in xml:
+            break
