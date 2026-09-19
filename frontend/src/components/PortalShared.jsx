@@ -1,6 +1,11 @@
 import { clockLabel } from '../lib/format.js'
 import { CARD } from '../lib/ui.js'
 
+function zoneLabel(zone) {
+  const name = String(zone || '').split('/').pop()
+  return name ? name.replace(/_/g, ' ') + ' time' : 'local time'
+}
+
 export default function PortalShared({ allergies, window: contactWindow }) {
   const list = allergies || []
   if (!list.length && !contactWindow) return null
@@ -43,7 +48,7 @@ export default function PortalShared({ allergies, window: contactWindow }) {
           </h3>
           <p className="mt-3 text-sm text-ink-2">
             {clockLabel(contactWindow.start)} to {clockLabel(contactWindow.end)}
-            , {contactWindow.timezone}. CareLoop schedules no call outside that
+            , {zoneLabel(contactWindow.timezone)}. CareLoop schedules no call outside that
             window.
           </p>
         </>
