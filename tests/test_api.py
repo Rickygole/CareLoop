@@ -46,8 +46,8 @@ def test_connect_returns_patient_and_derived_schedule():
 
 def test_connect_flattens_multiple_medications():
     body = client.post("/portal/connect", json={"patient_id": "p2"}).json()
-    assert len(body["patient"]["medication_requests"]) == 2
-    assert len(body["derived_schedule"]) == 3
+    assert len(body["patient"]["medication_requests"]) == 5
+    assert len(body["derived_schedule"]) == 6
 
 
 def test_connect_unknown_patient_is_404():
@@ -859,3 +859,47 @@ def test_voice_checkin_respond_handles_an_empty_transcript_gracefully():
     r = client.post("/voice/checkin/respond?patient_id=p1", data={})
     assert r.status_code == 200
     ET.fromstring(r.text)
+
+
+def test_one_call_covers_every_medicine_due_in_the_same_window():
+    import json as _json
+    from datetime import datetime as _dt
+    from scheduler import build_day_plan, clinic_timezone
+
+    patient = {p["patient_id"]: p for p in _json.load(open("mock_data/patients.json"))["patients"]}["p2"]
+    plan = build_day_plan(patient, _dt.now(clinic_timezone()).replace(hour=11, minute=44))
+
+    morning = plan["calls"][0]
+    assert morning["covers"] >= 3, "coalescing needs three medicines in one window to be worth showing"
+    assert plan["calls_total"] < plan["doses_total"], "calls must be fewer than doses"
+
+
+def test_no_call_is_scheduled_outside_the_patients_contact_window():
+    import json as _json
+    from datetime import datetime as _dt
+    from scheduler import build_day_plan, clinic_timezone, contact_window
+
+    for patient in _json.load(open("mock_data/patients.json"))["patients"]:
+        window = contact_window(patient)
+        plan = build_day_plan(patient, _dt.now(clinic_timezone()).replace(hour=11, minute=44))
+        for call in plan["calls"]:
+            hour = int(call["time"].split(":")[0])
+            assert window["start_hour"] <= hour <= window["end_hour"], (
+                f"{patient['patient_id']} would be phoned at {call['time']}, "
+                f"outside {window['start']} to {window['end']}"
+            )
+
+
+def test_the_interaction_check_has_something_to_say_about_dorothy():
+    import json as _json
+    from contradiction import check_regimen
+
+    patient = {p["patient_id"]: p for p in _json.load(open("mock_data/patients.json"))["patients"]}["p2"]
+    at_load = check_regimen(patient["medication_requests"])
+    assert at_load, "the check must find something, otherwise the screen says nothing conflicts"
+
+    after_portal = check_regimen(patient["medication_requests"] + patient["portal_pending"])
+    surfaced = [f for f in after_portal if f["surfaced"]]
+    assert any(f["severity"] == "major" for f in surfaced), (
+        "the waiting prescription must trip a major finding"
+    )

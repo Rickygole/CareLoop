@@ -4,6 +4,8 @@ from typing import List, Optional
 
 REMINDER_WINDOW_MINUTES = 90
 LATE_AFTER_MINUTES = 120
+COALESCE_WINDOW_MINUTES = 60
+DEFAULT_CONTACT_WINDOW = {"start": "08:00", "end": "20:00"}
 
 
 def clinic_timezone() -> timezone:
@@ -12,6 +14,56 @@ def clinic_timezone() -> timezone:
     except ValueError:
         offset = -4.0
     return timezone(timedelta(hours=offset))
+
+
+def _parse_hhmm(text: str, fallback: int) -> int:
+    try:
+        return int(str(text).split(":")[0])
+    except (ValueError, AttributeError, IndexError):
+        return fallback
+
+
+def contact_window(patient: dict) -> dict:
+    window = patient.get("preferred_contact_window") or DEFAULT_CONTACT_WINDOW
+    return {
+        "start_hour": _parse_hhmm(window.get("start"), 8),
+        "end_hour": _parse_hhmm(window.get("end"), 20),
+        "start": window.get("start", DEFAULT_CONTACT_WINDOW["start"]),
+        "end": window.get("end", DEFAULT_CONTACT_WINDOW["end"]),
+    }
+
+
+def clamp_to_window(moment: datetime, window: dict) -> tuple:
+    if moment.hour < window["start_hour"]:
+        return moment.replace(hour=window["start_hour"], minute=0), True
+    if moment.hour > window["end_hour"]:
+        return moment.replace(hour=window["end_hour"], minute=0), True
+    return moment, False
+
+
+def coalesce(doses: List[dict]) -> List[dict]:
+    groups = []
+    for dose in doses:
+        due = datetime.fromisoformat(dose["due_at"])
+        placed = False
+        for group in groups:
+            gap = abs((due - datetime.fromisoformat(group["at"])).total_seconds()) / 60
+            if gap <= COALESCE_WINDOW_MINUTES:
+                group["medications"].append(dose["medication"])
+                group["medication_ids"].append(dose["medication_id"])
+                placed = True
+                break
+        if not placed:
+            groups.append({
+                "at": dose["due_at"],
+                "time": dose["time"],
+                "status": dose["status"],
+                "medications": [dose["medication"]],
+                "medication_ids": [dose["medication_id"]],
+            })
+    for group in groups:
+        group["covers"] = len(group["medications"])
+    return groups
 
 
 def clinic_now() -> datetime:
@@ -69,16 +121,34 @@ def build_day_plan(patient: dict, now: Optional[datetime] = None) -> dict:
             "status": status,
         })
 
+    window = contact_window(patient)
+    calls = coalesce(doses)
+    for call in calls:
+        moved_at, moved = clamp_to_window(datetime.fromisoformat(call["at"]), window)
+        call["at"] = moved_at.isoformat()
+        call["time"] = moved_at.strftime("%H:%M")
+        call["moved_into_contact_window"] = moved
+
     next_dose = next((d for d in doses if d["status"] in ("upcoming", "due_soon", "due_now")), None)
     next_call = None
     if next_dose:
-        due = datetime.fromisoformat(next_dose["due_at"])
-        call_at = due if next_dose["status"] != "upcoming" else due - timedelta(minutes=0)
+        group = next(
+            (c for c in calls if next_dose["medication_id"] in c["medication_ids"]), None
+        )
+        call_at = datetime.fromisoformat(group["at"]) if group else datetime.fromisoformat(next_dose["due_at"])
+        covers = group["medications"] if group else [next_dose["medication"]]
+        reason = (
+            f"Check in on {next_dose['medication']} {next_dose['dosage']}"
+            if len(covers) == 1
+            else "Check in on " + ", ".join(covers[:-1]) + " and " + covers[-1]
+        )
         next_call = {
             "at": call_at.isoformat(),
             "time": call_at.strftime("%H:%M"),
-            "reason": f"Check in on {next_dose['medication']} {next_dose['dosage']}",
+            "reason": reason,
             "medication_id": next_dose["medication_id"],
+            "covers": covers,
+            "moved_into_contact_window": bool(group and group["moved_into_contact_window"]),
         }
 
     return {
@@ -89,4 +159,7 @@ def build_day_plan(patient: dict, now: Optional[datetime] = None) -> dict:
         "doses_taken": sum(1 for d in doses if d["status"] == "taken"),
         "doses_missed": sum(1 for d in doses if d["status"] == "missed"),
         "doses_total": len(doses),
+        "calls": calls,
+        "calls_total": len(calls),
+        "contact_window": {"start": window["start"], "end": window["end"]},
     }

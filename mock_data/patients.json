@@ -46,6 +46,14 @@
           "symptom_reported": "mild nausea",
           "tier": "mild",
           "action_taken": "logged"
+        },
+        {
+          "call_id": "call_002",
+          "timestamp": "2026-09-18T08:02:00Z",
+          "outcome": "no_answer",
+          "symptom_reported": null,
+          "tier": null,
+          "action_taken": "none"
         }
       ],
       "allergies": [
@@ -58,7 +66,7 @@
       ],
       "preferred_contact_window": {
         "start": "08:00",
-        "end": "19:00",
+        "end": "20:00",
         "timezone": "America/New_York"
       },
       "portal_pending": [
@@ -91,7 +99,24 @@
       "connected_at": null,
       "medication_requests": [
         {
-          "medication_id": "med4",
+          "medication_id": "p2-mr1",
+          "medication": "Levothyroxine",
+          "dosage_text": "50mcg",
+          "frequency": "once daily",
+          "timing": {
+            "times_per_day": 1,
+            "preferred_hours": [
+              7
+            ]
+          },
+          "prescriber": "Dr. Raj Patel",
+          "status": "active",
+          "start_date": "2026-05-20",
+          "authored_on": "2026-05-20",
+          "indication": "to support your thyroid"
+        },
+        {
+          "medication_id": "p2-mr2",
           "medication": "Metformin",
           "dosage_text": "500mg",
           "frequency": "twice daily",
@@ -105,11 +130,11 @@
           "prescriber": "Dr. Raj Patel",
           "status": "active",
           "start_date": "2026-05-20",
-          "indication": "to keep your blood sugar steady",
-          "authored_on": "2026-05-20"
+          "authored_on": "2026-05-20",
+          "indication": "to keep your blood sugar steady"
         },
         {
-          "medication_id": "med5",
+          "medication_id": "p2-mr3",
           "medication": "Lisinopril",
           "dosage_text": "10mg",
           "frequency": "once daily",
@@ -122,8 +147,42 @@
           "prescriber": "Dr. Raj Patel",
           "status": "active",
           "start_date": "2026-05-20",
-          "indication": "to keep your blood pressure down",
-          "authored_on": "2026-05-20"
+          "authored_on": "2026-05-20",
+          "indication": "to keep your blood pressure down"
+        },
+        {
+          "medication_id": "p2-mr4",
+          "medication": "Calcium carbonate",
+          "dosage_text": "500mg",
+          "frequency": "once daily",
+          "timing": {
+            "times_per_day": 1,
+            "preferred_hours": [
+              8
+            ]
+          },
+          "prescriber": "Dr. Raj Patel",
+          "status": "active",
+          "start_date": "2026-05-20",
+          "authored_on": "2026-05-20",
+          "indication": "to support your bones"
+        },
+        {
+          "medication_id": "p2-mr5",
+          "medication": "Atorvastatin",
+          "dosage_text": "20mg",
+          "frequency": "once daily",
+          "timing": {
+            "times_per_day": 1,
+            "preferred_hours": [
+              20
+            ]
+          },
+          "prescriber": "Dr. Raj Patel",
+          "status": "active",
+          "start_date": "2026-05-20",
+          "authored_on": "2026-05-20",
+          "indication": "to keep your cholesterol down"
         }
       ],
       "care_plan_notes": [
@@ -146,12 +205,44 @@
       ],
       "history": [
         {
-          "call_id": "call_002",
-          "timestamp": "2026-09-17T20:05:00Z",
-          "outcome": "no_answer",
+          "call_id": "call_101",
+          "timestamp": "2026-09-19T11:05:00Z",
+          "outcome": "answered",
+          "taken": true,
+          "medication_id": "p2-mr1",
           "symptom_reported": null,
-          "tier": null,
-          "action_taken": "missed_dose_logged"
+          "tier": "mild",
+          "action_taken": "logged"
+        },
+        {
+          "call_id": "call_102",
+          "timestamp": "2026-09-19T12:05:00Z",
+          "outcome": "answered",
+          "taken": true,
+          "medication_id": "p2-mr2",
+          "symptom_reported": null,
+          "tier": "mild",
+          "action_taken": "logged"
+        },
+        {
+          "call_id": "call_103",
+          "timestamp": "2026-09-19T12:05:00Z",
+          "outcome": "answered",
+          "taken": true,
+          "medication_id": "p2-mr3",
+          "symptom_reported": null,
+          "tier": "mild",
+          "action_taken": "logged"
+        },
+        {
+          "call_id": "call_104",
+          "timestamp": "2026-09-19T12:05:00Z",
+          "outcome": "answered",
+          "taken": true,
+          "medication_id": "p2-mr4",
+          "symptom_reported": null,
+          "tier": "mild",
+          "action_taken": "logged"
         }
       ],
       "allergies": [
@@ -169,8 +260,8 @@
         }
       ],
       "preferred_contact_window": {
-        "start": "09:00",
-        "end": "17:00",
+        "start": "08:00",
+        "end": "20:00",
         "timezone": "America/New_York"
       },
       "portal_pending": [
@@ -187,9 +278,9 @@
           },
           "prescriber": "Dr. Ana Reyes",
           "status": "active",
-          "start_date": "2026-09-19",
-          "indication": "to help your heart and blood pressure",
-          "authored_on": "2026-09-19"
+          "start_date": "2026-05-20",
+          "authored_on": "2026-05-20",
+          "indication": "to help your heart and blood pressure"
         }
       ]
     }
