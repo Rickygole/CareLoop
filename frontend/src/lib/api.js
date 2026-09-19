@@ -84,6 +84,13 @@ export function connectPatient(patientId) {
   return post('/portal/connect', { patient_id: patientId })
 }
 
+export function syncPortal(patientId, acceptChanges) {
+  return post('/portal/sync', {
+    patient_id: patientId,
+    accept_portal_changes: Boolean(acceptChanges),
+  })
+}
+
 export function triage(transcript, patientId) {
   return post('/triage', { transcript, patient_id: patientId || null })
 }
@@ -94,10 +101,6 @@ export function runLoop(transcript, patientId) {
 
 export function regimenState(patientId) {
   return request('/regimen/' + encodeURIComponent(patientId))
-}
-
-export function addMedication(body) {
-  return post('/meds', body)
 }
 
 export function schedule(patientId) {

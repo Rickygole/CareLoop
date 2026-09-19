@@ -1,4 +1,4 @@
-import { cleanup, render, screen, fireEvent } from '@testing-library/react'
+import { cleanup, render, screen, fireEvent, within } from '@testing-library/react'
 import { HashRouter } from 'react-router-dom'
 import { afterEach, expect, test, vi } from 'vitest'
 
@@ -49,13 +49,48 @@ const REGIMEN = {
   },
 }
 
-const AFTER_ADD = {
-  added: true,
-  medication_id: 'med-2-p1',
-  medications: [
-    ...PATIENT.medication_requests,
-    { medication_id: 'med-2-p1', medication: 'Warfarin', frequency: 'once daily', prescriber: 'Dr. Ana Reyes' },
-  ],
+const ALLERGIES = [
+  { substance: 'Penicillin', reaction: 'hives', criticality: 'low', recorded_on: '2021-03-14' },
+]
+
+const CONTACT_WINDOW = { start: '08:00', end: '19:00', timezone: 'America/New_York' }
+
+const SHARED = ['Active medication list', 'Dose schedule', 'Allergies', 'Preferred contact window']
+
+const PORTAL_LIMITATIONS = 'Synthetic portal. The bundle is shaped like FHIR R4 and is not validated against a FHIR server.'
+
+const FIRST_SYNC = {
+  patient_id: 'p1',
+  synced_at: '2026-09-19T06:00:00Z',
+  source: 'MyHealth',
+  shared: SHARED,
+  bundle: { resourceType: 'Bundle', type: 'searchset', timestamp: '2026-09-19T06:00:00Z', total: 3, entry: [] },
+  medications: PATIENT.medication_requests,
+  allergies: ALLERGIES,
+  preferred_contact_window: CONTACT_WINDOW,
+  schedule: PLAN,
+  regimen: REGIMEN.regimen,
+  diff: { first_sync: true, changed: false, added: [], removed: [], modified: [] },
+  diff_summary: 'First sync. The medication list came across from the portal.',
+  portal_has_pending_change: true,
+  applied: [],
+  limitations: PORTAL_LIMITATIONS,
+}
+
+const PULLED_MEDICATIONS = [
+  ...PATIENT.medication_requests,
+  { medication_id: 'med-2-p1', medication: 'Warfarin', frequency: 'once daily', prescriber: 'Dr. Ana Reyes' },
+]
+
+const AFTER_PORTAL_PULL = {
+  patient_id: 'p1',
+  synced_at: '2026-09-19T06:05:00Z',
+  source: 'MyHealth',
+  shared: SHARED,
+  bundle: { resourceType: 'Bundle', type: 'searchset', timestamp: '2026-09-19T06:05:00Z', total: 4, entry: [] },
+  medications: PULLED_MEDICATIONS,
+  allergies: ALLERGIES,
+  preferred_contact_window: CONTACT_WINDOW,
   schedule: {
     ...PLAN,
     doses: [
@@ -75,6 +110,17 @@ const AFTER_ADD = {
     patient_message: 'Something on your list looks worth checking.',
     limitations: 'Not a formulary check and not a drug interaction database.',
   },
+  diff: {
+    first_sync: false,
+    changed: true,
+    added: [{ medication_id: 'med-2-p1', medication: 'Warfarin', prescriber: 'Dr. Ana Reyes' }],
+    removed: [],
+    modified: [],
+  },
+  diff_summary: 'The portal reports a change. Warfarin was added by Dr. Ana Reyes.',
+  portal_has_pending_change: false,
+  applied: ['Warfarin'],
+  limitations: PORTAL_LIMITATIONS,
 }
 
 vi.mock('./src/lib/api.js', async () => {
@@ -84,7 +130,9 @@ vi.mock('./src/lib/api.js', async () => {
     health: vi.fn(async () => ({ status: 'ok' })),
     connectPatient: vi.fn(async () => ({ patient: PATIENT })),
     regimenState: vi.fn(async () => REGIMEN),
-    addMedication: vi.fn(async () => AFTER_ADD),
+    syncPortal: vi.fn(async (patientId, acceptChanges) =>
+      acceptChanges ? AFTER_PORTAL_PULL : FIRST_SYNC,
+    ),
     schedule: vi.fn(async () => PLAN),
   }
 })
@@ -161,12 +209,17 @@ test('allowing syncs and lands on the medicines screen', async () => {
   expect(screen.getAllByText('Metformin').length).toBeGreaterThan(0)
   expect(screen.getByText('a1b2c3d4e5f6')).toBeTruthy()
   expect(screen.getByText(/Not a formulary check/)).toBeTruthy()
-  expect(screen.getByText('Add to the list')).toBeTruthy()
+  await screen.findByText(/Your prescriber has sent a new prescription to MyHealth/, {}, { timeout: 4000 })
+  expect(screen.getByText('Check MyHealth for updates')).toBeTruthy()
+  expect(screen.queryByText(/Add to the list/)).toBe(null)
+  expect(screen.getByText('Penicillin')).toBeTruthy()
+  expect(screen.getByText(/8:00 AM to 7:00 PM/)).toBeTruthy()
+  expect(screen.getByText('First sync. The medication list came across from the portal.')).toBeTruthy()
   expect(screen.getByText('Move the clock to the next dose')).toBeTruthy()
   expect(screen.getByRole('heading', { name: /Nothing on this list conflicts/ })).toBeTruthy()
 }, 10000)
 
-test('adding a medicine cascades through snapshot, schedule and flag', async () => {
+test('a medicine arriving from the portal cascades through snapshot, schedule and flag', async () => {
   startAtFirstScreen()
   render(<HashRouter><App /></HashRouter>)
   signIn()
@@ -174,11 +227,16 @@ test('adding a medicine cascades through snapshot, schedule and flag', async () 
   fireEvent.click(screen.getByText('Allow'))
   await screen.findByText('a1b2c3d4e5f6', {}, { timeout: 4000 })
 
-  fireEvent.click(screen.getByText('Add to the list'))
+  fireEvent.click(
+    await screen.findByText('Pull the new prescription from MyHealth', {}, { timeout: 4000 }),
+  )
 
   await screen.findByText('9f9f9f9f9f9f', {}, { timeout: 4000 })
   expect(screen.getAllByText(/replaces a1b2c3d4e5f6/).length).toBeGreaterThan(0)
-  await screen.findByText(/18:00|6:00 PM/, {}, { timeout: 4000 })
+  expect(screen.getByText(/Warfarin arrived from MyHealth/)).toBeTruthy()
+  expect(screen.getByText('The portal reports a change. Warfarin was added by Dr. Ana Reyes.')).toBeTruthy()
+  const callList = screen.getByRole('region', { name: /Every call today/ })
+  await within(callList).findByText(/18:00|6:00 PM/, {}, { timeout: 4000 })
   await screen.findByText(/warfarin and aspirin/i, {}, { timeout: 4000 })
   expect(screen.getByText(/FDA label, Coumadin/)).toBeTruthy()
   expect(screen.getByText(/1 finding was detected and held back/)).toBeTruthy()

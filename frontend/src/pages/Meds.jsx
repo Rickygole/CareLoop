@@ -1,21 +1,21 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
-import AddMedication from '../components/AddMedication.jsx'
 import CallSchedule from '../components/CallSchedule.jsx'
 import InteractionFlags from '../components/InteractionFlags.jsx'
 import MedicationCard from '../components/MedicationCard.jsx'
 import NextUpCard from '../components/NextUpCard.jsx'
 import Notice from '../components/Notice.jsx'
+import PortalShared from '../components/PortalShared.jsx'
+import PortalUpdate from '../components/PortalUpdate.jsx'
 import RegimenSnapshot from '../components/RegimenSnapshot.jsx'
 import Screen from '../components/Screen.jsx'
 import TimeTravel from '../components/TimeTravel.jsx'
 import { Rule } from '../components/Block.jsx'
-import { addMedication, regimenState } from '../lib/api.js'
+import { syncPortal } from '../lib/api.js'
 import { applyClockShift } from '../lib/clock.js'
 import { clockLabel, groupSchedule } from '../lib/format.js'
 import { CARD } from '../lib/ui.js'
 import { useSession } from '../lib/session.jsx'
-import { ADD_PRESCRIBER } from '../data/medications.js'
 import { patientName } from '../data/patients.js'
 
 const CASCADE_STEPS = [
@@ -27,6 +27,12 @@ const CASCADE_STEPS = [
 function reducedMotion() {
   if (typeof window === 'undefined' || !window.matchMedia) return false
   return window.matchMedia('(prefers-reduced-motion: reduce)').matches
+}
+
+function arrivalSentence(applied) {
+  const names = applied || []
+  if (!names.length) return 'MyHealth sent a change. '
+  return names.join(' and ') + ' arrived from MyHealth. '
 }
 
 export default function MedsPage() {
@@ -41,14 +47,21 @@ export default function MedsPage() {
     setClockShiftMs,
   } = useSession()
 
+  const [portal, setPortal] = useState(null)
   const [loading, setLoading] = useState(!schedule)
   const [loadFailed, setLoadFailed] = useState(false)
-  const [adding, setAdding] = useState(false)
-  const [addFailed, setAddFailed] = useState(false)
+  const [checking, setChecking] = useState(false)
+  const [pulling, setPulling] = useState(false)
+  const [syncFailed, setSyncFailed] = useState(false)
   const [prior, setPrior] = useState(null)
   const [stage, setStage] = useState(0)
   const [announcement, setAnnouncement] = useState('')
   const timers = useRef([])
+  const haveData = useRef(Boolean(schedule))
+
+  useEffect(() => {
+    haveData.current = Boolean(schedule)
+  }, [schedule])
 
   useEffect(
     () => () => {
@@ -58,83 +71,92 @@ export default function MedsPage() {
   )
 
   const load = useCallback(async () => {
-    setLoading(true)
     setLoadFailed(false)
+    setSyncFailed(false)
     try {
-      applyRegimen(await regimenState(patientId))
+      const result = await syncPortal(patientId, false)
+      applyRegimen(result)
+      setPortal(result)
     } catch {
-      setLoadFailed(true)
+      if (haveData.current) setSyncFailed(true)
+      else setLoadFailed(true)
     } finally {
       setLoading(false)
     }
   }, [applyRegimen, patientId])
 
   useEffect(() => {
-    if (!schedule && !loadFailed) load()
-  }, [schedule, loadFailed, load])
+    load()
+  }, [load])
 
-  const add = useCallback(
-    async (entry) => {
-      setAdding(true)
-      setAddFailed(false)
-      const before = { medications, schedule, regimen }
-      const gap = reducedMotion() ? 320 : 850
+  const check = useCallback(async () => {
+    setChecking(true)
+    setSyncFailed(false)
+    try {
+      const result = await syncPortal(patientId, false)
+      applyRegimen(result)
+      setPortal(result)
+    } catch {
+      setSyncFailed(true)
+    } finally {
+      setChecking(false)
+    }
+  }, [applyRegimen, patientId])
 
-      try {
-        const result = await addMedication({
-          patient_id: patientId,
-          medication: entry.medication,
-          dosage_text: entry.dosage_text,
-          frequency: entry.frequency,
-          preferred_hours: entry.preferred_hours,
-          prescriber: ADD_PRESCRIBER,
-        })
+  const pull = useCallback(async () => {
+    setPulling(true)
+    setSyncFailed(false)
+    const before = { medications, schedule, regimen }
+    const gap = reducedMotion() ? 320 : 850
 
-        timers.current.forEach(clearTimeout)
-        setPrior(before)
-        setStage(1)
-        applyRegimen(result)
-        setAnnouncement(
+    try {
+      const result = await syncPortal(patientId, true)
+
+      timers.current.forEach(clearTimeout)
+      setPrior(before)
+      setStage(1)
+      applyRegimen(result)
+      setPortal(result)
+      setAnnouncement(
+        arrivalSentence(result.applied) +
           'Snapshot ' + result.regimen.content_hash + ' replaces ' +
-            (before.regimen ? before.regimen.content_hash : 'the last one') + '.',
-        )
+          (before.regimen ? before.regimen.content_hash : 'the last one') + '.',
+      )
 
-        const nextPlan = applyClockShift(result.schedule, clockShiftMs)
-        const flagged = (result.regimen.surfaced || [])[0]
+      const nextPlan = applyClockShift(result.schedule, clockShiftMs)
+      const flagged = (result.regimen.surfaced || [])[0]
 
-        timers.current = [
-          setTimeout(() => {
-            setStage(2)
-            setAnnouncement(
-              nextPlan && nextPlan.next_dose
-                ? 'Schedule worked out again. The next call is at ' +
-                    clockLabel(nextPlan.next_dose.time) + '.'
-                : 'Schedule worked out again. No call is left today.',
-            )
-          }, gap),
-          setTimeout(() => {
-            setStage(3)
-            setAnnouncement(
-              flagged
-                ? 'Interaction flagged, ' +
-                    flagged.ingredients.join(' and ') + ', ' +
-                    flagged.severity + '.'
-                : 'Checked every pair. Nothing to raise with the patient.',
-            )
-          }, gap * 2),
-          setTimeout(() => {
-            setPrior(null)
-            setStage(0)
-          }, gap * 3),
-        ]
-      } catch {
-        setAddFailed(true)
-      } finally {
-        setAdding(false)
-      }
-    },
-    [applyRegimen, clockShiftMs, medications, patientId, regimen, schedule],
-  )
+      timers.current = [
+        setTimeout(() => {
+          setStage(2)
+          setAnnouncement(
+            nextPlan && nextPlan.next_dose
+              ? 'Schedule worked out again. The next call is at ' +
+                  clockLabel(nextPlan.next_dose.time) + '.'
+              : 'Schedule worked out again. No call is left today.',
+          )
+        }, gap),
+        setTimeout(() => {
+          setStage(3)
+          setAnnouncement(
+            flagged
+              ? 'Interaction flagged, ' +
+                  flagged.ingredients.join(' and ') + ', ' +
+                  flagged.severity + '.'
+              : 'Checked every pair. Nothing to raise with the patient.',
+          )
+        }, gap * 2),
+        setTimeout(() => {
+          setPrior(null)
+          setStage(0)
+        }, gap * 3),
+      ]
+    } catch {
+      setSyncFailed(true)
+    } finally {
+      setPulling(false)
+    }
+  }, [applyRegimen, clockShiftMs, medications, patientId, regimen, schedule])
 
   const cascading = Boolean(prior)
   const shownRequests = cascading && stage < 2 ? prior.medications : medications
@@ -182,7 +204,7 @@ export default function MedsPage() {
           aria-busy="true"
           className="text-lg font-semibold text-ink-2"
         >
-          Reading the medicine list...
+          Reading MyHealth...
         </p>
       ) : null}
 
@@ -190,10 +212,10 @@ export default function MedsPage() {
         <Notice
           role="alert"
           tone="alarm"
-          word="The medicine list did not load"
+          word="MyHealth did not answer"
           className="measure"
         >
-          CareLoop could not reach the record.{' '}
+          CareLoop could not read the portal.{' '}
           <button type="button" onClick={load} className="font-semibold underline">
             Try again
           </button>
@@ -233,6 +255,10 @@ export default function MedsPage() {
                 shiftMs={clockShiftMs}
                 onShift={setClockShiftMs}
               />
+              <PortalShared
+                allergies={portal && portal.allergies}
+                window={portal && portal.preferred_contact_window}
+              />
             </aside>
           </div>
 
@@ -243,22 +269,32 @@ export default function MedsPage() {
 
           <section aria-labelledby="change-heading" className="mt-12">
             <h2 id="change-heading" className="display text-2xl text-ink">
-              If the list changes, the times change on their own
+              If MyHealth changes, the times change on their own
             </h2>
             <Rule tone="sand" />
             <p className="measure mt-6 text-ink-2">
-              When a prescriber adds something, nobody tells CareLoop and nobody
-              edits a schedule. The call times and the safety check work
-              themselves out again.
+              When a prescriber sends a new prescription to the portal, it
+              arrives here on its own. Nobody types it in and nobody edits a
+              schedule. The call times and the safety check work themselves out
+              again.
             </p>
 
-            <AddMedication busy={adding} error={addFailed} onAdd={add} />
+            <PortalUpdate
+              syncedAt={portal && portal.synced_at}
+              summary={portal && portal.diff_summary}
+              pending={Boolean(portal && portal.portal_has_pending_change)}
+              checking={checking}
+              pulling={pulling}
+              failed={syncFailed}
+              onCheck={check}
+              onPull={pull}
+            />
 
             <div role="status" aria-live="polite" className="mt-9 empty:hidden">
               {cascading ? (
                 <div className={'enter-fade ' + CARD + ' px-7 py-7'}>
                   <p className="smallcaps text-micro text-clay">
-                    What that just set off
+                    What the portal just set off
                   </p>
                   <ol className="mt-5 flex flex-col gap-3">
                     {CASCADE_STEPS.map((label, index) => {
