@@ -61,6 +61,14 @@ export function triage(transcript, patientId) {
   return post('/triage', { transcript, patient_id: patientId || null })
 }
 
+export function runLoop(transcript, patientId) {
+  return post('/loop/run', { patient_id: patientId, transcript })
+}
+
+export function schedule(patientId) {
+  return request('/schedule/' + encodeURIComponent(patientId))
+}
+
 export function book(specialty, urgency, patientId) {
   return post('/book', {
     specialty,

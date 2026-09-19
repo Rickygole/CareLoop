@@ -9,7 +9,7 @@ import TraceLegend from '../components/TraceLegend.jsx'
 import TracePanel from '../components/TracePanel.jsx'
 import TriageResult from '../components/TriageResult.jsx'
 import { ConsoleNotice } from '../components/Disclaimers.jsx'
-import { book, triage } from '../lib/api.js'
+import { book, runLoop, triage } from '../lib/api.js'
 import { useTrace } from '../lib/useTrace.js'
 import { DEFAULT_PATIENT_ID, PATIENTS } from '../data/patients.js'
 import { SCENARIOS } from '../data/scenarios.js'
@@ -49,6 +49,29 @@ export default function AdminDemo() {
       } catch (err) {
         setError(err.message)
         setResult(null)
+        setLatency(null)
+      } finally {
+        setBusy(false)
+      }
+    },
+    [patientId],
+  )
+
+  const runFullLoop = useCallback(
+    async (transcript) => {
+      setBusy(true)
+      setError(null)
+      setBooking(null)
+      const started = performance.now()
+      try {
+        const payload = await runLoop(transcript, patientId)
+        setLatency(Math.round(performance.now() - started))
+        setResult(payload.triage)
+        setBooking(payload.booking)
+      } catch (err) {
+        setError(err.message)
+        setResult(null)
+        setBooking(null)
         setLatency(null)
       } finally {
         setBusy(false)
@@ -106,7 +129,7 @@ export default function AdminDemo() {
               scenario={scenario}
               onScenarioChange={setScenarioId}
               busy={busy}
-              onCall={() => run(scenario.transcript)}
+              onCall={() => runFullLoop(scenario.transcript)}
             />
             <TriageResult
               result={result}
