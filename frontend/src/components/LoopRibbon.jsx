@@ -1,4 +1,4 @@
-import { LOOP_STEPS } from '../lib/loop.js'
+import { LOOP_STEPS, stepsFromEvents } from '../lib/loop.js'
 import { clockLabel, dateTimeLabel } from '../lib/format.js'
 
 const STATE_LABEL = {
@@ -26,11 +26,11 @@ function titleCase(value) {
   return word ? word.charAt(0).toUpperCase() + word.slice(1) : 'Unknown'
 }
 
-function stepState(step, run, busy) {
+function stepState(step, matches, run, busy) {
   if (busy) return 'running'
   if (!run) return 'pending'
   if (step.id === 'action') return run.booking ? 'done' : 'skipped-by-design'
-  return 'done'
+  return matches.length ? 'done' : 'skipped-by-design'
 }
 
 function stepLine(step, run) {
@@ -69,6 +69,8 @@ function stepLine(step, run) {
 }
 
 export default function LoopRibbon({ run, busy }) {
+  const buckets = stepsFromEvents(run ? run.events : [])
+
   return (
     <section
       aria-label="The loop, this run"
@@ -76,7 +78,7 @@ export default function LoopRibbon({ run, busy }) {
     >
       <div className="grid grid-cols-1 divide-y divide-console-line sm:grid-cols-5 sm:divide-x sm:divide-y-0">
         {LOOP_STEPS.map((step, index) => {
-          const state = stepState(step, run, busy)
+          const state = stepState(step, buckets[index].matches, run, busy)
           return (
             <div
               key={step.id}
