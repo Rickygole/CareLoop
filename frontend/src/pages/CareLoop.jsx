@@ -335,7 +335,7 @@ export default function CareLoopPage() {
                                 : 'You said you were feeling fine.'}
                           </p>
                           <p className="mt-1.5 text-sm text-muted">
-                            {actionSentence(item.action_taken)}
+                            {actionSentence(item.action_taken, item.outcome)}
                           </p>
                         </div>
                         {item.tier ? (

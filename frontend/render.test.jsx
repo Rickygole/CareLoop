@@ -1,10 +1,38 @@
-import { render, screen, fireEvent } from '@testing-library/react'
+import { cleanup, render, screen, fireEvent } from '@testing-library/react'
 import { HashRouter } from 'react-router-dom'
-import { expect, test, vi, beforeEach } from 'vitest'
+import { afterEach, expect, test, vi } from 'vitest'
+
+afterEach(cleanup)
+
+const PATIENT = {
+  name: 'Maria Santos',
+  insurance_display_name: 'Aetna',
+  connected_at: '2026-09-19T06:00:00Z',
+  medication_requests: [
+    { medication_id: 'med1', medication: 'Metformin', frequency: 'twice daily', prescriber: 'Dr. Elena Vance' },
+  ],
+  history: [
+    { call_id: 'call_001', timestamp: '2026-09-17T08:02:00Z', outcome: 'answered', symptom_reported: 'mild nausea', tier: 'mild', action_taken: 'logged' },
+    { call_id: 'call_002', timestamp: '2026-09-18T08:02:00Z', outcome: 'no_answer', symptom_reported: null, tier: null, action_taken: 'none' },
+  ],
+}
+
+const PLAN = {
+  next_dose: { medication: 'Metformin', dosage: '500mg', time: '20:00', status: 'upcoming' },
+  doses: [
+    { medication: 'Metformin', dosage: '500mg', medication_id: 'med1', prescriber: 'Dr. Elena Vance', time: '08:00', status: 'taken' },
+    { medication: 'Metformin', dosage: '500mg', medication_id: 'med1', prescriber: 'Dr. Elena Vance', time: '20:00', status: 'upcoming' },
+  ],
+}
 
 vi.mock('./src/lib/api.js', async () => {
   const actual = await vi.importActual('./src/lib/api.js')
-  return { ...actual, health: vi.fn(async () => ({ status: 'ok' })) }
+  return {
+    ...actual,
+    health: vi.fn(async () => ({ status: 'ok' })),
+    connectPatient: vi.fn(async () => ({ patient: PATIENT })),
+    schedule: vi.fn(async () => PLAN),
+  }
 })
 
 import App from './src/App.jsx'
@@ -57,4 +85,18 @@ test('narrator humanizes real payloads', async () => {
   expect(lines[1].text).toMatch(/seen by a clinician/)
   expect(humanizeTimes('offer 2026-09-20T10:00:00Z.')).not.toMatch(/T10/)
   expect(actionSentence('logged')).toBe('CareLoop made a note of it on your record.')
+})
+
+test('portal connects and the prescription list arrives', async () => {
+  render(<HashRouter><App /></HashRouter>)
+  fireEvent.click(screen.getByText('Connect the portal'))
+  fireEvent.click(screen.getByText('Yes, connect my portal'))
+  await screen.findByText('Maria Santos')
+  expect(screen.getByText('Metformin')).toBeTruthy()
+  expect(screen.getByText(/twice daily/)).toBeTruthy()
+  expect(screen.getByText(/mild nausea/)).toBeTruthy()
+  expect(screen.getByText(/did not pick up/)).toBeTruthy()
+  expect(screen.getByText('CareLoop made a note of it on your record.')).toBeTruthy()
+  expect(screen.getByText(/tried again on the next round/)).toBeTruthy()
+  expect(screen.getAllByText('Nothing urgent').length).toBeGreaterThan(0)
 })

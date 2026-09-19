@@ -26,7 +26,10 @@ const ACTIONS = {
   none: 'made a note of it on your record',
 }
 
-export function actionSentence(action) {
+export function actionSentence(action, outcome) {
+  if (String(outcome || '').toLowerCase() === 'no_answer') {
+    return 'CareLoop left it and tried again on the next round.'
+  }
   const key = String(action || '').toLowerCase()
   const phrase = ACTIONS[key] || key.replace(/_/g, ' ')
   return 'CareLoop ' + (phrase || 'made a note of it') + '.'
