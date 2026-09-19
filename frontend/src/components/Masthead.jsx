@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 
 import ApiStatus from './ApiStatus.jsx'
 import { BTN_QUIET } from '../lib/ui.js'
@@ -56,6 +56,9 @@ export default function Masthead() {
                   {DEMO_ACCOUNT.email}
                 </span>
               </p>
+              <Link to="/connect" className={BTN_QUIET}>
+                MyHealth connection
+              </Link>
               <button
                 type="button"
                 onClick={() => {

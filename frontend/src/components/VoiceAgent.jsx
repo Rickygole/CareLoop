@@ -150,14 +150,14 @@ export default function VoiceAgent({ patientId, patientName }) {
     return (
       <section
         aria-label="Voice agent"
-        className="rounded-card border border-dashed border-console-line bg-console-panel/60 p-6"
+        className="rounded-card border border-dashed border-line bg-sunken p-6"
       >
-        <h2 className="font-mono text-2xs font-semibold uppercase tracking-[0.18em] text-console-muted">
+        <h2 className="font-mono text-2xs font-semibold uppercase tracking-[0.18em] text-ink-2">
           Voice agent
         </h2>
-        <p className="mt-2.5 max-w-[62ch] text-sm leading-relaxed text-console-ink-2">
+        <p className="mt-2.5 max-w-[62ch] text-sm leading-relaxed text-ink-2">
           Voice agent not configured. Set{' '}
-          <code className="rounded-[4px] border border-console-line-2 bg-console-inset px-1.5 py-0.5 font-mono text-2xs text-console-ink">
+          <code className="rounded-[4px] border border-line-strong bg-sunken px-1.5 py-0.5 font-mono text-2xs text-ink">
             {AGENT_ID_ENV_VAR}
           </code>{' '}
           to the ElevenLabs Agent ID to enable the live check-in call. See
@@ -174,18 +174,18 @@ export default function VoiceAgent({ patientId, patientName }) {
   return (
     <section
       aria-label="Voice agent"
-      className="relative overflow-hidden rounded-card border border-console-line-2 bg-console-panel p-5"
+      className="relative overflow-hidden rounded-card border border-line-strong bg-surface p-5"
     >
       <span
         aria-hidden="true"
-        className="absolute inset-y-0 left-0 w-[3px] bg-console-accent"
+        className="absolute inset-y-0 left-0 w-[3px] bg-brand"
       />
 
       <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
-        <h2 className="text-sm font-semibold text-console-ink">
+        <h2 className="text-sm font-semibold text-ink">
           CareLoop voice agent
         </h2>
-        <span className="inline-flex items-center gap-2 font-mono text-2xs text-console-ink-2">
+        <span className="inline-flex items-center gap-2 font-mono text-2xs text-ink-2">
           <span
             aria-hidden="true"
             className="size-1.5 rounded-full"
@@ -195,13 +195,13 @@ export default function VoiceAgent({ patientId, patientName }) {
             }}
           />
           {meta.text}
-          {connected && mode ? ' · ' + mode : ''}
+          {connected && mode ? ', ' + mode : ''}
         </span>
       </div>
 
-      <p className="mt-1.5 max-w-[68ch] text-2xs leading-relaxed text-console-muted">
+      <p className="mt-1.5 max-w-[68ch] text-2xs leading-relaxed text-ink-2">
         Agent id{' '}
-        <code className="text-console-ink-2">{getAgentId()}</code>. The
+        <code className="text-ink-2">{getAgentId()}</code>. The
         transcript below is captured client side from the conversation and
         posted to POST /triage on each completed patient turn. No ElevenLabs
         post-call webhook is used.
@@ -209,21 +209,21 @@ export default function VoiceAgent({ patientId, patientName }) {
 
       {status === 'idle' ? (
         <div className="mt-4 flex flex-col gap-3">
-          <p className="rounded-control border border-dark-moderate/25 bg-dark-moderate/8 px-3.5 py-2.5 text-2xs leading-relaxed text-console-ink-2">
+          <p className="rounded-control border border-moderate/25 bg-moderate/8 px-3.5 py-2.5 text-2xs leading-relaxed text-ink-2">
             {MIC_NOTICE}
           </p>
-          <blockquote className="border-l-2 border-console-accent-deep pl-3.5">
-            <p className="font-mono text-micro uppercase text-console-muted">
+          <blockquote className="border-l-2 border-brand pl-3.5">
+            <p className="font-mono text-micro uppercase text-ink-2">
               opening line
             </p>
-            <p className="mt-1.5 text-2xs italic leading-relaxed text-console-ink-2">
+            <p className="mt-1.5 text-2xs italic leading-relaxed text-ink-2">
               {GREETING_PREVIEW}
             </p>
           </blockquote>
           <button
             type="button"
             onClick={handleStart}
-            className="self-start rounded-control bg-console-accent px-5 py-3 text-sm font-semibold uppercase tracking-[0.04em] text-console-accent-ink transition-[background-color,transform] duration-150 ease-out hover:bg-console-accent-deep active:scale-[0.99]"
+            className="self-start rounded-control bg-brand px-5 py-3 text-sm font-semibold uppercase tracking-[0.04em] text-brand-ink transition-[background-color,transform] duration-150 ease-out hover:bg-brand-deep active:scale-[0.99]"
           >
             Start voice check-in
           </button>
@@ -231,7 +231,7 @@ export default function VoiceAgent({ patientId, patientName }) {
       ) : null}
 
       {status === 'connecting' || status === 'ending' ? (
-        <p className="mt-4 font-mono text-xs text-console-muted">
+        <p className="mt-4 font-mono text-xs text-ink-2">
           {status === 'connecting' ? 'Opening the mic...' : 'Closing the call...'}
         </p>
       ) : null}
@@ -242,7 +242,7 @@ export default function VoiceAgent({ patientId, patientName }) {
             type="button"
             onClick={handleStop}
             disabled={busy}
-            className="rounded-control border border-dark-emergency/45 px-4 py-2 text-2xs font-semibold uppercase tracking-[0.04em] text-dark-emergency transition-colors duration-150 hover:bg-dark-emergency/10 disabled:opacity-50"
+            className="rounded-control border border-emergency/45 px-4 py-2 text-2xs font-semibold uppercase tracking-[0.04em] text-emergency transition-colors duration-150 hover:bg-emergency/10 disabled:opacity-50"
           >
             End call
           </button>
@@ -250,13 +250,13 @@ export default function VoiceAgent({ patientId, patientName }) {
       ) : null}
 
       {messages.length ? (
-        <ol className="mt-4 flex max-h-56 flex-col gap-2 overflow-y-auto rounded-control border border-console-line bg-console-inset p-3">
+        <ol className="mt-4 flex max-h-56 flex-col gap-2 overflow-y-auto rounded-control border border-line bg-sunken p-3">
           {messages.map((item) => (
             <li key={item.id} className="font-mono text-xs leading-relaxed">
-              <span className="text-console-muted">
+              <span className="text-ink-2">
                 {item.role === 'user' ? 'patient' : 'agent'}
               </span>{' '}
-              <span className="text-console-ink-2">{item.text}</span>
+              <span className="text-ink-2">{item.text}</span>
             </li>
           ))}
         </ol>
@@ -264,21 +264,21 @@ export default function VoiceAgent({ patientId, patientName }) {
 
       {status === 'error' ? (
         <div className="mt-4 flex flex-col gap-3">
-          <p role="alert" className="font-mono text-xs text-dark-emergency">
+          <p role="alert" className="font-mono text-xs text-emergency">
             [error] {errorMessage || 'The voice session failed.'}
           </p>
           <div className="flex flex-wrap gap-2">
             <button
               type="button"
               onClick={handleStart}
-              className="rounded-control border border-console-line-2 px-4 py-2 text-2xs font-semibold uppercase tracking-[0.04em] text-console-ink transition-colors duration-150 hover:border-console-line-2 hover:bg-console-inset"
+              className="rounded-control border border-line-strong px-4 py-2 text-2xs font-semibold uppercase tracking-[0.04em] text-ink transition-colors duration-150 hover:border-line-strong hover:bg-sunken"
             >
               Retry voice
             </button>
             <button
               type="button"
               onClick={focusTextFallback}
-              className="rounded-control bg-console-accent px-4 py-2 text-2xs font-semibold uppercase tracking-[0.04em] text-console-accent-ink transition-colors duration-150 hover:bg-console-accent-deep"
+              className="rounded-control bg-brand px-4 py-2 text-2xs font-semibold uppercase tracking-[0.04em] text-brand-ink transition-colors duration-150 hover:bg-brand-deep"
             >
               Switch to text check-in
             </button>
@@ -291,7 +291,7 @@ export default function VoiceAgent({ patientId, patientName }) {
           <button
             type="button"
             onClick={handleStart}
-            className="rounded-control border border-console-line-2 px-4 py-2 text-2xs font-semibold uppercase tracking-[0.04em] text-console-ink transition-colors duration-150 hover:bg-console-inset"
+            className="rounded-control border border-line-strong px-4 py-2 text-2xs font-semibold uppercase tracking-[0.04em] text-ink transition-colors duration-150 hover:bg-sunken"
           >
             Call again
           </button>
@@ -299,13 +299,13 @@ export default function VoiceAgent({ patientId, patientName }) {
       ) : null}
 
       {triageBusy ? (
-        <p className="mt-4 font-mono text-xs text-console-muted">
+        <p className="mt-4 font-mono text-xs text-ink-2">
           Running /triage on the last patient turn...
         </p>
       ) : null}
 
       {triageError ? (
-        <p role="alert" className="mt-4 font-mono text-xs text-dark-emergency">
+        <p role="alert" className="mt-4 font-mono text-xs text-emergency">
           [error] {triageError}
         </p>
       ) : null}

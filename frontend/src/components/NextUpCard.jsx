@@ -13,8 +13,8 @@ export default function NextUpCard({ dose }) {
           The next call
         </h2>
         <p className="measure mt-4 text-ink-2">
-          Every dose on today's list is behind you, so CareLoop has no reason to
-          ring today. The next call is tomorrow morning.
+          Every dose on today's list is behind you. The next call is tomorrow
+          morning.
         </p>
       </section>
     )
@@ -28,7 +28,7 @@ export default function NextUpCard({ dose }) {
       className="enter-land ledge-strong rounded-panel border border-line bg-brand-wash px-7 py-8 text-ink sm:px-10 sm:py-9"
     >
       <h2 id="next-call-heading" className="smallcaps text-micro text-brand">
-        CareLoop will phone you at
+        Next call
       </h2>
 
       <p className="mt-5 flex flex-wrap items-baseline gap-x-7 gap-y-4">
@@ -44,10 +44,8 @@ export default function NextUpCard({ dose }) {
       </p>
 
       <p className="measure mt-7 text-ink">
-        It will ask whether you took {dose.medication}
-        {dose.dosage ? ' ' + dose.dosage : ''} and how you are feeling. You did
-        not set this time and you cannot forget it. CareLoop worked it out from
-        the list below.
+        About {dose.medication}
+        {dose.dosage ? ' ' + dose.dosage : ''}.
       </p>
     </section>
   )

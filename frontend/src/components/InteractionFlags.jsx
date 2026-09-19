@@ -107,12 +107,12 @@ export default function InteractionFlags({ regimen, flash }) {
         <p className="measure mt-3 text-sm text-ink-2">{regimen.limitations}</p>
       </div>
 
-      <details className="ledge ledge-night mt-10 overflow-hidden rounded-card border border-console-line bg-console-bg text-console-ink">
-        <summary className="console-scope cursor-pointer list-none px-6 py-6 marker:content-none sm:px-8">
-          <span className="smallcaps text-micro text-console-accent">
+      <details className="ledge mt-10 overflow-hidden rounded-card border border-line bg-sunken text-ink">
+        <summary className="cursor-pointer list-none px-6 py-6 marker:content-none sm:px-8">
+          <span className="smallcaps text-micro text-clay">
             For the clinical team, not shown to the patient
           </span>
-          <span className="mt-2 block text-sm font-semibold text-console-ink">
+          <span className="mt-2 block text-sm font-semibold text-ink">
             {held.length
               ? held.length +
                 (held.length === 1
@@ -122,8 +122,8 @@ export default function InteractionFlags({ regimen, flash }) {
           </span>
         </summary>
 
-        <div className="border-t border-console-line px-6 py-6 sm:px-8">
-          <p className="measure text-sm text-console-ink-2">
+        <div className="border-t border-line px-6 py-6 sm:px-8">
+          <p className="measure text-sm text-ink-2">
             CareLoop only tells a patient about a finding at major severity or
             above. Anything below that is recorded here for the prescriber or
             pharmacist and is never raised on a call.
@@ -134,20 +134,20 @@ export default function InteractionFlags({ regimen, flash }) {
               {held.map((finding) => (
                 <li
                   key={finding.ingredients.join('-')}
-                  className="rounded-card border border-console-line bg-console-panel px-5 py-4"
+                  className="rounded-card border border-line bg-surface px-5 py-4"
                 >
                   <p className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
-                    <span className="smallcaps text-micro text-console-accent">
+                    <span className="smallcaps text-micro text-clay">
                       {severityMeta(finding.severity).word}
                     </span>
-                    <span className="text-sm font-semibold capitalize text-console-ink">
+                    <span className="text-sm font-semibold capitalize text-ink">
                       {pairLabel(finding.ingredients)}
                     </span>
                   </p>
-                  <p className="measure mt-2 text-sm text-console-ink-2">
+                  <p className="measure mt-2 text-sm text-ink-2">
                     {finding.concern}
                   </p>
-                  <p className="measure mt-1.5 text-xs text-console-muted">
+                  <p className="measure mt-1.5 text-xs text-ink-2">
                     Source: {finding.source}.
                   </p>
                 </li>

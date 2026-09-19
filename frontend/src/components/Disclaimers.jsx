@@ -3,19 +3,19 @@ export const DASHBOARD_DISCLAIMER =
 
 export function DashboardFooter() {
   return (
-    <footer className="console-scope border-t border-line bg-console-bg text-console-ink">
-      <div className="hold py-12">
-        <p className="smallcaps text-micro text-console-accent">
+    <footer className="border-t border-line bg-sunken text-ink-2">
+      <div className="hold py-10">
+        <p className="smallcaps text-micro text-clay">
           Please read this
         </p>
         <span
           aria-hidden="true"
-          className="mt-4 block h-px w-full bg-console-line"
+          className="mt-4 block h-px w-full bg-line"
         />
-        <p className="measure mt-6 text-console-ink">
+        <p className="measure mt-6 text-sm text-ink-2">
           {DASHBOARD_DISCLAIMER}
         </p>
-        <p className="measure mt-5 text-sm text-console-ink-2">
+        <p className="measure mt-5 text-sm text-ink-2">
           Every patient, medicine and clinic on this page is made up for the
           demonstration. Nothing here belongs to a real person.
         </p>

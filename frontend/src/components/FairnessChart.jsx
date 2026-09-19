@@ -155,11 +155,11 @@ export default function FairnessChart() {
         </section>
       ) : null}
 
-      <div className="ledge ledge-night mt-12 rounded-card border border-console-line bg-console-bg px-6 py-7 text-console-ink sm:px-9">
-        <p className="smallcaps text-micro text-console-accent">
+      <div className="ledge mt-12 rounded-card border border-line bg-sunken px-6 py-7 text-ink sm:px-9">
+        <p className="smallcaps text-micro text-clay">
           What this does not prove
         </p>
-        <p className="measure mt-4 text-sm text-console-ink-2">{CAPTION}</p>
+        <p className="measure mt-4 text-sm text-ink-2">{CAPTION}</p>
       </div>
     </div>
   )

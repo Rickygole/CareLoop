@@ -23,12 +23,9 @@ export default function DecisionPage() {
 
   if (!run) {
     return (
-      <Screen
-        title="Nothing has been decided yet"
-        lead="When CareLoop has spoken to you, what you said and what it did about it will be here."
-      >
+      <Screen title="Check-in summary" lead="No check-in has been taken yet.">
         <Link to="/call" className={BTN_PRIMARY}>
-          Go to the call and talk to CareLoop
+          Go to the check-in
         </Link>
       </Screen>
     )
@@ -39,10 +36,7 @@ export default function DecisionPage() {
   const history = (record && record.history) || []
 
   return (
-    <Screen
-      title="What CareLoop did about it"
-      lead="You have just been on a check-in call. This is what CareLoop made of your answer, what it did next, and the whole of its working."
-    >
+    <Screen title="Check-in summary">
       <TriageResult
         result={triage}
         latencyMs={run.latencyMs}
@@ -110,7 +104,7 @@ export default function DecisionPage() {
       {history.length ? (
         <section aria-labelledby="history-heading" className="mt-12">
           <h2 id="history-heading" className="display text-2xl text-ink">
-            Calls before this one
+            Earlier check-ins
           </h2>
           <Rule tone="sand" />
           <ul className="mt-8 flex flex-col gap-5">
@@ -146,12 +140,11 @@ export default function DecisionPage() {
 
       <section aria-labelledby="record-heading" className="mt-12">
         <h2 id="record-heading" className="display text-2xl text-ink">
-          The machine record
+          Activity log
         </h2>
         <Rule tone="sand" />
         <p className="measure mt-8 text-ink-2">
-          Nothing is hidden. Every step the system took is written down in the
-          order it happened.
+          Every step of this check-in, in the order it happened.
         </p>
         <TechnicalDetail
           events={events}
