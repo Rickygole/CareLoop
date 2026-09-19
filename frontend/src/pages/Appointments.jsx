@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 
 import Notice from '../components/Notice.jsx'
+import { LoadFailed, Loading } from '../components/LoadState.jsx'
 import Screen from '../components/Screen.jsx'
 import { Rule } from '../components/Block.jsx'
 import { clockLabel, dateTimeLabel } from '../lib/format.js'
@@ -106,7 +107,10 @@ function NotBooked({ visit }) {
 
 export default function AppointmentsPage() {
   const { patientId, connected } = useSession()
-  const { data, loading, failed, reload } = useFollowups(patientId, connected)
+  const { data, loading, failed, failure, reload } = useFollowups(
+    patientId,
+    connected,
+  )
 
   if (!connected) {
     return (
@@ -128,24 +132,14 @@ export default function AppointmentsPage() {
 
   return (
     <Screen title="Appointments">
-      {loading ? (
-        <p aria-live="polite" aria-busy="true" className="text-lg font-semibold text-ink-2">
-          Loading your appointments...
-        </p>
-      ) : null}
+      {loading ? <Loading what="Reading your appointments." /> : null}
 
       {failed ? (
-        <Notice role="alert" tone="alarm" word="Not loaded" className="measure">
-          The appointment list did not load.{' '}
-          <button
-            type="button"
-            onClick={reload}
-            className="inline-flex min-h-[44px] items-center align-middle font-semibold underline"
-          >
-            Try again
-          </button>
-          .
-        </Notice>
+        <LoadFailed
+          what="The appointment list did not load."
+          detail={failure}
+          onRetry={reload}
+        />
       ) : null}
 
       {!loading && !failed && data ? (
@@ -160,7 +154,9 @@ export default function AppointmentsPage() {
             <p className="numeric mt-1 text-sm text-ink-2">{data.payer_id}</p>
             <p className="measure mt-4 text-sm text-ink">
               {booked.length
-                ? 'Every visit below was booked with a provider in network.'
+                ? booked.every((visit) => visit.in_network)
+                  ? 'Every visit below was booked with a provider in network.'
+                  : 'Not every visit below is in network. Each card says which.'
                 : 'No visit has been booked in network yet.'}
             </p>
             {contactWindow ? (

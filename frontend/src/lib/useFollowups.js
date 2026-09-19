@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useState } from 'react'
 
-import { followups } from './api.js'
+import { followups, withTimeout } from './api.js'
 
 export function useFollowups(patientId, enabled) {
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(Boolean(enabled))
   const [failed, setFailed] = useState(false)
+  const [failure, setFailure] = useState('')
 
   const load = useCallback(async () => {
     if (!enabled) {
@@ -14,10 +15,13 @@ export function useFollowups(patientId, enabled) {
     }
     setLoading(true)
     setFailed(false)
+    setFailure('')
     try {
-      setData(await followups(patientId))
-    } catch {
+      setData(await withTimeout((signal) => followups(patientId, signal)))
+    } catch (error) {
+      setData(null)
       setFailed(true)
+      setFailure(error && error.message ? error.message : '')
     } finally {
       setLoading(false)
     }
@@ -27,7 +31,7 @@ export function useFollowups(patientId, enabled) {
     load()
   }, [load])
 
-  return { data, loading, failed, reload: load }
+  return { data, loading, failed, failure, reload: load }
 }
 
 export function bookedVisits(data) {

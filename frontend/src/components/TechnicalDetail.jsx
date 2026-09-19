@@ -86,8 +86,9 @@ export default function TechnicalDetail({ events, status, retries, maxRetries })
           </ol>
         ) : (
           <p className="measure px-4 py-6 font-mono text-trace text-console-muted">
-            Nothing has run yet. Start a check-in and every step the system
-            takes will be recorded here in order.
+            {status === TRACE_STATUS.OFFLINE
+              ? 'The feed is not connected, so nothing can be shown. This is not a statement that nothing has run.'
+              : 'Nothing has run yet. Start a check-in and every step the system takes will be recorded here in order.'}
           </p>
         )}
       </div>

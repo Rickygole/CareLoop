@@ -14,7 +14,7 @@ export default function CallSchedule({ plan, flash }) {
         Every call today
       </h2>
       <p className="mt-2 text-sm text-ink-2">
-        One call for every dose, worked out by CareLoop.
+        One call scheduled for every dose, worked out by CareLoop.
       </p>
 
       {doses.length ? (

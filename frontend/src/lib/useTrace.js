@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
-import { fetchEventsSince, traceSocketUrl } from './api.js'
+import { fetchEventsSince, traceSocketUrl, withTimeout } from './api.js'
 
 const POLL_MS = 500
 const RETRY_MS = 2000
+const POLL_TIMEOUT_MS = 5000
 const MAX_RETRIES = 5
 
 function defaultTransport() {
@@ -70,7 +71,10 @@ export function useTrace() {
       const tick = async () => {
         if (!alive.current || !polling.current) return
         try {
-          const data = await fetchEventsSince(0)
+          const data = await withTimeout(
+            (signal) => fetchEventsSince(0, signal),
+            POLL_TIMEOUT_MS,
+          )
           if (!alive.current || !polling.current) return
           push(data.events || [])
           setStatus((current) =>

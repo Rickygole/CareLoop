@@ -4,8 +4,8 @@ import { Link } from 'react-router-dom'
 import CallSchedule from '../components/CallSchedule.jsx'
 import DemoControls from '../components/DemoControls.jsx'
 import MedicationCard from '../components/MedicationCard.jsx'
+import { LoadFailed, Loading, RefreshFailed } from '../components/LoadState.jsx'
 import NextUpCard from '../components/NextUpCard.jsx'
-import Notice from '../components/Notice.jsx'
 import PortalShared from '../components/PortalShared.jsx'
 import Screen from '../components/Screen.jsx'
 import TimeTravel from '../components/TimeTravel.jsx'
@@ -38,8 +38,14 @@ export default function TodayPage() {
     setClockShiftMs,
   } = useSession()
 
-  const { portal, loading, loadFailed, reload } = usePortal(connected)
-  const { data: visits, failed: visitsFailed } = useFollowups(patientId, connected)
+  const { portal, loading, loadFailed, refreshFailed, failure, reload } =
+    usePortal(connected)
+  const {
+    data: visits,
+    loading: visitsLoading,
+    failed: visitsFailed,
+    reload: reloadVisits,
+  } = useFollowups(patientId, connected)
 
   const plan = useMemo(
     () => applyClockShift(schedule, clockShiftMs),
@@ -80,24 +86,22 @@ export default function TodayPage() {
 
   return (
     <Screen title={who ? 'Today, ' + who : 'Today'} lead={today()}>
-      {loading ? (
-        <p aria-live="polite" aria-busy="true" className="text-lg font-semibold text-ink-2">
-          Loading...
-        </p>
-      ) : null}
+      {loading ? <Loading what="Reading your medicines from MyHealth." /> : null}
 
       {loadFailed ? (
-        <Notice role="alert" tone="alarm" word="Not loaded" className="measure">
-          MyHealth did not answer.{' '}
-          <button
-            type="button"
-            onClick={reload}
-            className="inline-flex min-h-[44px] items-center align-middle font-semibold underline"
-          >
-            Try again
-          </button>
-          .
-        </Notice>
+        <LoadFailed
+          what="MyHealth did not answer, so your medicines were not read."
+          detail={failure}
+          onRetry={reload}
+        />
+      ) : null}
+
+      {refreshFailed ? (
+        <RefreshFailed
+          what="MyHealth did not answer, so this page was not refreshed."
+          detail={failure}
+          onRetry={reload}
+        />
       ) : null}
 
       {!loading && !loadFailed && plan ? (
@@ -146,11 +150,28 @@ export default function TodayPage() {
                       {next.slot_local}
                     </p>
                   </div>
-                ) : visitsFailed ? (
-                  <p className="mt-4 text-sm font-semibold text-severe">
-                    CareLoop could not read your appointments just now, so this
-                    is not a statement that you have none.
+                ) : visitsLoading ? (
+                  <p
+                    aria-live="polite"
+                    aria-busy="true"
+                    className="mt-4 text-sm text-ink-2"
+                  >
+                    Reading your appointments.
                   </p>
+                ) : visitsFailed ? (
+                  <div className="mt-4">
+                    <p className="text-sm font-semibold text-severe">
+                      CareLoop could not read your appointments just now, so
+                      this is not a statement that you have none.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={reloadVisits}
+                      className={BTN_SECONDARY + ' mt-4 w-full'}
+                    >
+                      Try again
+                    </button>
+                  </div>
                 ) : (
                   <p className="mt-4 text-sm text-ink-2">
                     No visit is booked at the moment.

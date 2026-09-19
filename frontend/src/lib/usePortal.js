@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
-import { syncPortal } from './api.js'
+import { syncPortal, withTimeout } from './api.js'
 import { useSession } from './session.jsx'
 
 export function usePortal(enabled) {
@@ -9,6 +9,8 @@ export function usePortal(enabled) {
   const [portal, setPortal] = useState(null)
   const [loading, setLoading] = useState(Boolean(enabled) && !schedule)
   const [loadFailed, setLoadFailed] = useState(false)
+  const [refreshFailed, setRefreshFailed] = useState(false)
+  const [failure, setFailure] = useState('')
   const haveData = useRef(Boolean(schedule))
 
   useEffect(() => {
@@ -17,7 +19,9 @@ export function usePortal(enabled) {
 
   const sync = useCallback(
     async (accept) => {
-      const result = await syncPortal(patientId, Boolean(accept))
+      const result = await withTimeout((signal) =>
+        syncPortal(patientId, Boolean(accept), signal),
+      )
       applyRegimen(result)
       setPortal(result)
       return result
@@ -30,11 +34,16 @@ export function usePortal(enabled) {
       setLoading(false)
       return
     }
+    if (!haveData.current) setLoading(true)
     setLoadFailed(false)
+    setRefreshFailed(false)
+    setFailure('')
     try {
       await sync(false)
-    } catch {
-      if (!haveData.current) setLoadFailed(true)
+    } catch (error) {
+      setFailure(error && error.message ? error.message : '')
+      if (haveData.current) setRefreshFailed(true)
+      else setLoadFailed(true)
     } finally {
       setLoading(false)
     }
@@ -44,5 +53,5 @@ export function usePortal(enabled) {
     reload()
   }, [reload])
 
-  return { portal, loading, loadFailed, reload, sync }
+  return { portal, loading, loadFailed, refreshFailed, failure, reload, sync }
 }

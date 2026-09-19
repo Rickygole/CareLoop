@@ -17,6 +17,19 @@ export const TRACE_TOKEN = import.meta.env.VITE_TRACE_TOKEN || ''
 
 const UNREACHABLE = 'CareLoop could not reach its own service just now.'
 
+export const READ_TIMEOUT_MS = 12000
+export const RUN_TIMEOUT_MS = 30000
+
+export const READ_TIMEOUT_SECONDS = Math.round(READ_TIMEOUT_MS / 1000)
+
+function timedOutMessage(ms) {
+  return (
+    'CareLoop waited ' +
+    Math.round(ms / 1000) +
+    ' seconds for its own service and got no answer.'
+  )
+}
+
 export class ApiError extends Error {
   constructor(message, status, technical) {
     super(message)
@@ -24,6 +37,30 @@ export class ApiError extends Error {
     this.status = status
     this.technical = technical || message
   }
+}
+
+export function withTimeout(run, ms = READ_TIMEOUT_MS) {
+  const controller = new AbortController()
+  const attempt = Promise.resolve().then(() => run(controller.signal))
+  attempt.catch(() => {})
+
+  let timer = null
+  const ceiling = new Promise((resolve, reject) => {
+    timer = setTimeout(() => {
+      controller.abort()
+      const expired = new ApiError(
+        timedOutMessage(ms),
+        0,
+        'no answer within ' + ms + ' ms',
+      )
+      expired.timedOut = true
+      reject(expired)
+    }, ms)
+  })
+
+  return Promise.race([attempt, ceiling]).finally(() => {
+    if (timer) clearTimeout(timer)
+  })
 }
 
 const SESSION_HEADER = 'X-CareLoop-Session'
@@ -72,11 +109,12 @@ async function request(path, options = {}) {
   return response.json()
 }
 
-function post(path, body) {
+function post(path, body, signal) {
   return request(path, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
+    signal,
   })
 }
 
@@ -84,19 +122,23 @@ export function connectPatient(patientId) {
   return post('/portal/connect', { patient_id: patientId })
 }
 
-export function syncPortal(patientId, acceptChanges) {
-  return post('/portal/sync', {
-    patient_id: patientId,
-    accept_portal_changes: Boolean(acceptChanges),
-  })
+export function syncPortal(patientId, acceptChanges, signal) {
+  return post(
+    '/portal/sync',
+    {
+      patient_id: patientId,
+      accept_portal_changes: Boolean(acceptChanges),
+    },
+    signal,
+  )
 }
 
 export function triage(transcript, patientId) {
   return post('/triage', { transcript, patient_id: patientId || null })
 }
 
-export function runLoop(transcript, patientId) {
-  return post('/loop/run', { patient_id: patientId, transcript })
+export function runLoop(transcript, patientId, signal) {
+  return post('/loop/run', { patient_id: patientId, transcript }, signal)
 }
 
 export function regimenState(patientId) {
@@ -117,11 +159,15 @@ export function book(specialty, urgency, patientId) {
 
 export const CALL_TOKEN = import.meta.env.VITE_CALL_TOKEN || ''
 
-export function ringPatient(patientId) {
-  return post(CALL_ENDPOINTS.patient, {
-    patient_id: patientId || null,
-    secret: CALL_TOKEN || null,
-  })
+export function ringPatient(patientId, signal) {
+  return post(
+    CALL_ENDPOINTS.patient,
+    {
+      patient_id: patientId || null,
+      secret: CALL_TOKEN || null,
+    },
+    signal,
+  )
 }
 
 export function ringClinic(patientId, specialty) {
@@ -136,16 +182,16 @@ export function callState(leg) {
   return request('/call/state?leg=' + encodeURIComponent(leg || 'checkin'))
 }
 
-export function followups(patientId) {
-  return request('/followups/' + encodeURIComponent(patientId))
+export function followups(patientId, signal) {
+  return request('/followups/' + encodeURIComponent(patientId), { signal })
 }
 
-export function fetchEventsSince(since) {
-  return request('/trace/events?since=' + since)
+export function fetchEventsSince(since, signal) {
+  return request('/trace/events?since=' + since, { signal })
 }
 
-export function health() {
-  return request('/health')
+export function health(signal) {
+  return request('/health', { signal })
 }
 
 export function traceSocketUrl() {

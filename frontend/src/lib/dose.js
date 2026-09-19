@@ -15,7 +15,7 @@ export const DOSE_STATUS = {
     tone: 'text-ink-2',
   },
   missed: {
-    label: 'Missed',
+    label: 'Not confirmed',
     glyph: String.fromCharCode(9651),
     tone: 'text-severe',
   },

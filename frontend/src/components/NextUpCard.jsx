@@ -13,8 +13,8 @@ export default function NextUpCard({ dose }) {
           The next call
         </h2>
         <p className="measure mt-4 text-ink-2">
-          Every dose on today's list is behind you. The next call is tomorrow
-          morning.
+          Every dose on today's list is behind you. No further call is
+          scheduled for today.
         </p>
       </section>
     )

@@ -17,11 +17,11 @@ function Fact({ label, value }) {
 function bookingSentence(tier, booking) {
   if (booking && booking.confirmed !== false) {
     return (
-      'CareLoop phoned ' +
+      'CareLoop ran the booking call with ' +
       booking.provider_name +
-      ' and booked an appointment for ' +
+      ' and holds an appointment for ' +
       dateTimeLabel(booking.time) +
-      '.'
+      '. The clinic side of that call was simulated.'
     )
   }
   if (tier === 'emergency') {
@@ -104,7 +104,7 @@ export default function TriageResult({ result, latencyMs, booking }) {
             <span className="measure">
               {result.is_crisis
                 ? 'Call or text 988 to reach the Suicide and Crisis Lifeline. CareLoop stays on the line with you.'
-                : 'Call 911 or go to an emergency room now. Your care team has been told.'}
+                : 'Call 911 or go to an emergency room now. Nobody has been notified for you. This prototype cannot contact a person.'}
             </span>
           </p>
         ) : null}

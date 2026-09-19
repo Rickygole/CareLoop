@@ -75,7 +75,7 @@ export default function CheckIn({ busy, error, scenarios, onSubmit }) {
             {busy ? 'CareLoop is calling...' : 'Start the check-in'}
           </button>
           <p className="max-w-[30ch] text-sm text-ink-2">
-            Nothing is stored about you. These are made up records.
+            Your answer is written to a made up patient record, not to you.
           </p>
         </div>
 

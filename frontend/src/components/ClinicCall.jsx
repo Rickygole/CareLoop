@@ -20,7 +20,7 @@ export default function ClinicCall({ events, booking, tier }) {
         <Rule tone="sand" width="w-14" />
         <p className="measure mt-6 text-ink-2">
           {level === 'emergency'
-            ? 'CareLoop never books an appointment for an emergency. An appointment is too slow, so it tells you to get help now and alerts your care team instead.'
+            ? 'CareLoop never books an appointment for an emergency. An appointment is too slow, so it tells you to get help now and records the escalation it would send. Nobody is notified by this prototype.'
             : known
               ? 'CareLoop only rings the clinic when what you said means you should be seen. Nothing you said today needed that, so it did not take up an appointment.'
               : 'CareLoop did not ring the clinic, because it did not reach a decision it was willing to act on. No appointment exists. If you think you should be seen, please phone your clinic yourself.'}
@@ -43,9 +43,10 @@ export default function ClinicCall({ events, booking, tier }) {
       <Rule tone="sand" width="w-14" />
 
       <p className="measure mt-6 text-ink-2">
-        You did not have to phone anyone. CareLoop rang {booking.provider_name},
-        waited for the front desk, and booked the appointment while you got on
-        with your day.
+        You did not have to phone anyone. CareLoop ran the booking call with{' '}
+        {booking.provider_name}, waited for the front desk, and took the time it
+        was offered. The front desk on the other end was simulated, as the note
+        below says.
       </p>
 
       <Notice tone="caution" word="Disclosed on the call" className="mt-7">

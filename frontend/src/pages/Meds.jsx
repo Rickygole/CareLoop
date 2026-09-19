@@ -4,9 +4,9 @@ import { Link } from 'react-router-dom'
 import CallSchedule from '../components/CallSchedule.jsx'
 import DemoControls from '../components/DemoControls.jsx'
 import InteractionFlags from '../components/InteractionFlags.jsx'
+import { LoadFailed, Loading, RefreshFailed } from '../components/LoadState.jsx'
 import MedicationCard from '../components/MedicationCard.jsx'
 import NextUpCard from '../components/NextUpCard.jsx'
-import Notice from '../components/Notice.jsx'
 import PortalShared from '../components/PortalShared.jsx'
 import PortalUpdate from '../components/PortalUpdate.jsx'
 import RegimenSnapshot from '../components/RegimenSnapshot.jsx'
@@ -46,7 +46,8 @@ export default function MedsPage() {
     setClockShiftMs,
   } = useSession()
 
-  const { portal, loading, loadFailed, reload, sync } = usePortal(connected)
+  const { portal, loading, loadFailed, refreshFailed, failure, reload, sync } =
+    usePortal(connected)
 
   const [checking, setChecking] = useState(false)
   const [pulling, setPulling] = useState(false)
@@ -174,28 +175,22 @@ export default function MedsPage() {
 
   return (
     <Screen title="Medications">
-      {loading ? (
-        <p
-          aria-live="polite"
-          aria-busy="true"
-          className="text-lg font-semibold text-ink-2"
-        >
-          Loading...
-        </p>
-      ) : null}
+      {loading ? <Loading what="Reading your medicines from MyHealth." /> : null}
 
       {loadFailed ? (
-        <Notice role="alert" tone="alarm" word="Not loaded" className="measure">
-          MyHealth did not answer.{' '}
-          <button
-            type="button"
-            onClick={reload}
-            className="inline-flex min-h-[44px] items-center align-middle font-semibold underline"
-          >
-            Try again
-          </button>
-          .
-        </Notice>
+        <LoadFailed
+          what="MyHealth did not answer, so your medicines were not read."
+          detail={failure}
+          onRetry={reload}
+        />
+      ) : null}
+
+      {refreshFailed ? (
+        <RefreshFailed
+          what="MyHealth did not answer, so this list was not refreshed."
+          detail={failure}
+          onRetry={reload}
+        />
       ) : null}
 
       {!loading && !loadFailed && plan ? (

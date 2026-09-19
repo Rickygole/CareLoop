@@ -19,9 +19,11 @@ export default function PortalUpdate({
           MyHealth stays the source of truth
         </p>
         <p className="measure mt-4 text-ink">
-          CareLoop read the portal when this page opened
-          {syncedAt ? ' at ' + dateTimeLabel(syncedAt) : ''}. You can ask it to
-          read again.
+          {syncedAt
+            ? 'CareLoop read the portal when this page opened at ' +
+              dateTimeLabel(syncedAt) +
+              '. You can ask it to read again.'
+            : 'CareLoop has not read the portal on this visit. You can ask it to read now.'}
         </p>
 
         <div className="mt-6">

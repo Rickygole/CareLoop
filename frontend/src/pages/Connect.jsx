@@ -84,7 +84,7 @@ export default function ConnectPage() {
   return (
     <Screen
       title="Connect MyHealth"
-      lead="CareLoop reads your medicines from the portal and calls you when a dose is due. You never type a medicine in."
+      lead="CareLoop reads your medicines from the portal and works out when to call you. You never type a medicine in."
     >
       {connected && !syncing ? (
         <div>

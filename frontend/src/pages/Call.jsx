@@ -6,7 +6,7 @@ import Notice from '../components/Notice.jsx'
 import PhoneCallCard from '../components/PhoneCallCard.jsx'
 import Screen from '../components/Screen.jsx'
 import VoicePanel from '../components/VoicePanel.jsx'
-import { ringPatient, runLoop } from '../lib/api.js'
+import { RUN_TIMEOUT_MS, ringPatient, runLoop, withTimeout } from '../lib/api.js'
 import { applyClockShift } from '../lib/clock.js'
 import { clockLabel } from '../lib/format.js'
 import { isConfigured } from '../lib/voice.js'
@@ -17,13 +17,18 @@ import { patientName } from '../data/patients.js'
 const FAILED =
   'CareLoop could not reach the line just now. Nothing was recorded. Send your answer again to retry.'
 
+const TIMED_OUT =
+  'CareLoop waited ' +
+  Math.round(RUN_TIMEOUT_MS / 1000) +
+  ' seconds for an answer from its own service and stopped. Nothing was recorded. Send your answer again to retry.'
+
 export default function CallPage() {
   const navigate = useNavigate()
   const { patientId, record, medications, schedule, clockShiftMs, recordRun } =
     useSession()
 
   const [busy, setBusy] = useState(false)
-  const [failed, setFailed] = useState(false)
+  const [failed, setFailed] = useState('')
 
   const spoken = isConfigured()
   const plan = applyClockShift(schedule, clockShiftMs)
@@ -42,14 +47,17 @@ export default function CallPage() {
   const check = useCallback(
     async (transcript) => {
       setBusy(true)
-      setFailed(false)
+      setFailed('')
       const started = performance.now()
       try {
-        const payload = await runLoop(transcript, patientId)
+        const payload = await withTimeout(
+          (signal) => runLoop(transcript, patientId, signal),
+          RUN_TIMEOUT_MS,
+        )
         recordRun(payload, Math.round(performance.now() - started))
         return payload
-      } catch {
-        setFailed(true)
+      } catch (error) {
+        setFailed(error && error.timedOut ? TIMED_OUT : FAILED)
         return null
       } finally {
         setBusy(false)
@@ -60,7 +68,7 @@ export default function CallPage() {
 
   const ring = useCallback(async () => {
     try {
-      return await ringPatient(patientId)
+      return await withTimeout((signal) => ringPatient(patientId, signal))
     } catch {
       return null
     }
@@ -108,7 +116,7 @@ export default function CallPage() {
         nextDose={next}
         scenarios={SCENARIOS}
         busy={busy}
-        error={failed ? FAILED : null}
+        error={failed || null}
         onReply={check}
         onRing={ring}
       />
@@ -116,7 +124,7 @@ export default function CallPage() {
       {spoken ? (
         <CheckIn
           busy={busy}
-          error={failed ? FAILED : null}
+          error={failed || null}
           scenarios={SCENARIOS}
           onSubmit={start}
         />

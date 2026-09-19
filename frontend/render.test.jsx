@@ -205,7 +205,7 @@ import TriageResult from './src/components/TriageResult.jsx'
 import ClinicCall from './src/components/ClinicCall.jsx'
 import MedicationCard from './src/components/MedicationCard.jsx'
 import SimulatedCall from './src/components/SimulatedCall.jsx'
-import { callState } from './src/lib/api.js'
+import { callState, followups, withTimeout } from './src/lib/api.js'
 import { tierMeta } from './src/components/TierBadge.jsx'
 
 const events = [
@@ -402,7 +402,8 @@ test('no booking claim is made unless a booking came back', () => {
   cleanup()
 
   render(<TriageResult result={{ tier: 'moderate', source: 'llm', suggested_agent_response: 'ok' }} latencyMs={412} booking={{ provider_name: 'Dr Vance', time: '2026-09-21T10:00:00Z' }} />)
-  expect(screen.getByText(/CareLoop phoned Dr Vance and booked an appointment/)).toBeTruthy()
+  expect(screen.getByText(/CareLoop ran the booking call with Dr Vance/)).toBeTruthy()
+  expect(screen.getByText(/The clinic side of that call was simulated/)).toBeTruthy()
 })
 
 test('run pieces render', () => {
@@ -605,6 +606,69 @@ test('the appointments and today sections expose named controls too', async () =
     expect(['BUTTON', 'A']).toContain(control.tagName)
   }
   expect(screen.getByRole('button', { name: /Move the clock to the next dose/ })).toBeTruthy()
+}, 20000)
+
+test('withTimeout turns a hang into a failure and aborts the request', async () => {
+  let seen = null
+  const failure = await withTimeout((signal) => {
+    seen = signal
+    return new Promise(() => {})
+  }, 40).catch((error) => error)
+
+  expect(failure.name).toBe('ApiError')
+  expect(failure.timedOut).toBe(true)
+  expect(failure.message).toMatch(/got no answer/)
+  expect(seen.aborted).toBe(true)
+
+  await expect(withTimeout(async () => 'answered', 1000)).resolves.toBe('answered')
+})
+
+test('a read that hangs ends in a stated failure with a retry that works', async () => {
+  vi.useFakeTimers({ shouldAdvanceTime: true })
+  followups.mockImplementation(() => new Promise(() => {}))
+
+  try {
+    await openSection('Appointments', /Appointments/)
+    expect(screen.getByText(/Reading your appointments/)).toBeTruthy()
+    expect(screen.getByText(/stops waiting and says so/)).toBeTruthy()
+    expect(screen.queryByRole('alert')).toBe(null)
+
+    await vi.advanceTimersByTimeAsync(13000)
+
+    const alarm = await screen.findByRole('alert', {}, { timeout: 4000 })
+    expect(alarm.textContent).toMatch(/The appointment list did not load/)
+    expect(alarm.textContent).toMatch(/got no answer/)
+    expect(alarm.textContent).toMatch(/This is not a statement that your record is empty/)
+    expect(screen.queryByText(/Reading your appointments/)).toBe(null)
+    expect(screen.queryByText(/No visit is booked at the moment/)).toBe(null)
+
+    followups.mockImplementation(async () => FOLLOWUPS)
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
+    await screen.findByText('Dr. Elena Vance', {}, { timeout: 4000 })
+    expect(screen.queryByRole('alert')).toBe(null)
+  } finally {
+    followups.mockImplementation(async () => FOLLOWUPS)
+    vi.useRealTimers()
+  }
+}, 30000)
+
+test('an empty appointment list does not read like a failed one', async () => {
+  followups.mockImplementation(async () => ({
+    ...FOLLOWUPS,
+    booked_count: 0,
+    visits: [],
+  }))
+
+  try {
+    await openSection('Appointments', /Appointments/)
+    await screen.findByText(/No visit is booked at the moment/, {}, { timeout: 4000 })
+    expect(screen.getByText(/No visit has been booked in network yet/)).toBeTruthy()
+    expect(screen.queryByRole('alert')).toBe(null)
+    expect(screen.queryByText(/did not load/)).toBe(null)
+    expect(screen.queryByText(/Reading your appointments/)).toBe(null)
+  } finally {
+    followups.mockImplementation(async () => FOLLOWUPS)
+  }
 }, 20000)
 
 test('the demo account arrives in the fields so no one types a password', () => {

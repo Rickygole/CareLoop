@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 
-import { API_BASE, health } from '../lib/api.js'
+import { API_BASE, health, withTimeout } from '../lib/api.js'
 
 const STATES = {
   checking: {
@@ -34,7 +34,7 @@ export default function ApiStatus({ tone = 'light' }) {
 
     const check = async () => {
       try {
-        await health()
+        await withTimeout((signal) => health(signal), 8000)
         if (alive) setState('ok')
       } catch {
         if (alive) setState('down')

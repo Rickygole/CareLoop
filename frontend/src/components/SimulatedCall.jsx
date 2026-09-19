@@ -29,7 +29,7 @@ const SAFETY =
   'Please do not describe your own real health. This is a demonstration and every record in it is made up.'
 
 const FALLBACK_RESPONSE =
-  'Thank you for telling me. I have passed that on and made a note of it on your record.'
+  'Thank you for telling me. I have made a note of it on your record.'
 
 const RING = String.fromCharCode(9679)
 const DASH = String.fromCharCode(8213)
