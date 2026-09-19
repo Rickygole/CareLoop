@@ -6,7 +6,14 @@ export default function FreeTextTriage({ busy, error, onSubmit }) {
 
   useEffect(() => {
     const onKey = (event) => {
-      if (event.key === '/' && document.activeElement !== input.current) {
+      const active = document.activeElement
+      const typing =
+        active &&
+        (active.tagName === 'INPUT' ||
+          active.tagName === 'TEXTAREA' ||
+          active.tagName === 'SELECT' ||
+          active.isContentEditable)
+      if (event.key === '/' && !typing) {
         event.preventDefault()
         if (input.current) input.current.focus()
       }

@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom'
 import ApiStatus from '../components/ApiStatus.jsx'
 import FairnessChart from '../components/FairnessChart.jsx'
 import FreeTextTriage from '../components/FreeTextTriage.jsx'
+import TraceLegend from '../components/TraceLegend.jsx'
 import TracePanel from '../components/TracePanel.jsx'
 import TriageResult from '../components/TriageResult.jsx'
 import { ConsoleNotice } from '../components/Disclaimers.jsx'
@@ -112,6 +113,7 @@ export default function AdminDemo() {
               bookingBusy={bookingBusy}
               onBook={bookFollowUp}
             />
+            <TraceLegend />
           </div>
 
           <div className="flex min-h-0 flex-col gap-4">
