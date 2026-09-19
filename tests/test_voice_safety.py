@@ -85,3 +85,16 @@ def test_the_greeting_never_reads_another_patient_record_by_accident():
     ).text
     assert "Maria" in said(xml)
     assert "Dorothy" not in said(xml)
+
+
+def test_every_callback_url_in_the_twiml_is_absolute():
+    xml = client.get(
+        "/voice/checkin?patient_id=p1", headers={"X-CareLoop-Session": "absolute-urls"}
+    ).text
+    targets = re.findall(r'(?:action|url)="([^"]+)"', xml)
+    assert targets, "the gather must post somewhere"
+    for target in targets:
+        assert target.startswith("http"), (
+            f"{target} is relative. Twilio resolves it against the host root, which drops "
+            "the /api prefix the deployment routes on, and the caller hears an error."
+        )

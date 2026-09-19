@@ -998,7 +998,9 @@ async def _emit_call_result(session: SessionState, leg: str, to: str, result: di
 
 @app.api_route("/voice/checkin", methods=["GET", "POST"])
 async def voice_checkin(
-    patient_id: str = DEFAULT_DEMO_PATIENT_ID, session: SessionState = Depends(get_session),
+    request: Request,
+    patient_id: str = DEFAULT_DEMO_PATIENT_ID,
+    session: SessionState = Depends(get_session),
 ):
     patient = session.patients.get(patient_id)
     if patient is None:
@@ -1014,7 +1016,7 @@ async def voice_checkin(
             "patient_id": patient_id, "ingredients": flagged,
         })
 
-    action = "/voice/checkin/respond?" + urlencode({
+    action = str(request.base_url).rstrip("/") + "/voice/checkin/respond?" + urlencode({
         "patient_id": patient_id, SESSION_QUERY_PARAM: session.session_id,
     })
     return _twiml(
