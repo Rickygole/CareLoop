@@ -8,7 +8,7 @@ from enum import IntEnum
 from typing import List, Optional
 
 
-DEFAULT_MODEL = "gemini-3.6-flash"
+DEFAULT_MODEL = "gemini-flash-lite-latest"
 
 
 class Severity(IntEnum):
@@ -253,7 +253,7 @@ _LLM_WORD_TO_SEVERITY = {
 
 
 LLM_TIMEOUT_SECONDS = 2.5
-LLM_MAX_OUTPUT_TOKENS = 200
+LLM_MAX_OUTPUT_TOKENS = 1024
 
 
 @dataclass
