@@ -1,6 +1,7 @@
 import asyncio
 import json
 import os
+import re
 import secrets
 import threading
 import time
@@ -50,7 +51,7 @@ from memory import InMemoryBackend, summarize_episode
 import followup
 import portal
 from providers import find_provider, specialties
-from scheduler import build_day_plan
+from scheduler import build_day_plan, clinic_now
 from responses import suggested_response
 from triage_engine import CRISIS_RULES, Severity, detect_emergency, triage
 
@@ -600,6 +601,15 @@ async def run_loop(
     prior_episode = history[-1] if history else None
 
     result = await run_triage(session, body.transcript, body.patient_id)
+
+    if not result["is_crisis"] and not result["is_emergency"]:
+        noted = _record_dose_taken(session, body.patient_id, body.transcript)
+        if noted:
+            await session.bus.emit("DOSE_CONFIRMED", {
+                "patient_id": body.patient_id,
+                "medication_id": noted["medication_id"],
+                "at": noted["timestamp"],
+            })
 
     cross_call_findings = check_cross_call(body.transcript, prior_episode)
     for finding in cross_call_findings:
@@ -1238,6 +1248,15 @@ async def voice_checkin_respond(
     except Exception:
         return _twiml(_fallback_twiml_body(transcript, str(request.base_url)))
 
+    if not result["is_crisis"] and not result["is_emergency"]:
+        noted = _record_dose_taken(session, patient_id, transcript)
+        if noted:
+            await session.bus.emit("DOSE_CONFIRMED", {
+                "patient_id": patient_id,
+                "medication_id": noted["medication_id"],
+                "at": noted["timestamp"],
+            })
+
     if result["is_crisis"]:
         try:
             await _record_voice_escalation(session, patient_id, result)
@@ -1502,6 +1521,47 @@ async def call_start(
     await _emit_call_result(session, "checkin", to, result)
 
     return {"configured": True, **result}
+
+
+TOOK_IT = re.compile(
+    r"\b(took|taken|swallowed)\b|\byes\b|\bdone\b|\ball good\b",
+    re.IGNORECASE,
+)
+DID_NOT_TAKE = re.compile(
+    r"\b(not|haven'?t|have not|didn'?t|did not|skipped|missed|forgot|no)\b",
+    re.IGNORECASE,
+)
+
+
+def _said_they_took_it(transcript: str) -> bool:
+    text = (transcript or "").strip()
+    if not text or DID_NOT_TAKE.search(text):
+        return False
+    return bool(TOOK_IT.search(text))
+
+
+def _record_dose_taken(session: SessionState, patient_id: str, transcript: str) -> Optional[dict]:
+    if not _said_they_took_it(transcript):
+        return None
+    patient = session.patients.get(patient_id)
+    if patient is None:
+        return None
+    dose = build_day_plan(patient)["next_dose"]
+    if not dose or dose["status"] not in ("due_now", "due_soon"):
+        return None
+    entry = {
+        "call_id": "call-" + uuid.uuid4().hex[:8],
+        "timestamp": clinic_now().isoformat(),
+        "outcome": "answered",
+        "taken": True,
+        "medication_id": dose["medication_id"],
+        "dose_hour": int(dose["time"].split(":")[0]),
+        "symptom_reported": None,
+        "tier": "mild",
+        "action_taken": "dose_confirmed",
+    }
+    patient.setdefault("history", []).append(entry)
+    return entry
 
 
 def _remember_booking(
