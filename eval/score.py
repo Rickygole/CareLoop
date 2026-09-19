@@ -72,7 +72,7 @@ Respond with only this JSON object, no other text, keys in this exact order:
 
 NORMALIZE_PROMPT = triage_engine.TIER1_PROMPT
 
-DEFAULT_MODEL = os.environ.get("GEMINI_MODEL", triage_engine.DEFAULT_MODEL)
+DEFAULT_MODEL = os.environ.get("GEMINI_MODEL") or triage_engine.DEFAULT_MODEL
 
 
 def det_rand(*parts):

@@ -180,33 +180,31 @@ rather than calling the model live.
 
 ## Known issue: the pinned model id is unverified
 
-`triage_engine.py` pins `gemini-1.5-flash` as `DEFAULT_MODEL` (overridable
-via the `GEMINI_MODEL` environment variable). As of this writing there is no
-`GEMINI_API_KEY` anywhere in this environment, so this has never been
-confirmed against the live API on the installed SDK
-(`google-generativeai==0.8.6`).
+`triage_engine.py` pins `gemini-3.6-flash` as `DEFAULT_MODEL`, overridable
+with `GEMINI_MODEL` in `.env`.
 
-What was checked without a key: `genai.GenerativeModel("gemini-1.5-flash")`
-constructs without error, but this is purely client-side string handling
-(it just prefixes the name to `models/gemini-1.5-flash`); the SDK does not
-validate a model id against the API until the first `generate_content` call,
-so this proves nothing about whether the id actually resolves.
+This was verified against the live API on 2026-09-19, and the original
+pin was wrong. `gemini-1.5-flash` is retired and returns:
 
-What was also noticed without a key: `google-generativeai` itself now prints
-a `FutureWarning` on import stating that the whole package is deprecated in
-favor of `google.genai`, with no further updates or bug fixes. That is a
-separate risk from the model id question, and worth knowing about
-independent of whether `gemini-1.5-flash` specifically resolves.
+    NotFound: 404 models/gemini-1.5-flash is not found for API version
+    v1beta, or is not supported for generateContent
 
-The moment `GEMINI_API_KEY` is set, run:
+`gemini-2.5-flash` is also gone for new keys, and the API names its own
+replacement in the error text:
 
-```
-/Users/rickygole/Careloop/CareLoop/.venv/bin/python eval/score.py --check-model
-```
+    NotFound: 404 This model models/gemini-2.5-flash is no longer
+    available to new users. Please update your code to use
+    models/gemini-3.6-flash
 
-This makes exactly one real call and reports plainly whether the pinned
-model id resolves, printing the SDK's own exception if it does not. The
-full `eval/score.py` run also performs this same check automatically before
-spending the rest of the call budget, and refuses to proceed if it fails,
-so a bad model id cannot silently turn into 540 failed calls or a
-`results.json` full of unavailable-classifier fallbacks.
+Two traps worth knowing, both of which cost real time here:
+
+`genai.list_models()` lists models that a new key cannot actually call.
+It is not a reliable availability check. The only reliable check is
+issuing a real `generateContent` call, which is what `--check-model`
+does.
+
+An empty environment variable is not an absent one. `GEMINI_MODEL=` with
+no value made `os.environ.get("GEMINI_MODEL", DEFAULT_MODEL)` return the
+empty string rather than the default, and the model name resolved to
+`''`. Both this file's loader and `triage_engine` now use
+`os.environ.get(...) or DEFAULT_MODEL`.

@@ -36,4 +36,4 @@ services:
         type: SECRET
       - key: GEMINI_MODEL
         scope: RUN_TIME
-        value: gemini-1.5-flash
+        value: gemini-3.6-flash

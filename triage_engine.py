@@ -8,7 +8,7 @@ from enum import IntEnum
 from typing import List, Optional
 
 
-DEFAULT_MODEL = "gemini-1.5-flash"
+DEFAULT_MODEL = "gemini-3.6-flash"
 
 
 class Severity(IntEnum):
@@ -306,7 +306,7 @@ def classify_with_llm(transcript: str, model_name: str = None) -> LLMVerdict:
     if not api_key:
         return LLMVerdict(severity=None)
 
-    model_name = model_name or os.environ.get("GEMINI_MODEL", DEFAULT_MODEL)
+    model_name = model_name or os.environ.get("GEMINI_MODEL") or DEFAULT_MODEL
 
     try:
         import google.generativeai as genai
