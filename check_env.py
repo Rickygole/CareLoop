@@ -44,7 +44,7 @@ print()
 if missing_required:
     print(f"Required key(s) missing: {', '.join(missing_required)}")
     print("Tier 0 emergency detection still works without them.")
-    print("Tier 1 will report 'classifier unavailable' and hold at MILD.\n")
+    print("Tier 1 will report 'classifier unavailable' and fail toward MODERATE.\n")
     raise SystemExit(1)
 
 print("Required keys present. Tier 1 is live.\n")
