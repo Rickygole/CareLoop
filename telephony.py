@@ -10,6 +10,7 @@ from typing import List, Optional
 
 TWILIO_API_BASE = "https://api.twilio.com/2010-04-01"
 CALL_TIMEOUT_SECONDS = 10
+RING_SECONDS = 30
 
 REQUIRED_ENV_VARS = [
     "TWILIO_ACCOUNT_SID",
@@ -87,7 +88,13 @@ class CallLimiter:
             _PROCESS_CALL_COUNT += 1
 
 
-def place_call(to: str, twiml_url: Optional[str] = None, twiml: Optional[str] = None) -> dict:
+def place_call(
+    to: str,
+    twiml_url: Optional[str] = None,
+    twiml: Optional[str] = None,
+    status_callback: Optional[str] = None,
+    ring_seconds: int = RING_SECONDS,
+) -> dict:
     missing = missing_env_vars()
     if missing:
         return {"ok": False, "call_sid": None, "error": "not_configured", "missing": missing}
@@ -99,11 +106,15 @@ def place_call(to: str, twiml_url: Optional[str] = None, twiml: Optional[str] = 
     auth_token = _env("TWILIO_AUTH_TOKEN")
     from_number = _env("TWILIO_FROM_NUMBER")
 
-    form = {"To": to, "From": from_number}
+    form = {"To": to, "From": from_number, "Timeout": str(ring_seconds)}
     if twiml_url:
         form["Url"] = twiml_url
     else:
         form["Twiml"] = twiml
+    if status_callback:
+        form["StatusCallback"] = status_callback
+        form["StatusCallbackMethod"] = "POST"
+        form["StatusCallbackEvent"] = "completed"
 
     body = urllib.parse.urlencode(form).encode("utf-8")
     url = f"{TWILIO_API_BASE}/Accounts/{account_sid}/Calls.json"

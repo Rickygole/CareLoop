@@ -32,7 +32,6 @@ function reducedMotion() {
 export default function MedsPage() {
   const {
     patientId,
-    connected,
     record,
     medications,
     schedule,
