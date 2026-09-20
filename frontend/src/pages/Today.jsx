@@ -8,7 +8,7 @@ import { InteractionPin } from '../components/InteractionFlags.jsx'
 import { LoadFailed, Loading, RefreshFailed } from '../components/LoadState.jsx'
 import { applyClockShift } from '../lib/clock.js'
 import { clockLabel } from '../lib/format.js'
-import { BTN_HERO, BTN_SECONDARY, CARD } from '../lib/ui.js'
+import { BTN_HERO, BTN_PRIMARY, BTN_SECONDARY, CARD } from '../lib/ui.js'
 import { callEvents, coversLine, dayLabel, visitGutter } from '../lib/day.js'
 import { flaggedNames, isFlagged, nameKey } from '../lib/flagged.js'
 import { isConfigured as phoneConfigured } from '../lib/telephony.js'
@@ -116,7 +116,7 @@ export default function TodayPage() {
             CareLoop reads the medicine list from the records your insurer
             holds, and works out when to call. You never type a medicine in.
           </p>
-          <Link to="/connect" className={BTN_SECONDARY + ' mt-7'}>
+          <Link to="/connect" className={BTN_PRIMARY + ' mt-7'}>
             Choose your insurance
           </Link>
         </div>

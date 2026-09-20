@@ -1,4 +1,5 @@
 import { Rule } from './Block.jsx'
+import { SECTION } from '../lib/ui.js'
 import { humanizeTimes } from '../lib/narrate.js'
 import { tierMeta } from './TierBadge.jsx'
 
@@ -42,10 +43,10 @@ export default function ClinicCall({ events, booking, tier }) {
     if (!level) return null
     const known = tierMeta(level)
     return (
-      <section aria-labelledby="clinic-heading" className="mt-16">
-        <h3 id="clinic-heading" className="display text-xl text-ink">
+      <section aria-labelledby="clinic-heading" className={SECTION}>
+        <h2 id="clinic-heading" className="display text-2xl text-ink">
           No call to the clinic this time
-        </h3>
+        </h2>
         <Rule />
         <p className="measure mt-6 text-ink-2">
           {level === 'emergency'
@@ -66,10 +67,10 @@ export default function ClinicCall({ events, booking, tier }) {
   const bookedAt = bookingTurnIndex(turns)
 
   return (
-    <section aria-labelledby="clinic-heading" className="mt-16">
-      <h3 id="clinic-heading" className="display text-xl text-ink">
+    <section aria-labelledby="clinic-heading" className={SECTION}>
+      <h2 id="clinic-heading" className="display text-2xl text-ink">
         The call CareLoop made for you
-      </h3>
+      </h2>
       <Rule />
 
       <p className="measure mt-6 text-ink-2">

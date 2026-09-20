@@ -5,7 +5,7 @@ import Screen from '../components/Screen.jsx'
 import { zoneLabel } from '../components/PortalShared.jsx'
 import { Rule } from '../components/Block.jsx'
 import { clockLabel, dateTimeLabel } from '../lib/format.js'
-import { BTN_PRIMARY } from '../lib/ui.js'
+import { BTN_PRIMARY, SECTION } from '../lib/ui.js'
 import { bookedVisits, unbookedVisits, useFollowups } from '../lib/useFollowups.js'
 import { useSession } from '../lib/session.jsx'
 
@@ -252,7 +252,7 @@ export default function AppointmentsPage() {
             <h2 id="coverage-heading" className="smallcaps text-micro text-clay">
               Your insurance
             </h2>
-            <p className="display mt-3 text-2xl text-ink">
+            <p className="display-tight mt-3 text-lg text-ink">
               {data.payer_display || 'No insurance on file'}
             </p>
             <p className="measure mt-4 text-ink">
@@ -268,7 +268,7 @@ export default function AppointmentsPage() {
             <Rule />
           </section>
 
-          <section aria-labelledby="visits-heading" className="mt-12">
+          <section aria-labelledby="visits-heading" className={SECTION}>
             <h2 id="visits-heading" className="display text-2xl text-ink">
               What your prescriber asked for
             </h2>
@@ -290,7 +290,7 @@ export default function AppointmentsPage() {
             )}
           </section>
 
-          <section aria-labelledby="how-heading" className="mt-14">
+          <section aria-labelledby="how-heading" className={SECTION}>
             <h2 id="how-heading" className="display text-2xl text-ink">
               How these were booked
             </h2>

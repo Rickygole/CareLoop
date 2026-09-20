@@ -9,7 +9,7 @@ import TriageResult from '../components/TriageResult.jsx'
 import { Rule } from '../components/Block.jsx'
 import { dateTimeLabel } from '../lib/format.js'
 import { actionSentence, quoted } from '../lib/narrate.js'
-import { BTN_PRIMARY, CARD } from '../lib/ui.js'
+import { BTN_PRIMARY, CARD, LEAD, SECTION } from '../lib/ui.js'
 import { useTrace } from '../lib/useTrace.js'
 import { useSession } from '../lib/session.jsx'
 
@@ -51,7 +51,40 @@ export default function DecisionPage() {
         tier={triage.tier}
       />
 
-      <section aria-labelledby="said-heading" className="mt-12">
+      <section aria-labelledby="next-heading" className={SECTION}>
+        <h2 id="next-heading" className="display text-2xl text-ink">
+          What to do next
+        </h2>
+        <Rule />
+        {tier === 'emergency' ? (
+          <p className={LEAD + ' mt-6'}>
+            No appointment exists and an appointment would be too slow anyway.
+            If you have not already, call 911 now.
+          </p>
+        ) : needsClinic ? (
+          <p className={LEAD + ' mt-6'}>
+            No appointment exists. Any booking call shown above was simulated,
+            and no real clinic was contacted. In a real deployment CareLoop
+            would book you in. Here it cannot, so please telephone your clinic
+            yourself and tell them what you told CareLoop. If this becomes an
+            emergency, call 911.
+          </p>
+        ) : (
+          <p className={LEAD + ' mt-6'}>
+            Nothing was booked, and on this answer nothing needed to be. If
+            anything changes, take another check-in or telephone your clinic.
+          </p>
+        )}
+        <p className="measure mt-5 text-ink-2">
+          CareLoop has written this check-in down on the made up record. It has
+          not told anyone, and nothing in this prototype runs on a timer.
+        </p>
+        <Link to="/" className={BTN_PRIMARY + ' mt-7'}>
+          Back to Today
+        </Link>
+      </section>
+
+      <section aria-labelledby="said-heading" className={SECTION}>
         <h2 id="said-heading" className="display text-2xl text-ink">
           What you said
         </h2>
@@ -82,7 +115,7 @@ export default function DecisionPage() {
         ) : null}
       </section>
 
-      <section aria-labelledby="working-heading" className="mt-12">
+      <section aria-labelledby="working-heading" className={SECTION}>
         <h2 id="working-heading" className="display text-2xl text-ink">
           How it got there
         </h2>
@@ -105,7 +138,7 @@ export default function DecisionPage() {
       </section>
 
       {history.length ? (
-        <section aria-labelledby="history-heading" className="mt-12">
+        <section aria-labelledby="history-heading" className={SECTION}>
           <h2 id="history-heading" className="display text-2xl text-ink">
             Earlier check-ins on this made up record
           </h2>
@@ -148,40 +181,7 @@ export default function DecisionPage() {
         </section>
       ) : null}
 
-      <section aria-labelledby="next-heading" className="mt-12">
-        <h2 id="next-heading" className="display text-2xl text-ink">
-          What to do next
-        </h2>
-        <Rule />
-        <p className="measure mt-6 text-ink-2">
-          CareLoop has written this check-in down on the made up record. It has
-          not told anyone, and nothing in this prototype runs on a timer.
-        </p>
-        {tier === 'emergency' ? (
-          <p className="measure mt-4 text-ink-2">
-            No appointment exists and an appointment would be too slow anyway.
-            If you have not already, call 911 now.
-          </p>
-        ) : needsClinic ? (
-          <p className="measure mt-4 text-ink-2">
-            No appointment exists. Any booking call shown above was simulated,
-            and no real clinic was contacted. In a real deployment CareLoop
-            would book you in. Here it cannot, so please telephone your clinic
-            yourself and tell them what you told CareLoop. If this becomes an
-            emergency, call 911.
-          </p>
-        ) : (
-          <p className="measure mt-4 text-ink-2">
-            Nothing was booked, and on this answer nothing needed to be. If
-            anything changes, take another check-in or telephone your clinic.
-          </p>
-        )}
-        <Link to="/" className={BTN_PRIMARY + ' mt-7'}>
-          Back to Today
-        </Link>
-      </section>
-
-      <section aria-labelledby="record-heading" className="mt-12">
+      <section aria-labelledby="record-heading" className={SECTION}>
         <h2 id="record-heading" className="display text-2xl text-ink">
           Activity log
         </h2>
