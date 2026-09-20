@@ -3,7 +3,6 @@ import { Link, useNavigate } from 'react-router-dom'
 
 import Masthead from '../components/Masthead.jsx'
 import Notice from '../components/Notice.jsx'
-import { DashboardFooter } from '../components/Disclaimers.jsx'
 import { BTN_HERO, FIELD, LINK, LINK_INLINE } from '../lib/ui.js'
 import { useSession } from '../lib/session.jsx'
 import { DEMO_ACCOUNT, matchesDemoSignUp } from '../data/demoAccount.js'
@@ -172,8 +171,6 @@ export default function SignUpPage() {
           </div>
         </div>
       </main>
-
-      <DashboardFooter />
     </div>
   )
 }

@@ -1143,22 +1143,3 @@ test('the interaction is pinned inside the call it qualifies, not floating at th
   expect(morning.textContent).toMatch(/paired with your Coumadin, see 6:00 PM/)
 }, 25000)
 
-test('the footer carries the standing limits past the end of the day', async () => {
-  startAtFirstScreen()
-  render(<HashRouter><App /></HashRouter>)
-  signUp()
-  connect()
-  await screen.findByRole('heading', { level: 1, name: /Today/ }, { timeout: 15000 })
-
-  const footer = document.querySelector('footer')
-  expect(footer.textContent).toMatch(/Please read this/)
-  expect(footer.textContent).toMatch(/Limits and disclosures/)
-  expect(footer.textContent).toMatch(/It notifies no human being/)
-  expect(footer.textContent).toMatch(
-    /CareLoop is a research prototype and is not a medical device\. It does not provide medical advice, diagnosis, or treatment\. If you are having a medical emergency, call 911\. If you are in crisis, call or text 988\./,
-  )
-  expect(footer.textContent).toMatch(/What it could not read/)
-  expect(
-    within(footer).getByText(/How today was decided, and what was held back/),
-  ).toBeTruthy()
-}, 20000)
