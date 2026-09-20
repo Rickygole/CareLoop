@@ -323,7 +323,7 @@ test('signing up lands on the insurance step and nothing is locked', async () =>
   expect(screen.getByText(/No membership is checked and no insurer is contacted/)).toBeTruthy()
 
   const tabs = screen.getByRole('navigation', { name: 'Sections' })
-  for (const label of ['Today', 'Medications', 'Check-in', 'Appointments', 'Safety']) {
+  for (const label of ['Today', 'Medications', 'Check-in', 'Appointments']) {
     expect(within(tabs).getByText(label)).toBeTruthy()
   }
   expect(within(tabs).queryByText('Locked')).toBe(null)

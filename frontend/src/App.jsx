@@ -6,7 +6,6 @@ import CallPage from './pages/Call.jsx'
 import ConnectPage from './pages/Connect.jsx'
 import DecisionPage from './pages/Decision.jsx'
 import MedsPage from './pages/Meds.jsx'
-import SafetyPage from './pages/Safety.jsx'
 import SignInPage from './pages/SignIn.jsx'
 import SignUpPage from './pages/SignUp.jsx'
 import TodayPage from './pages/Today.jsx'
@@ -25,9 +24,8 @@ export default function App() {
           <Route path="/call" element={<CallPage />} />
           <Route path="/decision" element={<DecisionPage />} />
           <Route path="/appointments" element={<AppointmentsPage />} />
-          <Route path="/safety" element={<SafetyPage />} />
         </Route>
-        <Route path="/evidence" element={<Navigate to="/safety" replace />} />
+        <Route path="/evidence" element={<Navigate to="/" replace />} />
         <Route path="/dashboard" element={<Navigate to="/" replace />} />
         <Route path="/admin-demo" element={<Navigate to="/" replace />} />
         <Route path="*" element={<Navigate to="/" replace />} />

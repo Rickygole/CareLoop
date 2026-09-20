@@ -3,7 +3,6 @@ export const TABS = [
   { path: '/meds', label: 'Medications' },
   { path: '/call', label: 'Check-in' },
   { path: '/appointments', label: 'Appointments' },
-  { path: '/safety', label: 'Safety' },
 ]
 
 const TITLES = {
@@ -11,7 +10,6 @@ const TITLES = {
   '/meds': 'Medications',
   '/call': 'Check-in',
   '/appointments': 'Appointments',
-  '/safety': 'Safety',
   '/connect': 'Insurance and records',
   '/decision': 'Check-in summary',
 }
