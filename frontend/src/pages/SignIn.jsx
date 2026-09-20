@@ -43,7 +43,7 @@ export default function SignInPage() {
       <Masthead />
 
       <main id="main" className="hold pb-10 pt-8">
-        <div className="max-w-[34rem]">
+        <div className="mx-auto max-w-[34rem]">
           <h1 className="display text-3xl text-ink">Sign in to CareLoop</h1>
           <p className="measure mt-3 text-ink-2">
             Demonstration sign-in. The only account this demonstration has is

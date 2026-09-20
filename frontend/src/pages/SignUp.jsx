@@ -51,7 +51,7 @@ export default function SignUpPage() {
       <Masthead />
 
       <main id="main" className="hold pb-10 pt-8">
-        <div className="max-w-[34rem]">
+        <div className="mx-auto max-w-[34rem]">
           <h1 className="display text-3xl text-ink">
             Sign up for the CareLoop demonstration
           </h1>
