@@ -1342,7 +1342,7 @@ def _loop_back(base_url: str, patient_id: str, session_id: str, said: str, closi
 
 async def _keep_talking(
     session: SessionState, patient: dict, patient_id: str, base_url: str, lead: str = "",
-    ask_model: bool = True,
+    ask_model: bool = True, transcript: str = "",
 ) -> str:
     first_name = _first_name(patient)
     closing = _say(CHECKIN_CLOSING.format(patient_first_name=first_name)) + "<Hangup/>"
@@ -1350,6 +1350,9 @@ async def _keep_talking(
     def hang_up(text: str) -> str:
         _remember_turn(session, patient_id, "agent", text)
         return (_say(text) if text else "") + closing
+
+    if ask_model and _wants_to_end_call(transcript):
+        return hang_up(lead)
 
     if not ask_model:
         if not conversation.is_configured() or _agent_turns(session, patient_id) >= conversation.MAX_TURNS:
@@ -1716,6 +1719,7 @@ async def voice_checkin_respond(
 
     return _twiml(await _keep_talking(
         session, patient, patient_id, str(request.base_url), result["suggested_agent_response"],
+        transcript=transcript,
     ))
 
 
@@ -2092,6 +2096,22 @@ def _requests_appointment(transcript: str) -> bool:
     if BOOKING_NO.search(scrubbed) or NEGATED_YES.search(scrubbed):
         return False
     return bool(BOOKING_REQUEST.search(text))
+
+
+END_CALL_REQUEST = re.compile(
+    r"\b(bye|goodbye|good bye|talk to you later|gotta go|got to go)\b|"
+    r"\b(that'?s|that is) (all|it)\b|"
+    r"\bnothing else\b|"
+    r"\bi'?m (good|done)\b|\bi am (good|done)\b",
+    re.IGNORECASE,
+)
+
+
+def _wants_to_end_call(transcript: str) -> bool:
+    text = (transcript or "").strip()
+    if not text:
+        return False
+    return bool(END_CALL_REQUEST.search(text))
 
 
 def _remember_booking(

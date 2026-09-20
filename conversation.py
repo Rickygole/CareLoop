@@ -131,6 +131,11 @@ def build_context(patient: dict, dose: Optional[dict], flagged: Optional[List[st
             " on their list. You may say it is worth asking their prescriber or "
             "pharmacist about. You must not say what to do about it."
         )
+    else:
+        lines.append(
+            "An interaction check has been run against their current medicine "
+            "list and found nothing worth flagging."
+        )
     return "\n".join(lines)
 
 

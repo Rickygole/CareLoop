@@ -195,6 +195,27 @@ def test_the_model_is_not_asked_to_narrate_over_a_booking_it_did_not_make(monkey
     assert "booked you with" in xml
 
 
+def test_saying_bye_ends_the_call_without_asking_the_model(talking):
+    xml = speak("conv-bye", "okay, bye")
+    assert not talking, "the model decides whether to keep talking on its own timing, so ending the call on a farewell must not depend on it"
+    assert "<Hangup" in xml
+    assert "<Gather" not in xml
+
+
+def test_a_flagged_regimen_is_disclosed_in_the_models_context():
+    context = conversation.build_context(
+        {"name": "Test", "medication_requests": []}, None, ["warfarin", "aspirin"],
+    )
+    assert "flagged warfarin and aspirin" in context
+
+
+def test_an_unflagged_regimen_tells_the_model_the_check_came_back_clean():
+    context = conversation.build_context(
+        {"name": "Test", "medication_requests": []}, None, None,
+    )
+    assert "found nothing worth flagging" in context
+
+
 def test_declining_the_offer_also_skips_the_model(monkeypatch):
     monkeypatch.setattr(conversation, "is_configured", lambda: True)
     calls = []
