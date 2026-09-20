@@ -11,7 +11,7 @@ function transportLabel(status, retries, maxRetries) {
     case TRACE_STATUS.LIVE:
       return 'live feed'
     case TRACE_STATUS.POLLING:
-      return 'checking every half second'
+      return 'updating automatically'
     case TRACE_STATUS.RECONNECTING:
       return 'reconnecting, attempt ' + retries + ' of ' + maxRetries
     case TRACE_STATUS.OFFLINE:

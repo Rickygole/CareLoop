@@ -733,7 +733,9 @@ test('a read that hangs ends in a stated failure with a retry that works', async
     expect(alarm.textContent).toMatch(/got no answer/)
     expect(alarm.textContent).toMatch(/does not mean your record is empty/)
     expect(screen.queryByText(/Reading your appointments/)).toBe(null)
-    expect(screen.queryByText(/No visit is booked at the moment/)).toBe(null)
+    expect(
+      screen.queryByText(/Nothing is on file from your prescriber/),
+    ).toBe(null)
 
     followups.mockImplementation(async () => FOLLOWUPS)
     fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
@@ -754,7 +756,11 @@ test('an empty appointment list does not read like a failed one', async () => {
 
   try {
     await openSection('Appointments', /Appointments/)
-    await screen.findByText(/No visit is booked at the moment/, {}, { timeout: 4000 })
+    await screen.findByText(
+      /Nothing is on file from your prescriber/,
+      {},
+      { timeout: 4000 },
+    )
     expect(screen.getByText(/No visit has been booked in network yet/)).toBeTruthy()
     expect(screen.queryByRole('alert')).toBe(null)
     expect(screen.queryByText(/did not load/)).toBe(null)

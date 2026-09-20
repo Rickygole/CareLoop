@@ -54,6 +54,21 @@ function coveredLine(event) {
   )
 }
 
+function unconfirmedLine(missedDoses) {
+  if (!missedDoses.length) return ''
+  const times = []
+  for (const dose of missedDoses) {
+    const label = clockLabel(dose.time)
+    if (!times.includes(label)) times.push(label)
+  }
+  const doseWord = missedDoses.length === 1 ? 'dose' : 'doses'
+  const verb = missedDoses.length === 1 ? 'was' : 'were'
+  if (times.length === 1) {
+    return 'Your ' + times[0] + ' ' + doseWord + ' ' + verb + ' never confirmed to CareLoop.'
+  }
+  return 'Doses from earlier today were never confirmed to CareLoop.'
+}
+
 function attentionLine(notConfirmed, flagged) {
   const parts = []
   if (notConfirmed) {
@@ -183,9 +198,10 @@ export default function TodayPage() {
   const closing = nextIndex === -1 && events.length > 0
   const nextEvent = nextIndex === -1 ? null : events[nextIndex]
   const gutter = visit ? visitGutter(visit) : null
-  const notConfirmed = ((plan && plan.doses) || []).filter(
+  const missedDoses = ((plan && plan.doses) || []).filter(
     (dose) => dose.status === 'missed',
-  ).length
+  )
+  const notConfirmed = missedDoses.length
   const flaggedCount = ((regimen && regimen.surfaced) || []).length
   const needsYou = notConfirmed + flaggedCount
 
@@ -252,7 +268,7 @@ export default function TodayPage() {
                   needsYou
                     ? flaggedCount
                       ? 'What the pair is, and where it came from, is set out under Medications.'
-                      : 'A dose from earlier today was never confirmed to CareLoop.'
+                      : unconfirmedLine(missedDoses)
                     : 'Every dose so far is confirmed, and no pair on your list is flagged.'
                 }
               >
