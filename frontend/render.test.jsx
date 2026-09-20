@@ -628,6 +628,49 @@ test('the written stand-in says what the phone call says', async () => {
   expect(screen.getByText('Call my phone now').closest('button').disabled).toBe(true)
 }, 10000)
 
+test('an unanswered follow-up offer never reads like a settled thank-you', async () => {
+  const onReply = vi.fn(async () => ({
+    triage: {
+      is_crisis: false,
+      is_emergency: false,
+      suggested_agent_response:
+        "I'm sorry to hear that. I'd like to get you a follow-up appointment to look into this, would that be okay?",
+    },
+    booking: null,
+    booking_offered: true,
+    booking_pending: true,
+  }))
+
+  render(
+    <HashRouter>
+      <SimulatedCall
+        patientName="Maria Santos"
+        nextDose={NEXT_DOSE}
+        scenarios={SCENARIOS}
+        busy={false}
+        error={null}
+        onReply={onReply}
+        onRing={async () => ({ call_sid: 'CA9' })}
+      />
+    </HashRouter>,
+  )
+
+  fireEvent.click(screen.getByText('Read the check-in in writing'))
+  await screen.findByText(/let me know once you have taken it/, {}, { timeout: 4000 })
+
+  fireEvent.click(screen.getByText('Dizzy and swollen'))
+  const send = await screen.findByRole(
+    'button',
+    { name: 'Send my answer' },
+    { timeout: 4000 },
+  )
+  fireEvent.click(send)
+
+  await screen.findByText(/would that be okay/, {}, { timeout: 4000 })
+  await screen.findByText(/That offer is still open/, {}, { timeout: 4000 })
+  expect(screen.queryByText(/Thank you, Maria\. I have made a note of that/)).toBe(null)
+}, 10000)
+
 function accessibleName(element) {
   const label = element.getAttribute('aria-label')
   return String(label || element.textContent || '').trim()

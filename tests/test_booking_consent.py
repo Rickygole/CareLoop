@@ -43,6 +43,38 @@ def test_the_offer_alone_never_books():
     assert "would that be okay" in body["triage"]["suggested_agent_response"]
 
 
+def test_an_unanswered_offer_is_flagged_pending_so_the_transcript_never_fakes_a_close():
+    session = "consent-offer-pending"
+    offered = written(session, WORRYING)
+    assert offered["booking_pending"] is True, (
+        "an offer with no patient answer yet must be flagged pending so a "
+        "caller cannot mistake it for a settled exchange"
+    )
+
+    proposed = written(session, "yes")
+    assert proposed["booking"] is None
+    assert proposed["booking_pending"] is True, (
+        "a proposed slot the patient has not yet accepted is still an open "
+        "question, not a closed one"
+    )
+
+    booked = written(session, "yes")
+    assert booked["booking"]
+    assert booked["booking_pending"] is False, (
+        "once the appointment is actually booked, nothing is left pending"
+    )
+
+
+def test_a_decline_leaves_nothing_pending():
+    body = written("consent-decline-pending", WORRYING)
+    assert body["booking_pending"] is True
+    declined = written("consent-decline-pending", "no thanks")
+    assert declined["booking"] is None
+    assert declined["booking_pending"] is False, (
+        "a clear refusal resolves the offer, it must not still read as pending"
+    )
+
+
 @pytest.mark.parametrize("agreement", [
     "yes", "yes that works", "sure", "okay", "sounds good", "please do",
     "go ahead", "book it",
