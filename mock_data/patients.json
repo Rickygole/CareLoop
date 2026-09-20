@@ -79,16 +79,7 @@
           "indication": "to support your thyroid"
         }
       ],
-      "care_plan_notes": [
-        {
-          "note_id": "cpn1",
-          "authored_on": "2026-06-22",
-          "prescriber": "Dr. Elena Vance",
-          "specialty": "Endocrinology",
-          "status": "active",
-          "text": "Continue metformin 500mg twice daily. Recheck A1c in 3 months with a metabolic panel for kidney function."
-        }
-      ],
+      "care_plan_notes": [],
       "history": [
         {
           "call_id": "call_001",

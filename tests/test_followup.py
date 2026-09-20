@@ -22,6 +22,19 @@ def load_patient(patient_id):
     return next(p for p in patients if p["patient_id"] == patient_id)
 
 
+def p1_with_endocrinology_note():
+    patient = load_patient("p1")
+    patient["care_plan_notes"] = [{
+        "note_id": "cpn1",
+        "authored_on": "2026-06-22",
+        "prescriber": "Dr. Elena Vance",
+        "specialty": "Endocrinology",
+        "status": "active",
+        "text": "Continue metformin 500mg twice daily. Recheck A1c in 3 months with a metabolic panel for kidney function.",
+    }]
+    return patient
+
+
 def make_patient(payer_id, notes, name="Test Patient"):
     return {
         "patient_id": "ptest",
@@ -96,7 +109,7 @@ def test_due_date_is_none_without_an_interval():
 
 
 def test_booked_visit_uses_an_in_network_provider_at_or_after_the_due_date():
-    visits = followup.plan_followups(load_patient("p1"), TODAY)
+    visits = followup.plan_followups(p1_with_endocrinology_note(), TODAY)
     visit = next(v for v in visits if v["note_id"] == "cpn1")
 
     assert visit["status"] == "booked"
@@ -216,7 +229,7 @@ def test_no_reminders_remain_once_the_visit_is_under_way():
 
 def test_same_day_reminder_keeps_a_lead_before_an_early_visit():
     visit = next(
-        v for v in followup.plan_followups(load_patient("p1"), TODAY)
+        v for v in followup.plan_followups(p1_with_endocrinology_note(), TODAY)
         if v["note_id"] == "cpn1"
     )
     same_day = next(
@@ -267,7 +280,7 @@ def test_spoken_reminder_names_the_patient_provider_time_and_discloses_automatio
 
 def test_spoken_reminder_says_tomorrow_or_today_by_kind():
     visit = next(
-        v for v in followup.plan_followups(load_patient("p1"), TODAY)
+        v for v in followup.plan_followups(p1_with_endocrinology_note(), TODAY)
         if v["note_id"] == "cpn1"
     )
 
@@ -287,7 +300,7 @@ def test_spoken_reminder_stays_inside_the_call_budget():
 
 def test_plan_with_reminders_wires_visits_and_calls_together():
     plans = followup.plan_with_reminders(
-        load_patient("p1"), TODAY, local(2026, 9, 19, 9, 0)
+        p1_with_endocrinology_note(), TODAY, local(2026, 9, 19, 9, 0)
     )
 
     assert len(plans) == 1
@@ -297,18 +310,24 @@ def test_plan_with_reminders_wires_visits_and_calls_together():
 
 def test_care_plan_notes_are_demo_ready():
     known = set(specialties())
-    booked_today = 0
-    for patient_id in ("p1", "p2"):
-        patient = load_patient(patient_id)
-        notes = patient["care_plan_notes"]
-        assert notes
-        for note in notes:
-            assert note["specialty"] in known
-            assert followup.parse_interval(note["text"]) is not None
-        booked_today += sum(
-            1 for v in followup.plan_followups(patient, TODAY) if v["status"] == "booked"
-        )
+    patient = load_patient("p2")
+    notes = patient["care_plan_notes"]
+    assert notes
+    for note in notes:
+        assert note["specialty"] in known
+        assert followup.parse_interval(note["text"]) is not None
+    booked_today = sum(
+        1 for v in followup.plan_followups(patient, TODAY) if v["status"] == "booked"
+    )
     assert booked_today >= 1
+
+
+def test_p1_starts_with_no_care_plan_notes_for_the_live_booking_demo():
+    patient = load_patient("p1")
+    assert patient["care_plan_notes"] == [], (
+        "p1 is the patient used to demonstrate a follow-up being booked live "
+        "on a call, so it must not already have a pre-planned appointment"
+    )
 
 
 def test_module_and_data_stay_ascii():
@@ -471,7 +490,7 @@ def test_spoken_reminder_drops_the_dosing_clause_but_keeps_the_purpose():
 
 def test_spoken_reminder_drops_a_whole_dosing_sentence():
     visit = next(
-        v for v in followup.plan_followups(load_patient("p1"), TODAY)
+        v for v in followup.plan_followups(p1_with_endocrinology_note(), TODAY)
         if v["note_id"] == "cpn1"
     )
     line = followup.spoken_reminder(visit, "same_day", "Maria")

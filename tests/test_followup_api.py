@@ -52,7 +52,7 @@ def booked_visits(patient_id, session):
 
 
 def test_followups_books_a_visit_from_a_prescriber_note():
-    body = client.get("/followups/p1", headers=headers("fu-book")).json()
+    body = client.get("/followups/p2", headers=headers("fu-book")).json()
     assert body["booked_count"] >= 1
     visit = next(v for v in body["visits"] if v["status"] == followup.STATUS_BOOKED)
     assert visit["provider_name"]
@@ -62,7 +62,7 @@ def test_followups_books_a_visit_from_a_prescriber_note():
 
 
 def test_a_booked_visit_carries_both_reminder_calls():
-    visit = booked_visits("p1", "fu-reminders")[0]
+    visit = booked_visits("p2", "fu-reminders")[0]
     kinds = [r["kind"] for r in visit["reminders"]]
     assert followup.KIND_DAY_BEFORE in kinds
     assert followup.KIND_SAME_DAY in kinds
@@ -98,9 +98,9 @@ def test_an_unknown_patient_is_rejected():
 
 @pytest.mark.parametrize("kind", [followup.KIND_DAY_BEFORE, followup.KIND_SAME_DAY])
 def test_the_reminder_call_says_who_what_and_when(kind):
-    visit = booked_visits("p1", f"fu-voice-{kind}")[0]
+    visit = booked_visits("p2", f"fu-voice-{kind}")[0]
     xml = client.get(
-        f"/voice/reminder?patient_id=p1&note_id={visit['note_id']}&kind={kind}",
+        f"/voice/reminder?patient_id=p2&note_id={visit['note_id']}&kind={kind}",
         headers=headers(f"fu-voice-{kind}"),
     ).text
     spoken = said(xml)
@@ -111,9 +111,9 @@ def test_the_reminder_call_says_who_what_and_when(kind):
 
 
 def test_the_reminder_call_never_changes_a_medicine():
-    visit = booked_visits("p1", "fu-noadvice")[0]
+    visit = booked_visits("p2", "fu-noadvice")[0]
     xml = client.get(
-        f"/voice/reminder?patient_id=p1&note_id={visit['note_id']}&kind=day_before",
+        f"/voice/reminder?patient_id=p2&note_id={visit['note_id']}&kind=day_before",
         headers=headers("fu-noadvice"),
     ).text
     assert "Nothing about your medicines changes" in said(xml)
@@ -130,7 +130,7 @@ def test_a_reminder_for_an_unknown_note_does_not_invent_an_appointment():
 def test_placing_a_reminder_call_dials_only_the_demo_number(configured, dialled):
     r = client.post(
         "/call/reminder",
-        json=gated({"patient_id": "p1", "kind": "day_before"}),
+        json=gated({"patient_id": "p2", "kind": "day_before"}),
         headers=headers("fu-call"),
     )
     assert r.status_code == 200
@@ -140,7 +140,7 @@ def test_placing_a_reminder_call_dials_only_the_demo_number(configured, dialled)
 
 
 def test_a_reminder_call_picks_the_booked_visit_when_no_note_is_named(configured, dialled):
-    r = client.post("/call/reminder", json=gated({"patient_id": "p1"}), headers=headers("fu-call-auto"))
+    r = client.post("/call/reminder", json=gated({"patient_id": "p2"}), headers=headers("fu-call-auto"))
     assert r.status_code == 200
     assert r.json()["note_id"]
 
@@ -150,7 +150,7 @@ def test_reminder_calls_are_rate_limited(configured, dialled):
     codes = []
     for _ in range(telephony.PER_MINUTE_LIMIT + 2):
         codes.append(
-            client.post("/call/reminder", json=gated({"patient_id": "p1"}), headers=session).status_code
+            client.post("/call/reminder", json=gated({"patient_id": "p2"}), headers=session).status_code
         )
     assert 429 in codes
 
