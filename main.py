@@ -961,6 +961,7 @@ async def run_loop(
         "plan": plan,
         "booking": booking,
         "booking_offered": booking_offered,
+        "booking_pending": body.patient_id in session.pending_bookings,
         "prior_episode": prior_episode,
         "cross_call_findings": cross_call_findings,
         "escalation": escalation_record,

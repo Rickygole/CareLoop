@@ -144,7 +144,7 @@ function bookingLine(booking) {
   )
 }
 
-function closingLine(triage, first) {
+function closingLine(triage, first, bookingPending) {
   if (triage.is_crisis) {
     return (
       'I am staying on the line with you. I am not going to hang up. If you ' +
@@ -154,6 +154,16 @@ function closingLine(triage, first) {
   }
   if (triage.is_emergency) {
     return 'Please do that now. I am ending this call so your line is free.'
+  }
+  if (bookingPending) {
+    return (
+      'I have not heard back from you on that, ' +
+      first +
+      ', so I have not booked anything yet. That offer is still open. Start ' +
+      'another written check-in to say yes or no, or call your clinic ' +
+      'yourself if you would rather not wait. In the meantime, please keep ' +
+      'taking your medication as your prescriber directed.'
+    )
   }
   return (
     'Thank you, ' +
@@ -338,6 +348,7 @@ export default function SimulatedCall({
       }
       const triage = payload.triage || {}
       const booking = payload.booking
+      const bookingPending = Boolean(payload.booking_pending) && !booking
       await pause(GAP)
       if (!alive.current) return
       say('careloop', triage.suggested_agent_response || FALLBACK_RESPONSE)
@@ -348,7 +359,10 @@ export default function SimulatedCall({
       }
       await pause(GAP)
       if (!alive.current) return
-      say('careloop', closingLine(triage, firstNameOf(patientName)))
+      say(
+        'careloop',
+        closingLine(triage, firstNameOf(patientName), bookingPending),
+      )
       setPhase('ended')
     },
     [onReply, say],
