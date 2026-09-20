@@ -5,7 +5,7 @@ import Screen from '../components/Screen.jsx'
 import { zoneLabel } from '../components/PortalShared.jsx'
 import { Rule } from '../components/Block.jsx'
 import { clockLabel, dateTimeLabel } from '../lib/format.js'
-import { BTN_PRIMARY, SECTION } from '../lib/ui.js'
+import { BTN_PRIMARY, CARD, SECTION } from '../lib/ui.js'
 import { bookedVisits, unbookedVisits, useFollowups } from '../lib/useFollowups.js'
 import { useSession } from '../lib/session.jsx'
 
@@ -211,13 +211,18 @@ export default function AppointmentsPage() {
   if (!connected) {
     return (
       <Screen title="Appointments">
-        <p className="measure text-ink-2">
-          Choose your insurance to see the follow-up visits your prescriber
-          asked for.
-        </p>
-        <Link to="/connect" className={BTN_PRIMARY + ' mt-7'}>
-          Choose your insurance
-        </Link>
+        <div className={CARD + ' measure px-7 py-8'}>
+          <h2 className="display-tight text-xl text-ink">
+            Choose your insurance to see your appointments
+          </h2>
+          <p className="mt-3 text-ink-2">
+            The follow-up visits your prescriber asked for come from the records
+            your insurer holds, alongside your medicines.
+          </p>
+          <Link to="/connect" className={BTN_PRIMARY + ' mt-7'}>
+            Choose your insurance
+          </Link>
+        </div>
       </Screen>
     )
   }

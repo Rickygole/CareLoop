@@ -4,7 +4,9 @@ import { Link, useNavigate } from 'react-router-dom'
 import ConsentModal, { SHARED_ITEMS } from '../components/ConsentModal.jsx'
 import Notice from '../components/Notice.jsx'
 import Screen from '../components/Screen.jsx'
+import { Glance, GlanceTile } from '../components/DayGlance.jsx'
 import { connectPatient, regimenState } from '../lib/api.js'
+import { clockLabel } from '../lib/format.js'
 import { BTN_HERO, BTN_QUIET, CARD, LEAD } from '../lib/ui.js'
 import { useSession } from '../lib/session.jsx'
 import { INSURERS, insurerFor, insurerName, patientName } from '../data/patients.js'
@@ -24,7 +26,16 @@ function wait(ms) {
 
 export default function ConnectPage() {
   const navigate = useNavigate()
-  const { patientId, choosePatient, connected, record, applyPortal } = useSession()
+  const {
+    patientId,
+    choosePatient,
+    connected,
+    record,
+    applyPortal,
+    medications,
+    schedule,
+    regimen,
+  } = useSession()
 
   const [consentOpen, setConsentOpen] = useState(false)
   const [phase, setPhase] = useState('idle')
@@ -81,6 +92,9 @@ export default function ConnectPage() {
 
   const syncing = phase === 'syncing'
   const chosen = insurerFor(patientId)
+  const nextDose = schedule && schedule.next_dose
+  const flaggedCount = ((regimen && regimen.surfaced) || []).length
+  const readCount = (medications || []).length
 
   return (
     <Screen
@@ -100,6 +114,46 @@ export default function ConnectPage() {
             </strong>{' '}
             have been loaded.
           </p>
+
+          <Glance>
+            <GlanceTile
+              index={0}
+              tone={nextDose ? 'now' : 'quiet'}
+              label="Next call"
+              value={nextDose ? clockLabel(nextDose.time) : 'None left today'}
+              detail={
+                nextDose
+                  ? 'CareLoop rings you about your ' + nextDose.medication + '.'
+                  : 'Every call planned for today is behind you.'
+              }
+            />
+
+            <GlanceTile
+              index={1}
+              tone={flaggedCount ? 'alert' : 'clear'}
+              label="Interaction check"
+              value={
+                flaggedCount
+                  ? flaggedCount +
+                    (flaggedCount === 1 ? ' pair flagged' : ' pairs flagged')
+                  : 'Nothing flagged'
+              }
+              detail={
+                flaggedCount
+                  ? 'Set out in full on the call it belongs to, and on your medicines.'
+                  : 'No pair on this list is one CareLoop would raise with you.'
+              }
+            />
+
+            <GlanceTile
+              index={2}
+              tone="quiet"
+              label="Medicines read"
+              value={readCount === 1 ? '1 medicine' : readCount + ' medicines'}
+              detail="Read from the records your insurer holds. You typed none of them in."
+            />
+          </Glance>
+
           <div className="mt-9">
             <Link to="/" className={BTN_HERO}>
               Go to Today
@@ -275,7 +329,6 @@ export default function ConnectPage() {
               again, or call your clinic directly if this is urgent.
             </Notice>
           ) : null}
-
         </div>
       ) : null}
 
