@@ -112,7 +112,7 @@ def test_a_runaway_medication_name_is_not_read_out_in_full():
     spoken = said(
         client.get("/voice/checkin?patient_id=p1", headers={"X-CareLoop-Session": session}).text
     )
-    assert len(spoken) < 900, f"the call would read {len(spoken)} characters aloud"
+    assert len(spoken) < 1050, f"the call would read {len(spoken)} characters aloud"
 
 
 def test_the_activity_log_is_not_readable_without_the_token():

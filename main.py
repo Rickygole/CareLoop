@@ -2087,7 +2087,7 @@ def _record_dose_taken(session: SessionState, patient_id: str, transcript: str) 
     if patient is None:
         return None
     dose = build_day_plan(patient)["next_dose"]
-    if not dose or dose["status"] not in ("due_now", "due_soon", "missed"):
+    if not dose or dose["status"] == "taken":
         return None
     entry = {
         "call_id": "call-" + uuid.uuid4().hex[:8],
