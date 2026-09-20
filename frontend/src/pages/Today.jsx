@@ -251,8 +251,8 @@ export default function TodayPage() {
                 detail={
                   needsYou
                     ? flaggedCount
-                      ? 'A flagged pair is set out in full on the call it belongs to.'
-                      : 'CareLoop rang, and the dose was never confirmed to it.'
+                      ? 'What the pair is, and where it came from, is set out under Medications.'
+                      : 'A dose from earlier today was never confirmed to CareLoop.'
                     : 'Every dose so far is confirmed, and no pair on your list is flagged.'
                 }
               >

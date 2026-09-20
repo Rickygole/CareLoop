@@ -246,19 +246,22 @@ export default function CallPage() {
             }
 
             const done = event.status === 'taken'
+            const missed = event.status === 'missed'
 
             return (
               <Event
                 key={event.at + event.time}
                 index={position}
                 time={clockLabel(event.time)}
-                state={done ? 'Done' : 'Later'}
-                tone={done ? 'done' : 'later'}
+                state={done ? 'Done' : missed ? 'Not confirmed' : 'Later'}
+                tone={done ? 'done' : missed ? 'alert' : 'later'}
                 last={position === events.length - 1}
               >
                 <CallHeading
                   title={
-                    done ? 'CareLoop called you' : 'CareLoop will call again'
+                    done || missed
+                      ? 'CareLoop called you'
+                      : 'CareLoop will call again'
                   }
                   covers={medicinesLine(event)}
                   mark={
