@@ -90,6 +90,18 @@ def _twilio_signature_required() -> bool:
     )
 
 
+VERCEL_REWRITE_PATH_PARAM = "path"
+
+
+def _external_query(request: Request) -> str:
+    pairs = [
+        (k, v)
+        for k, v in parse_qsl(request.url.query, keep_blank_values=True)
+        if k != VERCEL_REWRITE_PATH_PARAM
+    ]
+    return urlencode(pairs)
+
+
 async def _verify_twilio_request(request: Request) -> None:
     if not _twilio_signature_required():
         return
@@ -102,8 +114,9 @@ async def _verify_twilio_request(request: Request) -> None:
     fields = dict(parse_qsl(raw_body, keep_blank_values=True))
     signature = request.headers.get(TWILIO_SIGNATURE_HEADER, "")
     url = str(request.base_url).rstrip("/") + request.url.path
-    if request.url.query:
-        url += "?" + request.url.query
+    query = _external_query(request)
+    if query:
+        url += "?" + query
     if not twilio_signature.valid_signature(auth_token, url, fields, signature):
         raise HTTPException(403, "invalid_twilio_signature")
 

@@ -121,6 +121,17 @@ def test_a_blank_valued_field_still_validates():
     )
 
 
+def test_vercels_injected_path_query_param_does_not_break_a_real_signature():
+    form = {"CallSid": "CAxyz", "SpeechResult": "I took it, feeling fine"}
+    url = "https://careloop-woad.vercel.app/api/voice/checkin/respond?patient_id=p1"
+    response = client.post(
+        "/api/voice/checkin/respond?patient_id=p1&path=voice%2Fcheckin%2Frespond",
+        data=form,
+        headers={"X-Twilio-Signature": sign(url, form)},
+    )
+    assert response.status_code == 200, response.text
+
+
 def test_with_the_flag_off_every_call_behaves_exactly_as_before(monkeypatch):
     monkeypatch.setenv(main.TWILIO_VALIDATE_SIGNATURES_ENV, "0")
     response = client.post(
