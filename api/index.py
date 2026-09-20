@@ -16,7 +16,7 @@ class StripPrefix:
     async def __call__(self, scope, receive, send):
         if scope["type"] in ("http", "websocket"):
             path = scope.get("path", "")
-            if path.startswith(self.prefix):
+            if path == self.prefix or path.startswith(self.prefix + "/"):
                 stripped = path[len(self.prefix):] or "/"
                 scope = dict(scope)
                 scope["path"] = stripped

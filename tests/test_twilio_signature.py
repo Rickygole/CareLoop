@@ -141,6 +141,16 @@ def test_with_the_flag_off_every_call_behaves_exactly_as_before(monkeypatch):
     assert response.status_code == 200
 
 
+def test_a_path_merely_starting_with_api_is_not_treated_as_the_api_prefix():
+    response = client.get("/apifoo")
+    assert response.status_code == 404
+
+
+def test_the_api_prefix_is_still_stripped_correctly_for_a_real_route():
+    response = client.get("/api/health")
+    assert response.status_code == 200
+
+
 def test_a_generated_action_url_is_exactly_what_the_validator_reconstructs():
     opener = client.post(
         "/api/voice/checkin?patient_id=p1",

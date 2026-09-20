@@ -447,7 +447,10 @@ def test_health_distinguishes_absent_from_present_but_empty(monkeypatch):
         "A variable that exists with an empty value must not report as absent. "
         "That distinction cost an hour of misdiagnosis in production."
     )
-    assert env["GEMINI_MODEL"].startswith("set (")
+    assert env["GEMINI_MODEL"] == "set", (
+        "an unauthenticated health check must not leak the exact length of a "
+        "secret value, only whether it is configured"
+    )
 
 
 def test_crisis_episode_is_stored_but_never_returned_by_get_history(tmp_path):

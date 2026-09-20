@@ -77,6 +77,12 @@ app.add_middleware(
 DATA_DIR = Path(__file__).resolve().parent / "mock_data"
 WEBHOOK_SECRET = os.environ.get("CARELOOP_WEBHOOK_SECRET", "")
 
+
+def _wrong_secret(provided: Optional[str]) -> bool:
+    import hmac
+
+    return bool(WEBHOOK_SECRET) and not hmac.compare_digest(provided or "", WEBHOOK_SECRET)
+
 SESSION_HEADER = "X-CareLoop-Session"
 SESSION_QUERY_PARAM = "session_id"
 
@@ -123,7 +129,7 @@ async def _verify_twilio_request(request: Request) -> None:
 
 @app.api_route("/debug/twilio_echo", methods=["GET", "POST"])
 async def debug_twilio_echo(request: Request, secret: str = ""):
-    if not WEBHOOK_SECRET or secret != WEBHOOK_SECRET:
+    if not WEBHOOK_SECRET or _wrong_secret(secret):
         raise HTTPException(404)
     raw_body = (await request.body()).decode("utf-8")
     fields = dict(parse_qsl(raw_body, keep_blank_values=True))
@@ -285,6 +291,7 @@ class SessionState:
         self.call_state: Dict[str, dict] = {}
         self.bus = TraceBus()
         self.call_limiter = telephony.CallLimiter()
+        self.escalation_limiter = telephony.CallLimiter()
         self.last_touched = time.monotonic()
 
 
@@ -352,7 +359,7 @@ async def trace_socket(
     token: str = Query(default=""),
     session_id: str = Query(default=""),
 ):
-    if WEBHOOK_SECRET and token != WEBHOOK_SECRET:
+    if _wrong_secret(token):
         await ws.close(code=1008)
         return
 
@@ -379,7 +386,7 @@ def trace_events(
     token: str = Query(default=""),
     session: SessionState = Depends(get_session),
 ):
-    if WEBHOOK_SECRET and token != WEBHOOK_SECRET:
+    if _wrong_secret(token):
         raise HTTPException(403, "unauthorized")
     return {"events": session.bus.since(since), "boot_id": session.bus.boot_id}
 
@@ -390,7 +397,7 @@ class ResetRequest(BaseModel):
 
 @app.post("/admin/reset")
 async def admin_reset(body: ResetRequest, session: SessionState = Depends(get_session)):
-    if WEBHOOK_SECRET and body.secret != WEBHOOK_SECRET:
+    if _wrong_secret(body.secret):
         raise HTTPException(401, "unauthorized")
     fresh = SESSIONS.reset(session.session_id)
     return {"reset": True, "boot_id": fresh.bus.boot_id, "patients_loaded": len(fresh.patients)}
@@ -434,7 +441,7 @@ async def run_triage(session: SessionState, transcript: str, patient_id: Optiona
     await session.bus.emit("PATIENT_SPEECH", {"text": transcript, "patient_id": patient_id})
     await session.bus.emit("TIER_0_CHECK", {"transcript": transcript})
 
-    result = triage(transcript)
+    result = await _offload(triage, transcript)
 
     if result.matched_rules:
         await session.bus.emit("TIER_0_MATCH", {"rules": result.matched_rules})
@@ -616,7 +623,7 @@ class ToolCall(BaseModel):
 
 @app.post("/webhook/elevenlabs")
 async def elevenlabs_webhook(body: ToolCall, session: SessionState = Depends(get_session)):
-    if WEBHOOK_SECRET and body.secret != WEBHOOK_SECRET:
+    if _wrong_secret(body.secret):
         raise HTTPException(401, "unauthorized")
 
     if body.patient_id and body.patient_id not in session.patients:
@@ -663,7 +670,7 @@ async def _maybe_alert_provider(
 
     provider = escalation.assigned_provider(patient)
 
-    if not session.call_limiter.allow():
+    if not session.escalation_limiter.allow():
         escalation_record["notification_transport"] = "sms_rate_limited"
         escalation_record["alert_sms"] = {
             "ok": False, "sid": None, "error": "rate_limited",
@@ -676,7 +683,7 @@ async def _maybe_alert_provider(
         patient.get("name", "the patient"), provider["name"], kind, transcript, fired_at,
     )
     result = await _offload(telephony.send_sms, phone, message)
-    session.call_limiter.record()
+    session.escalation_limiter.record()
 
     escalation_record["notification_transport"] = "sms"
     escalation_record["notification_delivered"] = bool(result.get("ok"))
@@ -2517,7 +2524,7 @@ def describe_env(name: str) -> str:
     value = os.environ[name].strip()
     if not value:
         return "present but empty"
-    return f"set ({len(value)} chars)"
+    return "set"
 
 
 @app.get("/health")
@@ -2529,7 +2536,6 @@ def health():
         "status": "ok",
         "patients_loaded": len(BASELINE_PATIENTS),
         "gemini_configured": bool(key),
-        "gemini_key_length": len(key),
         "model": os.environ.get("GEMINI_MODEL") or DEFAULT_MODEL,
         "env": {name: describe_env(name) for name in EXPECTED_ENV_KEYS},
         "callback_signing": callback_signing_mode(),
