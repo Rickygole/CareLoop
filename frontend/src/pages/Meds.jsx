@@ -13,7 +13,14 @@ import Screen from '../components/Screen.jsx'
 import { Rule } from '../components/Block.jsx'
 import { applyClockShift } from '../lib/clock.js'
 import { clockLabel, dateTimeLabel, groupSchedule } from '../lib/format.js'
-import { BTN_PRIMARY, CARD } from '../lib/ui.js'
+import {
+  BTN_PRIMARY,
+  CARD,
+  FOLD,
+  FOLD_BODY,
+  FOLD_TOGGLE,
+  SECTION,
+} from '../lib/ui.js'
 import { usePortal } from '../lib/usePortal.js'
 import { useSession } from '../lib/session.jsx'
 
@@ -232,16 +239,16 @@ export default function MedsPage() {
 
           <InteractionLimits regimen={shownRegimen} />
 
-          <div className="ledge mt-12 overflow-hidden rounded-card border border-line bg-sunken">
+          <div className={FOLD + ' ' + SECTION}>
             <button
               type="button"
               onClick={() => setToolsOpen((open) => !open)}
               aria-expanded={toolsOpen}
               aria-controls="reviewer-panel"
-              className="block w-full cursor-pointer px-6 py-6 text-left sm:px-8"
+              className={FOLD_TOGGLE}
             >
               <span className="smallcaps text-micro text-clay">
-                For a reviewer, not part of the patient product
+                Record source
               </span>
               <span className="mt-2 block text-sm font-semibold text-ink">
                 {toolsOpen
@@ -253,7 +260,7 @@ export default function MedsPage() {
             <div
               id="reviewer-panel"
               hidden={!toolsOpen}
-              className="bg-surface px-6 py-8 sm:px-8"
+              className={FOLD_BODY}
             >
               <section aria-labelledby="change-heading">
                 <h2 id="change-heading" className="display text-2xl text-ink">

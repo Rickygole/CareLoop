@@ -1,5 +1,6 @@
 import { tierMeta, UNDECIDED } from './TierBadge.jsx'
 import { dateTimeLabel } from '../lib/format.js'
+import { LEAD, PANEL } from '../lib/ui.js'
 import { useCountUp } from '../lib/useCountUp.js'
 
 const OPEN = String.fromCharCode(34)
@@ -45,7 +46,9 @@ export default function TriageResult({ result, latencyMs, booking }) {
     return (
       <section
         aria-labelledby="verdict-heading"
-        className="enter-verdict ledge ledge-ink overflow-hidden rounded-panel border border-line bg-surface px-6 py-9 sm:px-10 sm:py-12"
+        className={
+          'enter-verdict overflow-hidden px-6 py-9 sm:px-10 sm:py-12 ' + PANEL
+        }
       >
         <p className="smallcaps text-micro text-ink-2">What CareLoop decided</p>
         <h2
@@ -68,7 +71,7 @@ export default function TriageResult({ result, latencyMs, booking }) {
   return (
     <section
       aria-labelledby="verdict-heading"
-      className="enter-verdict ledge-strong relative overflow-hidden rounded-panel border border-line bg-surface"
+      className={'enter-verdict relative overflow-hidden ' + PANEL}
     >
       <span
         aria-hidden="true"
@@ -90,9 +93,7 @@ export default function TriageResult({ result, latencyMs, booking }) {
           {meta.headline}
         </h2>
 
-        <p className="measure mt-6 text-lg leading-[1.45] text-ink">
-          {meta.meaning}
-        </p>
+        <p className={LEAD + ' mt-6'}>{meta.meaning}</p>
 
         {emergency ? (
           <p
@@ -120,7 +121,7 @@ export default function TriageResult({ result, latencyMs, booking }) {
           </p>
         </div>
 
-        <p className="measure mt-8 text-lg font-semibold leading-[1.45] text-ink">
+        <p className={LEAD + ' mt-8 font-semibold'}>
           {bookingSentence(tier, booking)}
         </p>
 

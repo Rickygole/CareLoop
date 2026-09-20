@@ -41,7 +41,7 @@ export default function CheckIn({ busy, error, scenarios, onSubmit }) {
                   key={scenario.id}
                   type="button"
                   onClick={() => pick(scenario)}
-                  className={BTN_QUIET + ' min-h-[48px]'}
+                  className={BTN_QUIET}
                 >
                   {scenario.label}
                 </button>
@@ -70,7 +70,7 @@ export default function CheckIn({ busy, error, scenarios, onSubmit }) {
           <button
             type="submit"
             disabled={busy || !text.trim()}
-            className={BTN_HERO + ' disabled:cursor-not-allowed'}
+            className={BTN_HERO}
           >
             {busy ? 'Sending your answer...' : 'Send my answer'}
           </button>

@@ -4,7 +4,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import Masthead from '../components/Masthead.jsx'
 import Notice from '../components/Notice.jsx'
 import { DashboardFooter } from '../components/Disclaimers.jsx'
-import { BTN_HERO, FIELD } from '../lib/ui.js'
+import { BTN_HERO, FIELD, LINK, LINK_INLINE } from '../lib/ui.js'
 import { useSession } from '../lib/session.jsx'
 import { DEMO_ACCOUNT, matchesDemoSignUp } from '../data/demoAccount.js'
 
@@ -138,24 +138,20 @@ export default function SignUpPage() {
 
             <div role="alert" className="empty:hidden">
               {error ? (
-                <p className="enter-fade mt-4 flex items-start gap-3 rounded-card border border-emergency bg-emergency-tint px-5 py-4 text-base text-ink">
-                  <span aria-hidden="true" className="mt-0.5 text-emergency">
-                    {String.fromCharCode(9670)}
-                  </span>
-                  <span>
-                    <strong className="font-semibold">
-                      Those are not the demonstration details.
-                    </strong>{' '}
-                    {error}{' '}
-                    <button
-                      type="button"
-                      onClick={restoreAndGo}
-                      className="inline-flex min-h-[44px] items-center align-middle font-semibold underline"
-                    >
-                      Put the demonstration details back and carry on
-                    </button>
-                  </span>
-                </p>
+                <Notice
+                  tone="alarm"
+                  word="Those are not the demonstration details"
+                  className="enter-fade mt-4"
+                >
+                  {error}{' '}
+                  <button
+                    type="button"
+                    onClick={restoreAndGo}
+                    className={LINK_INLINE}
+                  >
+                    Put the demonstration details back and carry on
+                  </button>
+                </Notice>
               ) : null}
             </div>
 
@@ -170,7 +166,7 @@ export default function SignUpPage() {
             <p className="measure text-ink-2">
               Already have the demonstration account?
             </p>
-            <Link to="/signin" className="mt-3 inline-flex min-h-[44px] items-center font-semibold text-brand underline">
+            <Link to="/signin" className={LINK + ' mt-3'}>
               Sign in instead
             </Link>
           </div>

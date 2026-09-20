@@ -2,6 +2,7 @@ import { useState } from 'react'
 
 import { clockTime, styleFor, summarize } from '../lib/trace.js'
 import { TRACE_STATUS } from '../lib/useTrace.js'
+import { FOLD_TOGGLE } from '../lib/ui.js'
 
 const SHOW = 60
 
@@ -26,19 +27,19 @@ export default function TechnicalDetail({ events, status, retries, maxRetries })
   const hidden = events.length - visible.length
 
   return (
-    <div className="console-scope ledge ledge-night mt-10 overflow-hidden rounded-panel border border-console-line bg-console-bg text-console-ink">
+    <div className="console-scope ledge-night mt-10 overflow-hidden rounded-panel border border-console-line bg-console-bg text-console-ink">
       <button
         type="button"
         onClick={() => setOpen((shown) => !shown)}
         aria-expanded={open}
         aria-controls="machine-record-panel"
-        className="block w-full cursor-pointer px-6 py-6 text-left sm:px-9"
+        className={FOLD_TOGGLE}
       >
         <span className="smallcaps text-micro text-console-accent">
-          For the engineers
+          Audit trail
         </span>
         <span className="mt-2 block text-sm font-semibold text-console-ink">
-          Show the raw machine record of every call
+          {open ? 'Hide every recorded event' : 'Show every recorded event'}
         </span>
         <span className="numeric mt-1.5 block text-xs text-console-muted">
           {events.length} entries, {transportLabel(status, retries, maxRetries)}

@@ -173,7 +173,7 @@ function Turn({ turn, index }) {
   return (
     <li
       className={
-        'enter-rise ledge ledge-strong rounded-card px-6 py-5 ' +
+        'enter-rise ledge-strong rounded-card px-6 py-5 ' +
         (turn.booked
           ? 'border-l-8 border border-l-brand border-line bg-surface sm:mr-10'
           : mine

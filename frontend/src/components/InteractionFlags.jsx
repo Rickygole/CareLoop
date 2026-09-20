@@ -1,6 +1,7 @@
 import { useState } from 'react'
 
 import { Rule } from './Block.jsx'
+import { FOLD, FOLD_BODY, FOLD_TOGGLE, LEAD, SECTION } from '../lib/ui.js'
 
 const SEVERITY = {
   contraindicated: {
@@ -88,24 +89,24 @@ export function InteractionLimits({ regimen }) {
   const held = (regimen.findings || []).filter((f) => !f.surfaced)
 
   return (
-    <section aria-labelledby="limits-heading" className="mt-12">
+    <section aria-labelledby="limits-heading" className={SECTION}>
       <details>
         <summary className="marker:text-clay cursor-pointer py-3">
           <h2 id="limits-heading" className="display inline text-2xl text-ink">
             What this check does not do
           </h2>
         </summary>
-        <Rule tone="sand" />
+        <Rule />
         <p className="measure mt-5 text-ink-2">{regimen.limitations}</p>
       </details>
 
-      <div className="ledge mt-10 overflow-hidden rounded-card border border-line bg-sunken text-ink">
+      <div className={FOLD + ' mt-10 text-ink'}>
         <button
           type="button"
           onClick={() => setHeldOpen((open) => !open)}
           aria-expanded={heldOpen}
           aria-controls="held-back-panel"
-          className="block w-full cursor-pointer px-6 py-6 text-left sm:px-8"
+          className={FOLD_TOGGLE}
         >
           <span className="smallcaps text-micro text-clay">
             What CareLoop held back
@@ -123,7 +124,7 @@ export function InteractionLimits({ regimen }) {
         <div
           id="held-back-panel"
           hidden={!heldOpen}
-          className="bg-surface px-6 py-6 sm:px-8"
+          className={FOLD_BODY}
         >
           <p className="measure text-sm text-ink-2">
             CareLoop only tells a patient about a finding at major severity or
@@ -177,7 +178,7 @@ export default function InteractionFlags({ regimen, flash }) {
           ? 'Something on this list is worth checking'
           : 'Nothing on this list conflicts'}
       </h2>
-      <Rule tone={surfaced.length ? 'clay' : 'sand'} />
+      <Rule />
 
       {surfaced.length ? (
         <div className="mt-8">
@@ -218,7 +219,7 @@ export default function InteractionFlags({ regimen, flash }) {
             })}
           </ul>
 
-          <p className="measure mt-7 text-lg leading-[1.45] text-ink">
+          <p className={LEAD + ' mt-7'}>
             Ask your prescriber or pharmacist about this. CareLoop has not told
             anyone and cannot change what you were prescribed.
           </p>

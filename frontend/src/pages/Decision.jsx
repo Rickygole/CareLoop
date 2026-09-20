@@ -55,7 +55,7 @@ export default function DecisionPage() {
         <h2 id="said-heading" className="display text-2xl text-ink">
           What you said
         </h2>
-        <Rule tone="sand" />
+        <Rule />
 
         <blockquote className={CARD + ' mt-8 px-7 py-7 sm:px-9'}>
           <p className="display-tight measure text-xl text-ink">
@@ -86,7 +86,7 @@ export default function DecisionPage() {
         <h2 id="working-heading" className="display text-2xl text-ink">
           How it got there
         </h2>
-        <Rule tone="sand" />
+        <Rule />
         {rules.length ? (
           <p className="measure mt-8 text-ink-2">
             A fixed safety rule matched on {ruleWords(rules)}. A matched rule
@@ -109,7 +109,7 @@ export default function DecisionPage() {
           <h2 id="history-heading" className="display text-2xl text-ink">
             Earlier check-ins on this made up record
           </h2>
-          <Rule tone="sand" />
+          <Rule />
           <p className="measure mt-6 text-ink-2">
             These rows arrived with the made up record. They are examples of
             what a week of check-ins looks like. You did not take these calls,
@@ -152,7 +152,7 @@ export default function DecisionPage() {
         <h2 id="next-heading" className="display text-2xl text-ink">
           What to do next
         </h2>
-        <Rule tone="sand" />
+        <Rule />
         <p className="measure mt-6 text-ink-2">
           CareLoop has written this check-in down on the made up record. It has
           not told anyone, and nothing in this prototype runs on a timer.
@@ -185,7 +185,7 @@ export default function DecisionPage() {
         <h2 id="record-heading" className="display text-2xl text-ink">
           Activity log
         </h2>
-        <Rule tone="sand" />
+        <Rule />
         <p className="measure mt-8 text-ink-2">
           Every step of this check-in, in the order it happened.
         </p>

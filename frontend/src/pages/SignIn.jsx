@@ -2,8 +2,9 @@ import { useCallback, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 
 import Masthead from '../components/Masthead.jsx'
+import Notice from '../components/Notice.jsx'
 import { DashboardFooter } from '../components/Disclaimers.jsx'
-import { BTN_HERO, FIELD } from '../lib/ui.js'
+import { BTN_HERO, FIELD, LINK, LINK_INLINE } from '../lib/ui.js'
 import { useSession } from '../lib/session.jsx'
 import { DEMO_ACCOUNT, matchesDemoAccount } from '../data/demoAccount.js'
 
@@ -97,22 +98,16 @@ export default function SignInPage() {
 
             <div role="alert" className="empty:hidden">
               {error ? (
-                <p className="enter-fade mt-4 flex items-start gap-3 rounded-card border border-emergency bg-emergency-tint px-5 py-4 text-base text-ink">
-                  <span aria-hidden="true" className="mt-0.5 text-emergency">
-                    {String.fromCharCode(9670)}
-                  </span>
-                  <span>
-                    <strong className="font-semibold">Cannot sign in.</strong>{' '}
-                    {error}{' '}
-                    <button
-                      type="button"
-                      onClick={restore}
-                      className="inline-flex min-h-[44px] items-center align-middle font-semibold underline"
-                    >
-                      Put the demo account back
-                    </button>
-                  </span>
-                </p>
+                <Notice
+                  tone="alarm"
+                  word="Cannot sign in"
+                  className="enter-fade mt-4"
+                >
+                  {error}{' '}
+                  <button type="button" onClick={restore} className={LINK_INLINE}>
+                    Put the demo account back
+                  </button>
+                </Notice>
               ) : null}
             </div>
 
@@ -133,7 +128,7 @@ export default function SignInPage() {
             </p>
             <Link
               to="/signup"
-              className="mt-3 inline-flex min-h-[44px] items-center font-semibold text-brand underline"
+              className={LINK + ' mt-3'}
             >
               Sign up instead
             </Link>
