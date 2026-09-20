@@ -34,6 +34,17 @@ export default function DecisionPage() {
   const triage = run.triage || {}
   const rules = triage.matched_rules || []
   const history = (record && record.history) || []
+  const notableHistory = history.filter(
+    (item) => item.symptom_reported || item.outcome === 'no_answer',
+  )
+  const quietHistory = history.filter(
+    (item) => !item.symptom_reported && item.outcome !== 'no_answer',
+  )
+  const quietTier =
+    quietHistory.length &&
+    quietHistory.every((item) => item.tier === quietHistory[0].tier)
+      ? quietHistory[0].tier
+      : null
   const tier = String(triage.tier || '').trim().toLowerCase()
   const simulatedBooking = Boolean(run.booking && run.booking.confirmed !== false)
   const needsClinic = tier === 'moderate' || tier === 'severe' || simulatedBooking
@@ -149,7 +160,7 @@ export default function DecisionPage() {
             by you.
           </p>
           <ul className="mt-8 flex flex-col gap-5">
-            {history.map((item, index) => (
+            {notableHistory.map((item, index) => (
               <li
                 key={item.call_id || index}
                 className={'enter-fade ' + CARD + ' px-6 py-6 sm:px-8'}
@@ -162,12 +173,8 @@ export default function DecisionPage() {
                     </p>
                     <p className="measure mt-3 text-ink">
                       {item.symptom_reported
-                        ? 'Example: the patient reported ' +
-                          item.symptom_reported +
-                          '.'
-                        : item.outcome === 'no_answer'
-                          ? 'Example: the call was not answered.'
-                          : 'Example: the patient reported nothing wrong.'}
+                        ? 'The patient reported ' + item.symptom_reported + '.'
+                        : 'The call was not answered.'}
                     </p>
                     <p className="measure mt-2 text-sm text-ink-2">
                       {actionSentence(item.action_taken, item.outcome)}
@@ -177,6 +184,28 @@ export default function DecisionPage() {
                 </div>
               </li>
             ))}
+            {quietHistory.length ? (
+              <li
+                key="quiet-history-summary"
+                className={'enter-fade ' + CARD + ' px-6 py-6 sm:px-8'}
+                style={{ '--i': notableHistory.length }}
+              >
+                <div className="flex flex-wrap items-start justify-between gap-x-8 gap-y-4">
+                  <div className="min-w-0">
+                    <p className="numeric smallcaps text-micro text-ink-2">
+                      {dateTimeLabel(quietHistory[0].timestamp)}
+                    </p>
+                    <p className="measure mt-3 text-ink">
+                      {quietHistory.length === 1
+                        ? 'One earlier check-in on this record, and it had nothing to report.'
+                        : quietHistory.length +
+                          ' earlier check-ins on this record, and none of them had anything to report.'}
+                    </p>
+                  </div>
+                  {quietTier ? <TierBadge tier={quietTier} size="sm" /> : null}
+                </div>
+              </li>
+            ) : null}
           </ul>
         </section>
       ) : null}

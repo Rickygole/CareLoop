@@ -384,6 +384,12 @@ export default function SimulatedCall({
       Boolean(live) &&
       !POLL_DONE.includes(live.phase))
   const writtenRunning = phase !== 'idle' && phase !== 'ended'
+  const awaitingRetry = phase === 'awaiting' && Boolean(error)
+  const beginButtonLabel = writtenRunning
+    ? awaitingRetry
+      ? 'The written check-in needs another try'
+      : 'The written check-in is running'
+    : 'Read the check-in in writing'
 
   const phaseWord = live ? PHASE_WORD[live.phase] : null
 
@@ -422,9 +428,7 @@ export default function SimulatedCall({
                   disabled={phoneWorking || writtenRunning}
                   className={BTN_SECONDARY}
                 >
-                  {writtenRunning
-                    ? 'The written check-in is running'
-                    : 'Read the check-in in writing'}
+                  {beginButtonLabel}
                 </button>
               </>
             ) : (
@@ -434,9 +438,7 @@ export default function SimulatedCall({
                 disabled={writtenRunning}
                 className={BTN_HERO}
               >
-                {writtenRunning
-                  ? 'The written check-in is running'
-                  : 'Read the check-in in writing'}
+                {beginButtonLabel}
               </button>
             )}
           </div>

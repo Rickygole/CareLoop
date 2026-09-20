@@ -290,21 +290,26 @@ export default function AppointmentsPage() {
               </ol>
             ) : (
               <p className="measure mt-8 text-ink-2">
-                No visit is booked at the moment.
+                Nothing is on file from your prescriber asking for a
+                follow-up visit.
               </p>
             )}
           </section>
 
-          <section aria-labelledby="how-heading" className={SECTION}>
-            <h2 id="how-heading" className="display text-2xl text-ink">
-              How these were booked
-            </h2>
-            <Rule />
-            <p className="measure mt-6 text-sm text-ink-2">{data.disclosure}</p>
-            <Link to="/call" className={BTN_PRIMARY + ' mt-7'}>
-              Go to the check-in
-            </Link>
-          </section>
+          {booked.length ? (
+            <section aria-labelledby="how-heading" className={SECTION}>
+              <h2 id="how-heading" className="display text-2xl text-ink">
+                How these were booked
+              </h2>
+              <Rule />
+              <p className="measure mt-6 text-sm text-ink-2">
+                {data.disclosure}
+              </p>
+              <Link to="/call" className={BTN_PRIMARY + ' mt-7'}>
+                Go to the check-in
+              </Link>
+            </section>
+          ) : null}
         </div>
       ) : null}
     </Screen>
