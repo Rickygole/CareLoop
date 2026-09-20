@@ -111,6 +111,10 @@ def test_agreeing_after_the_model_offers_does_book(monkeypatch):
     )
     session = "conv-offer-yes"
     speak(session, MILD)
+    proposed = speak(session, "yes please")
+    assert "booked you with" not in proposed, (
+        "a specific slot must be proposed before it is booked"
+    )
     xml = speak(session, "yes please")
     assert "booked you with" in xml, "the patient agreed and nothing was booked"
 
@@ -182,6 +186,15 @@ def test_the_model_is_not_asked_to_narrate_over_a_booking_it_did_not_make(monkey
     monkeypatch.setattr(conversation, "reply", fake)
     session = "conv-no-contradiction"
     speak(session, WORRYING)
+    proposed = speak(session, "yes please")
+    assert "cannot book" not in proposed.lower(), (
+        "the model was asked to comment on the same turn the system just "
+        "proposed a slot, and it contradicted what the patient just heard"
+    )
+    assert not calls, (
+        "the model was called on the slot-proposal turn at all, "
+        "which is exactly what produces the contradiction"
+    )
     xml = speak(session, "yes please")
     assert "cannot book" not in xml.lower(), (
         "the model was asked to comment on the same turn the system just "

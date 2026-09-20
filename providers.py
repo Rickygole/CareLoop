@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import Iterable, List, Optional, Tuple
 
 PROVIDERS: List[dict] = [
     {
@@ -64,8 +64,13 @@ def in_network(payer_id: Optional[str]) -> List[dict]:
     return [p for p in PROVIDERS if accepts_payer(p, payer_id) and p["available_slots"]]
 
 
-def next_available(specialty: str, payer_id: Optional[str]) -> Optional[dict]:
+def next_available(
+    specialty: str,
+    payer_id: Optional[str],
+    exclude: Optional[Iterable[Tuple[str, str]]] = None,
+) -> Optional[dict]:
     wanted = (specialty or "").strip().lower()
+    excluded = set(exclude or ())
     options = []
     for provider in PROVIDERS:
         if provider["specialty"].lower() != wanted:
@@ -73,6 +78,8 @@ def next_available(specialty: str, payer_id: Optional[str]) -> Optional[dict]:
         if not accepts_payer(provider, payer_id):
             continue
         for slot in provider["available_slots"]:
+            if (provider["provider_id"], slot) in excluded:
+                continue
             options.append({"provider": provider, "slot": slot})
     if not options:
         return None

@@ -95,6 +95,15 @@ def test_the_written_check_in_never_rings_a_phone_on_its_own(monkeypatch):
     assert offered["triage"]["tier"] == "moderate"
     assert offered["booking"] is None, "the first turn offers, it does not book"
 
+    proposed = client.post(
+        "/loop/run",
+        json={"patient_id": "p1", "transcript": "yes that works"},
+        headers={"X-CareLoop-Session": "written-no-dial"},
+    ).json()
+    assert proposed["booking"] is None, (
+        "a specific slot must be proposed and confirmed before it is booked"
+    )
+
     body = client.post(
         "/loop/run",
         json={"patient_id": "p1", "transcript": "yes that works"},
@@ -126,6 +135,15 @@ def test_a_run_that_asks_for_the_clinic_call_still_gets_one(monkeypatch):
         json={
             "patient_id": "p1",
             "transcript": "I have been dizzy for two days and my ankles are swollen",
+            "call_clinic": True,
+        },
+        headers={"X-CareLoop-Session": "written-yes-dial"},
+    )
+    client.post(
+        "/loop/run",
+        json={
+            "patient_id": "p1",
+            "transcript": "yes that works",
             "call_clinic": True,
         },
         headers={"X-CareLoop-Session": "written-yes-dial"},
