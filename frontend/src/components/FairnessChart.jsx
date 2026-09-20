@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 
 import { Rule } from './Block.jsx'
+import { SECTION } from '../lib/ui.js'
 import evalResults from '../data/eval_results.json'
 
 export const CAPTION =
@@ -110,8 +111,8 @@ export default function FairnessChart() {
         </p>
       ) : null}
 
-      <section aria-labelledby="arms-heading" className="mt-14">
-        <h2 id="arms-heading" className="display text-xl text-ink">
+      <section aria-labelledby="arms-heading" className={SECTION}>
+        <h2 id="arms-heading" className="display text-2xl text-ink">
           The three ways of deciding
         </h2>
         <Rule />
@@ -130,8 +131,8 @@ export default function FairnessChart() {
         </dl>
       </section>
 
-      <section aria-labelledby="conditions-heading" className="mt-14">
-        <h2 id="conditions-heading" className="display text-xl text-ink">
+      <section aria-labelledby="conditions-heading" className={SECTION}>
+        <h2 id="conditions-heading" className="display text-2xl text-ink">
           How often a moderate case was raised above moderate
         </h2>
         <Rule />
@@ -182,8 +183,8 @@ export default function FairnessChart() {
       </section>
 
       {!placeholder && Object.keys(directionality).length ? (
-        <section aria-labelledby="direction-heading" className="mt-14">
-          <h2 id="direction-heading" className="display text-xl text-ink">
+        <section aria-labelledby="direction-heading" className={SECTION}>
+          <h2 id="direction-heading" className="display text-2xl text-ink">
             Which way the disagreements went
           </h2>
           <Rule />
@@ -215,7 +216,7 @@ export default function FairnessChart() {
         </section>
       ) : null}
 
-      <div className="ledge mt-14 rounded-card border border-line bg-sunken px-6 py-7 text-ink sm:px-9">
+      <div className="ledge mt-12 rounded-card border border-line bg-sunken px-6 py-7 text-ink sm:px-9">
         <p className="smallcaps text-micro text-clay">
           What this does not prove
         </p>

@@ -1,17 +1,16 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
+import Notice from './Notice.jsx'
 import TriageResult from './TriageResult.jsx'
+import { SafetyNote } from './Disclaimers.jsx'
 import { triage as postTriage } from '../lib/api.js'
+import { BTN_PRIMARY, BTN_SECONDARY, CARD_ACCENT } from '../lib/ui.js'
 import {
   AGENT_ID_ENV_VAR,
-  getAgentId,
   isConfigured,
   start as startVoiceSession,
   stop as stopVoiceSession,
 } from '../lib/voice.js'
-
-const MIC_NOTICE =
-  'Do not describe your own health information. This is a demonstration and all records are synthetic.'
 
 const GREETING_PREVIEW =
   'Hi {patient_first_name}, this is CareLoop calling to check in on your ' +
@@ -20,12 +19,16 @@ const GREETING_PREVIEW =
   'of minutes?'
 
 const STATUS_META = {
-  idle: { text: 'Ready', dot: '#7f8896' },
-  connecting: { text: 'Connecting', dot: '#e3a13b', pulse: true },
-  connected: { text: 'Live', dot: '#63c9ac', pulse: true },
-  ending: { text: 'Ending', dot: '#e3a13b', pulse: true },
-  ended: { text: 'Ended', dot: '#7f8896' },
-  error: { text: 'Session failed', dot: '#f2635a' },
+  idle: { text: 'Ready', dot: 'var(--color-ink-2)' },
+  connecting: {
+    text: 'Connecting',
+    dot: 'var(--color-moderate)',
+    pulse: true,
+  },
+  connected: { text: 'Live', dot: 'var(--color-mild)', pulse: true },
+  ending: { text: 'Ending', dot: 'var(--color-moderate)', pulse: true },
+  ended: { text: 'Ended', dot: 'var(--color-ink-2)' },
+  error: { text: 'Session failed', dot: 'var(--color-emergency)' },
 }
 
 function firstName(name) {
@@ -174,24 +177,21 @@ export default function VoiceAgent({ patientId, patientName }) {
   return (
     <section
       aria-label="Voice agent"
-      className="relative overflow-hidden rounded-card border border-line-strong bg-surface p-5"
+      className={CARD_ACCENT + ' px-6 py-6 sm:px-7'}
     >
-      <span
-        aria-hidden="true"
-        className="absolute inset-y-0 left-0 w-[3px] bg-brand"
-      />
-
-      <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
-        <h2 className="text-sm font-semibold text-ink">
+      <div className="flex flex-wrap items-baseline justify-between gap-x-8 gap-y-2">
+        <h3 className="display-tight text-lg text-ink">
           CareLoop voice agent
-        </h2>
-        <span className="inline-flex items-center gap-2 font-mono text-2xs text-ink-2">
+        </h3>
+        <span className="smallcaps inline-flex items-center gap-3 text-micro text-ink-2">
           <span
             aria-hidden="true"
-            className="size-1.5 rounded-full"
+            className="size-2 shrink-0 rounded-full"
             style={{
               background: meta.dot,
-              animation: meta.pulse ? 'live-pulse 2.4s ease-in-out infinite' : undefined,
+              animation: meta.pulse
+                ? 'live-pulse 2.4s ease-in-out infinite'
+                : undefined,
             }}
           />
           {meta.text}
@@ -199,50 +199,45 @@ export default function VoiceAgent({ patientId, patientName }) {
         </span>
       </div>
 
-      <p className="mt-1.5 max-w-[68ch] text-2xs leading-relaxed text-ink-2">
-        Agent id{' '}
-        <code className="text-ink-2">{getAgentId()}</code>. The
-        transcript below is captured client side from the conversation and
-        posted to POST /triage on each completed patient turn. No ElevenLabs
-        post-call webhook is used.
+      <p className="measure mt-3 text-sm text-ink-2">
+        You answer out loud. Each time you finish speaking, what you said is
+        sent for triage and the answer appears below.
       </p>
 
       {status === 'idle' ? (
-        <div className="mt-4 flex flex-col gap-3">
-          <p className="rounded-control border border-moderate/25 bg-moderate/8 px-3.5 py-2.5 text-2xs leading-relaxed text-ink-2">
-            {MIC_NOTICE}
-          </p>
-          <blockquote className="border-l-2 border-brand pl-3.5">
-            <p className="font-mono text-micro uppercase text-ink-2">
-              opening line
-            </p>
-            <p className="mt-1.5 text-2xs italic leading-relaxed text-ink-2">
-              {GREETING_PREVIEW}
-            </p>
+        <div className="mt-6">
+          <SafetyNote />
+          <blockquote className="mt-6 border-l-4 border-l-brand pl-5">
+            <p className="smallcaps text-micro text-clay">Opening line</p>
+            <p className="measure mt-2 text-sm text-ink">{GREETING_PREVIEW}</p>
           </blockquote>
           <button
             type="button"
             onClick={handleStart}
-            className="self-start rounded-control bg-brand px-5 py-3 text-sm font-semibold uppercase tracking-[0.04em] text-brand-ink transition-[background-color,transform] duration-150 ease-out hover:bg-brand-deep active:scale-[0.99]"
+            className={BTN_PRIMARY + ' mt-6'}
           >
             Start voice check-in
           </button>
         </div>
       ) : null}
 
-      {status === 'connecting' || status === 'ending' ? (
-        <p className="mt-4 font-mono text-xs text-ink-2">
-          {status === 'connecting' ? 'Opening the mic...' : 'Closing the call...'}
-        </p>
-      ) : null}
+      <div role="status" aria-live="polite" className="empty:hidden">
+        {status === 'connecting' || status === 'ending' ? (
+          <p className="mt-6 text-sm font-semibold text-ink">
+            {status === 'connecting'
+              ? 'Opening your microphone...'
+              : 'Closing the call...'}
+          </p>
+        ) : null}
+      </div>
 
       {connected ? (
-        <div className="mt-4">
+        <div className="mt-6">
           <button
             type="button"
             onClick={handleStop}
             disabled={busy}
-            className="rounded-control border border-emergency/45 px-4 py-2 text-2xs font-semibold uppercase tracking-[0.04em] text-emergency transition-colors duration-150 hover:bg-emergency/10 disabled:opacity-50"
+            className={BTN_SECONDARY}
           >
             End call
           </button>
@@ -250,68 +245,68 @@ export default function VoiceAgent({ patientId, patientName }) {
       ) : null}
 
       {messages.length ? (
-        <ol className="mt-4 flex max-h-56 flex-col gap-2 overflow-y-auto rounded-control border border-line bg-sunken p-3">
+        <ol className="mt-6 flex max-h-72 flex-col gap-4 overflow-y-auto rounded-card border border-line bg-sunken px-5 py-4">
           {messages.map((item) => (
-            <li key={item.id} className="font-mono text-xs leading-relaxed">
-              <span className="text-ink-2">
-                {item.role === 'user' ? 'patient' : 'agent'}
-              </span>{' '}
-              <span className="text-ink-2">{item.text}</span>
+            <li key={item.id}>
+              <p className="smallcaps text-micro text-clay">
+                {item.role === 'user' ? 'You' : 'CareLoop'}
+              </p>
+              <p className="measure mt-1 text-sm text-ink">{item.text}</p>
             </li>
           ))}
         </ol>
       ) : null}
 
       {status === 'error' ? (
-        <div className="mt-4 flex flex-col gap-3">
-          <p role="alert" className="font-mono text-xs text-emergency">
-            [error] {errorMessage || 'The voice session failed.'}
-          </p>
-          <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={handleStart}
-              className="rounded-control border border-line-strong px-4 py-2 text-2xs font-semibold uppercase tracking-[0.04em] text-ink transition-colors duration-150 hover:border-line-strong hover:bg-sunken"
-            >
-              Retry voice
+        <div className="mt-6">
+          <Notice role="alert" tone="alarm" word="The call did not connect" size="sm">
+            {errorMessage || 'The voice session failed.'}
+          </Notice>
+          <div className="mt-5 flex flex-wrap gap-x-6 gap-y-4">
+            <button type="button" onClick={handleStart} className={BTN_SECONDARY}>
+              Try the call again
             </button>
             <button
               type="button"
               onClick={focusTextFallback}
-              className="rounded-control bg-brand px-4 py-2 text-2xs font-semibold uppercase tracking-[0.04em] text-brand-ink transition-colors duration-150 hover:bg-brand-deep"
+              className={BTN_PRIMARY}
             >
-              Switch to text check-in
+              Answer in writing instead
             </button>
           </div>
         </div>
       ) : null}
 
       {status === 'ended' ? (
-        <div className="mt-4 flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={handleStart}
-            className="rounded-control border border-line-strong px-4 py-2 text-2xs font-semibold uppercase tracking-[0.04em] text-ink transition-colors duration-150 hover:bg-sunken"
-          >
+        <div className="mt-6">
+          <button type="button" onClick={handleStart} className={BTN_SECONDARY}>
             Call again
           </button>
         </div>
       ) : null}
 
-      {triageBusy ? (
-        <p className="mt-4 font-mono text-xs text-ink-2">
-          Running /triage on the last patient turn...
-        </p>
-      ) : null}
+      <div role="status" aria-live="polite" className="empty:hidden">
+        {triageBusy ? (
+          <p className="mt-6 text-sm font-semibold text-ink">
+            CareLoop is working out what to do about that.
+          </p>
+        ) : null}
+      </div>
 
       {triageError ? (
-        <p role="alert" className="mt-4 font-mono text-xs text-emergency">
-          [error] {triageError}
-        </p>
+        <Notice
+          role="alert"
+          tone="alarm"
+          word="Not recorded"
+          className="mt-6"
+          size="sm"
+        >
+          {triageError}
+        </Notice>
       ) : null}
 
       {triageResult ? (
-        <div className="mt-4">
+        <div className="mt-8">
           <TriageResult result={triageResult} latencyMs={triageLatency} />
         </div>
       ) : null}

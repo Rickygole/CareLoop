@@ -8,7 +8,7 @@ import { InteractionPin } from '../components/InteractionFlags.jsx'
 import { LoadFailed, Loading, RefreshFailed } from '../components/LoadState.jsx'
 import { applyClockShift } from '../lib/clock.js'
 import { clockLabel } from '../lib/format.js'
-import { BTN_HERO, BTN_SECONDARY, CARD } from '../lib/ui.js'
+import { BTN_HERO, BTN_PRIMARY, BTN_SECONDARY, CARD } from '../lib/ui.js'
 import { callEvents, coversLine, dayLabel, visitGutter } from '../lib/day.js'
 import { flaggedNames, isFlagged, nameKey } from '../lib/flagged.js'
 import { isConfigured as phoneConfigured } from '../lib/telephony.js'
@@ -116,7 +116,7 @@ export default function TodayPage() {
             CareLoop reads the medicine list from the records your insurer
             holds, and works out when to call. You never type a medicine in.
           </p>
-          <Link to="/connect" className={BTN_SECONDARY + ' mt-7'}>
+          <Link to="/connect" className={BTN_PRIMARY + ' mt-7'}>
             Choose your insurance
           </Link>
         </div>
@@ -179,8 +179,8 @@ export default function TodayPage() {
                 </h3>
                 <p className="measure mt-3 text-sm text-ink-2">
                   There are no medicines on this record, so CareLoop has nothing
-                  to ring you about. If that is wrong, read the record again
-                  from your insurer.
+                  to ring you about. If that is wrong, refresh the record from
+                  your insurer.
                 </p>
                 <Link to="/meds" className={BTN_SECONDARY + ' mt-6'}>
                   Go to medications
@@ -297,9 +297,9 @@ export default function TodayPage() {
               ) : visitsFailed ? (
                 <>
                   <Notice role="alert" tone="alarm" word="Not loaded" size="sm">
-                    CareLoop could not read your appointments just now. This is
-                    not a statement that you have none. Press Try again, or call
-                    your clinic directly if this is urgent.
+                    CareLoop could not read your appointments just now, which
+                    does not mean you have none. Press Try again, or call your
+                    clinic directly if this is urgent.
                   </Notice>
                   <button
                     type="button"

@@ -2,9 +2,16 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 
 import CheckIn from './CheckIn.jsx'
+import { SafetyNote } from './Disclaimers.jsx'
 import { callState } from '../lib/api.js'
 import { dateTimeLabel } from '../lib/format.js'
-import { BTN_HERO, BTN_PRIMARY, BTN_QUIET, BTN_SECONDARY } from '../lib/ui.js'
+import {
+  BTN_HERO,
+  BTN_PRIMARY,
+  BTN_QUIET,
+  BTN_SECONDARY,
+  LEAD,
+} from '../lib/ui.js'
 import {
   CALL_STATUS,
   callSidFrom,
@@ -23,9 +30,6 @@ const GAP_REDUCED = 200
 
 const POLL_MS = 2000
 const MAX_POLL_FAILURES = 5
-
-const SAFETY =
-  'Please do not describe your own real health. This is a demonstration and every record in it is made up.'
 
 const FALLBACK_RESPONSE =
   'Thank you for telling me. I have made a note of it on your record.'
@@ -173,7 +177,7 @@ function Turn({ turn, index }) {
   return (
     <li
       className={
-        'enter-rise ledge ledge-strong rounded-card px-6 py-5 ' +
+        'enter-rise ledge-strong rounded-card px-6 py-5 ' +
         (turn.booked
           ? 'border-l-8 border border-l-brand border-line bg-surface sm:mr-10'
           : mine
@@ -392,9 +396,9 @@ export default function SimulatedCall({
             : 'The check-in, in writing'}
         </h2>
         {phoneLive ? null : (
-          <p className="measure mt-4 text-lg leading-[1.45] text-ink">
-            Calling out needs telephone settings that are not filled in here, so
-            no phone will ring. Nothing is faked to cover for it.
+          <p className={LEAD + ' mt-4'}>
+            Calling out needs telephone settings that are not filled in here,
+            so no phone will ring, and nothing pretends otherwise.
           </p>
         )}
 
@@ -441,12 +445,7 @@ export default function SimulatedCall({
             {SIMULATION_DISCLOSURE}
           </p>
 
-          <p className="measure mt-4 flex items-start gap-3 text-sm text-ink">
-            <span aria-hidden="true" className="leading-[1.6] text-moderate">
-              {String.fromCharCode(9651)}
-            </span>
-            <span>{SAFETY}</span>
-          </p>
+          <SafetyNote className="mt-4" />
 
           {confirming ? (
             <div className="enter-fade mt-7 rounded-card border border-line-strong bg-sand px-6 py-6">

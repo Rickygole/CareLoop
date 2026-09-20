@@ -731,7 +731,7 @@ test('a read that hangs ends in a stated failure with a retry that works', async
     const alarm = await screen.findByRole('alert', {}, { timeout: 4000 })
     expect(alarm.textContent).toMatch(/The appointment list did not load/)
     expect(alarm.textContent).toMatch(/got no answer/)
-    expect(alarm.textContent).toMatch(/This is not a statement that your record is empty/)
+    expect(alarm.textContent).toMatch(/does not mean your record is empty/)
     expect(screen.queryByText(/Reading your appointments/)).toBe(null)
     expect(screen.queryByText(/No visit is booked at the moment/)).toBe(null)
 
@@ -1152,7 +1152,7 @@ test('the footer carries the standing limits past the end of the day', async () 
 
   const footer = document.querySelector('footer')
   expect(footer.textContent).toMatch(/Please read this/)
-  expect(footer.textContent).toMatch(/After the last call/)
+  expect(footer.textContent).toMatch(/Limits and disclosures/)
   expect(footer.textContent).toMatch(/It notifies no human being/)
   expect(footer.textContent).toMatch(
     /CareLoop is a research prototype and is not a medical device\. It does not provide medical advice, diagnosis, or treatment\. If you are having a medical emergency, call 911\. If you are in crisis, call or text 988\./,

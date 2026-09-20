@@ -41,7 +41,7 @@ export default function CheckIn({ busy, error, scenarios, onSubmit }) {
                   key={scenario.id}
                   type="button"
                   onClick={() => pick(scenario)}
-                  className={BTN_QUIET + ' min-h-[48px]'}
+                  className={BTN_QUIET}
                 >
                   {scenario.label}
                 </button>
@@ -70,12 +70,12 @@ export default function CheckIn({ busy, error, scenarios, onSubmit }) {
           <button
             type="submit"
             disabled={busy || !text.trim()}
-            className={BTN_HERO + ' disabled:cursor-not-allowed'}
+            className={BTN_HERO}
           >
             {busy ? 'Sending your answer...' : 'Send my answer'}
           </button>
           <p className="max-w-[30ch] text-sm text-ink-2">
-            Your answer is written to a made up patient record, not to you.
+            Your answer is written to a sample patient record, not to you.
           </p>
         </div>
 

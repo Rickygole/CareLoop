@@ -4,6 +4,20 @@ import { useSession } from '../lib/session.jsx'
 export const DASHBOARD_DISCLAIMER =
   'CareLoop is a research prototype and is not a medical device. It does not provide medical advice, diagnosis, or treatment. If you are having a medical emergency, call 911. If you are in crisis, call or text 988.'
 
+export const SAFETY_NOTE =
+  'Please do not describe your own real health. This is a demonstration and every record in it is fictional.'
+
+export function SafetyNote({ className = '' }) {
+  return (
+    <p className={'measure flex items-start gap-3 text-sm text-ink ' + className}>
+      <span aria-hidden="true" className="leading-[1.6] text-moderate">
+        {String.fromCharCode(9651)}
+      </span>
+      <span>{SAFETY_NOTE}</span>
+    </p>
+  )
+}
+
 function blankFields(medications) {
   return (medications || [])
     .filter((item) => !item.prescriber)
@@ -86,7 +100,9 @@ export function DashboardFooter() {
     <footer className="border-t border-line bg-sunken text-ink-2">
       <div className="hold py-12">
         <p className="smallcaps text-micro text-clay">Please read this</p>
-        <h2 className="display mt-3 text-2xl text-ink">After the last call</h2>
+        <h2 className="display mt-3 text-2xl text-ink">
+          Limits and disclosures
+        </h2>
         <span aria-hidden="true" className="mt-5 block h-px w-full bg-line" />
 
         <div className="mt-8 grid gap-x-12 gap-y-9 lg:grid-cols-3">
@@ -96,8 +112,8 @@ export function DashboardFooter() {
             </h3>
             <p className="mt-3 text-sm text-ink-2">
               Nobody is watching your day. No nurse, doctor or family member is
-              told what you said. CareLoop rings a clinic only when it asks you
-              on a call and you say yes.
+              told what you said. CareLoop rings a clinic only when it offers
+              to on a call and you say yes.
             </p>
           </section>
 

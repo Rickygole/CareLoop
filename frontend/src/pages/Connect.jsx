@@ -5,7 +5,7 @@ import ConsentModal, { SHARED_ITEMS } from '../components/ConsentModal.jsx'
 import Notice from '../components/Notice.jsx'
 import Screen from '../components/Screen.jsx'
 import { connectPatient, regimenState } from '../lib/api.js'
-import { BTN_HERO, BTN_QUIET, CARD } from '../lib/ui.js'
+import { BTN_HERO, BTN_QUIET, CARD, LEAD } from '../lib/ui.js'
 import { useSession } from '../lib/session.jsx'
 import { INSURERS, insurerFor, insurerName, patientName } from '../data/patients.js'
 
@@ -93,7 +93,7 @@ export default function ConnectPage() {
     >
       {connected && !syncing ? (
         <div>
-          <p className="measure text-lg leading-[1.45] text-ink">
+          <p className={LEAD}>
             {insurerName(patientId)} is connected, and the records for{' '}
             <strong className="font-semibold">
               {record ? record.name : patientName(patientId)}
@@ -132,9 +132,8 @@ export default function ConnectPage() {
               Who insures you?
             </legend>
             <p className="measure mt-2 text-ink-2">
-              Every insurer, plan, patient and medicine in this demonstration
-              is made up. Picking one decides which made up record CareLoop
-              reads.
+              Every insurer, plan, patient and medicine here is fictional. Your
+              choice decides which sample record CareLoop reads.
             </p>
 
             <div className="mt-6 grid gap-4 sm:grid-cols-2">
@@ -330,7 +329,7 @@ export default function ConnectPage() {
           {pulled.length ? (
             <div className="mt-10">
               <h2 className="smallcaps text-micro text-brand-ink-2">
-                Medicines pulled across, nobody typed these
+                Medicines read from MyHealth
               </h2>
 
               <ul className="mt-6 flex flex-col gap-4">

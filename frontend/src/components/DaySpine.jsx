@@ -8,6 +8,13 @@ const NODE = {
   ahead: 'bg-surface border-dashed border-line-strong',
 }
 
+const STATE_TONE = {
+  done: 'text-ink-2',
+  now: 'font-semibold text-brand',
+  later: 'text-ink-2',
+  ahead: 'text-ink-2',
+}
+
 const CARD_SKIN = {
   done: 'border border-line bg-sunken',
   now: 'border-2 border-brand bg-surface ledge-strong',
@@ -31,7 +38,13 @@ export function Event({ time, state, tone = 'later', last, index, children }) {
         <span className="numeric display-tight text-lg text-ink sm:block">
           {time}
         </span>
-        <span className="text-sm text-ink-2 sm:block">{state}</span>
+        <span
+          className={
+            'text-sm sm:block ' + (STATE_TONE[tone] || STATE_TONE.later)
+          }
+        >
+          {state}
+        </span>
       </p>
 
       <span className="relative col-start-1 row-span-2 row-start-1 flex justify-center sm:col-start-2 sm:row-span-1">

@@ -1,5 +1,7 @@
 import { useState } from 'react'
 
+import { BTN_QUIET } from '../lib/ui.js'
+
 export default function RegimenSnapshot({ hash, previousHash, count, flash }) {
   const [open, setOpen] = useState(false)
 
@@ -25,7 +27,7 @@ export default function RegimenSnapshot({ hash, previousHash, count, flash }) {
         onClick={() => setOpen((shown) => !shown)}
         aria-expanded={open}
         aria-controls="snapshot-code"
-        className="mt-5 inline-flex min-h-[48px] items-center rounded-control border border-line-strong bg-surface px-5 py-2 text-sm font-semibold text-ink hover:bg-sunken"
+        className={BTN_QUIET + ' mt-5'}
       >
         {open ? 'Hide the version code' : 'Show the version code'}
       </button>
@@ -42,8 +44,8 @@ export default function RegimenSnapshot({ hash, previousHash, count, flash }) {
           ) : null}
         </p>
         <p className="measure mt-3 text-sm text-ink-2">
-          This code is for engineers. It is a fingerprint of the list, not
-          something you need to read or remember.
+          A fingerprint of the list, for engineers. Nothing you need to read
+          or remember.
         </p>
       </div>
     </section>

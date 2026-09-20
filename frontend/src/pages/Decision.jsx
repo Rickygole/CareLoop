@@ -9,7 +9,7 @@ import TriageResult from '../components/TriageResult.jsx'
 import { Rule } from '../components/Block.jsx'
 import { dateTimeLabel } from '../lib/format.js'
 import { actionSentence, quoted } from '../lib/narrate.js'
-import { BTN_PRIMARY, CARD } from '../lib/ui.js'
+import { BTN_PRIMARY, CARD, LEAD, SECTION } from '../lib/ui.js'
 import { useTrace } from '../lib/useTrace.js'
 import { useSession } from '../lib/session.jsx'
 
@@ -51,11 +51,44 @@ export default function DecisionPage() {
         tier={triage.tier}
       />
 
-      <section aria-labelledby="said-heading" className="mt-12">
+      <section aria-labelledby="next-heading" className={SECTION}>
+        <h2 id="next-heading" className="display text-2xl text-ink">
+          What to do next
+        </h2>
+        <Rule />
+        {tier === 'emergency' ? (
+          <p className={LEAD + ' mt-6'}>
+            No appointment exists and an appointment would be too slow anyway.
+            If you have not already, call 911 now.
+          </p>
+        ) : needsClinic ? (
+          <p className={LEAD + ' mt-6'}>
+            No appointment exists. Any booking call shown above was simulated,
+            and no real clinic was contacted. In a real deployment CareLoop
+            would book you in. Here it cannot, so please telephone your clinic
+            yourself and tell them what you told CareLoop. If this becomes an
+            emergency, call 911.
+          </p>
+        ) : (
+          <p className={LEAD + ' mt-6'}>
+            Nothing was booked, and on this answer nothing needed to be. If
+            anything changes, take another check-in or telephone your clinic.
+          </p>
+        )}
+        <p className="measure mt-5 text-ink-2">
+          CareLoop has written this check-in down on the sample record. It has
+          told nobody, and nothing in this prototype runs on a timer.
+        </p>
+        <Link to="/" className={BTN_PRIMARY + ' mt-7'}>
+          Back to Today
+        </Link>
+      </section>
+
+      <section aria-labelledby="said-heading" className={SECTION}>
         <h2 id="said-heading" className="display text-2xl text-ink">
           What you said
         </h2>
-        <Rule tone="sand" />
+        <Rule />
 
         <blockquote className={CARD + ' mt-8 px-7 py-7 sm:px-9'}>
           <p className="display-tight measure text-xl text-ink">
@@ -82,38 +115,38 @@ export default function DecisionPage() {
         ) : null}
       </section>
 
-      <section aria-labelledby="working-heading" className="mt-12">
+      <section aria-labelledby="working-heading" className={SECTION}>
         <h2 id="working-heading" className="display text-2xl text-ink">
           How it got there
         </h2>
-        <Rule tone="sand" />
+        <Rule />
         {rules.length ? (
           <p className="measure mt-8 text-ink-2">
             A fixed safety rule matched on {ruleWords(rules)}. A matched rule
             settles the severity on its own, which is why the answer came back
-            without waiting for a model. The model is allowed to raise a
-            severity afterwards. It is never allowed to lower one.
+            without waiting for a model. The model may raise that severity
+            afterwards. It may never lower it.
           </p>
         ) : (
           <p className="measure mt-8 text-ink-2">
-            No fixed safety rule matched these words, so the question went on to
-            the model. Had a rule matched, it would have settled the severity on
-            its own.
+            No fixed safety rule matched these words, so the question went on
+            to the model. A matched rule would have settled the severity on its
+            own.
           </p>
         )}
         <RunNarrative events={run.events} startIndex={2} />
       </section>
 
       {history.length ? (
-        <section aria-labelledby="history-heading" className="mt-12">
+        <section aria-labelledby="history-heading" className={SECTION}>
           <h2 id="history-heading" className="display text-2xl text-ink">
-            Earlier check-ins on this made up record
+            Earlier check-ins on this record
           </h2>
-          <Rule tone="sand" />
+          <Rule />
           <p className="measure mt-6 text-ink-2">
-            These rows arrived with the made up record. They are examples of
-            what a week of check-ins looks like. You did not take these calls,
-            and nothing here was said by you.
+            These calls arrived with the sample record as an example of what a
+            week looks like. You did not take them, and nothing here was said
+            by you.
           </p>
           <ul className="mt-8 flex flex-col gap-5">
             {history.map((item, index) => (
@@ -148,44 +181,11 @@ export default function DecisionPage() {
         </section>
       ) : null}
 
-      <section aria-labelledby="next-heading" className="mt-12">
-        <h2 id="next-heading" className="display text-2xl text-ink">
-          What to do next
-        </h2>
-        <Rule tone="sand" />
-        <p className="measure mt-6 text-ink-2">
-          CareLoop has written this check-in down on the made up record. It has
-          not told anyone, and nothing in this prototype runs on a timer.
-        </p>
-        {tier === 'emergency' ? (
-          <p className="measure mt-4 text-ink-2">
-            No appointment exists and an appointment would be too slow anyway.
-            If you have not already, call 911 now.
-          </p>
-        ) : needsClinic ? (
-          <p className="measure mt-4 text-ink-2">
-            No appointment exists. Any booking call shown above was simulated,
-            and no real clinic was contacted. In a real deployment CareLoop
-            would book you in. Here it cannot, so please telephone your clinic
-            yourself and tell them what you told CareLoop. If this becomes an
-            emergency, call 911.
-          </p>
-        ) : (
-          <p className="measure mt-4 text-ink-2">
-            Nothing was booked, and on this answer nothing needed to be. If
-            anything changes, take another check-in or telephone your clinic.
-          </p>
-        )}
-        <Link to="/" className={BTN_PRIMARY + ' mt-7'}>
-          Back to Today
-        </Link>
-      </section>
-
-      <section aria-labelledby="record-heading" className="mt-12">
+      <section aria-labelledby="record-heading" className={SECTION}>
         <h2 id="record-heading" className="display text-2xl text-ink">
           Activity log
         </h2>
-        <Rule tone="sand" />
+        <Rule />
         <p className="measure mt-8 text-ink-2">
           Every step of this check-in, in the order it happened.
         </p>

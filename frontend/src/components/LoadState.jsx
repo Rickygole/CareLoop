@@ -24,9 +24,9 @@ export function LoadFailed({ what, detail, onRetry }) {
       <p>{what}</p>
       {detail ? <p className="mt-3 text-sm text-ink-2">{detail}</p> : null}
       <p className="mt-3 text-sm">
-        Nothing is shown below, because nothing was read. This is not a
-        statement that your record is empty. Press Try again, or call your
-        clinic directly if this is urgent.
+        Nothing is shown below because nothing was read, which does not mean
+        your record is empty. Press Try again, or call your clinic directly if
+        this is urgent.
       </p>
       <button type="button" onClick={onRetry} className={BTN_SECONDARY + ' mt-6'}>
         Try again
