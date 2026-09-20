@@ -4,6 +4,7 @@ import { doseMeta } from '../lib/dose.js'
 const NODE = {
   done: 'bg-mild border-mild',
   now: 'bg-brand border-brand shadow-[0_0_0_5px_var(--color-brand-wash)]',
+  alert: 'bg-severe border-severe shadow-[0_0_0_5px_var(--color-severe-tint)]',
   later: 'bg-surface border-line-strong',
   ahead: 'bg-surface border-dashed border-line-strong',
 }
@@ -11,6 +12,7 @@ const NODE = {
 const STATE_TONE = {
   done: 'text-ink-2',
   now: 'font-semibold text-brand',
+  alert: 'font-semibold text-severe',
   later: 'text-ink-2',
   ahead: 'text-ink-2',
 }
@@ -18,6 +20,7 @@ const STATE_TONE = {
 const CARD_SKIN = {
   done: 'border border-line bg-sunken',
   now: 'border-2 border-brand bg-surface ledge-strong',
+  alert: 'border-2 border-severe bg-surface ledge-strong',
   later: 'border border-line-strong bg-surface',
   ahead: 'border border-line-strong bg-surface',
 }
