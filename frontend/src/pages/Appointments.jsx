@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom'
 import { LoadFailed, Loading } from '../components/LoadState.jsx'
 import Screen from '../components/Screen.jsx'
 import { zoneLabel } from '../components/PortalShared.jsx'
-import { Rule } from '../components/Block.jsx'
 import { clockLabel, dateTimeLabel } from '../lib/format.js'
 import { BTN_PRIMARY, CARD, SECTION } from '../lib/ui.js'
 import { bookedVisits, unbookedVisits, useFollowups } from '../lib/useFollowups.js'
@@ -105,8 +104,8 @@ function Reminders({ reminders }) {
   }
 
   return (
-    <div className="mt-7">
-      <p className="smallcaps text-micro text-clay">
+    <div className="mt-6">
+      <p className="smallcaps text-micro text-ink-2">
         Reminder calls CareLoop would make
       </p>
       <ul className="mt-3 flex flex-col gap-2">
@@ -137,7 +136,7 @@ function Entry({ visit, last }) {
   const booked = visit.status === 'booked'
 
   return (
-    <li className={'relative pl-9 ' + (last ? '' : 'pb-12')}>
+    <li className={'relative pl-9 ' + (last ? '' : 'pb-11')}>
       {last ? null : (
         <span
           aria-hidden="true"
@@ -154,11 +153,11 @@ function Entry({ visit, last }) {
         {booked ? 'Booked' : 'Not booked'}
       </p>
 
-      <h3 className="display-tight measure-tight mt-3 text-xl text-ink">
+      <h3 className="display-tight measure-tight mt-2 text-lg text-ink">
         {whenLabel(visit)}
       </h3>
 
-      <p className="mt-3 text-lg font-semibold text-ink">
+      <p className="mt-2 text-base font-semibold text-ink">
         {booked ? visit.provider_name : visit.specialty}
       </p>
       <p className="measure mt-1 text-sm text-ink-2">
@@ -171,13 +170,13 @@ function Entry({ visit, last }) {
           : 'Asked for by ' + visit.prescriber + '.'}
       </p>
 
-      <p className="measure mt-4 text-ink">{visit.reason}</p>
+      <p className="measure mt-3 text-ink-2">{visit.reason}</p>
 
       {booked ? (
         <Reminders reminders={visit.reminders || []} />
       ) : (
-        <div className="mt-6 border-l-4 border-l-clay pl-5">
-          <p className="smallcaps text-micro text-clay">
+        <div className="mt-5 rounded-card bg-sunken px-5 py-4">
+          <p className="smallcaps text-micro text-ink-2">
             Why CareLoop did not book it
           </p>
           <p className="measure mt-2 text-ink">
@@ -211,15 +210,15 @@ export default function AppointmentsPage() {
   if (!connected) {
     return (
       <Screen title="Appointments">
-        <div className={CARD + ' measure px-7 py-8'}>
-          <h2 className="display-tight text-xl text-ink">
+        <div className={CARD + ' max-w-[34rem] px-6 py-8 sm:px-9 sm:py-10'}>
+          <h2 className="display text-xl text-ink">
             Choose your insurance to see your appointments
           </h2>
-          <p className="mt-3 text-ink-2">
+          <p className="mt-4 text-ink-2">
             The follow-up visits your prescriber asked for come from the records
             your insurer holds, alongside your medicines.
           </p>
-          <Link to="/connect" className={BTN_PRIMARY + ' mt-7'}>
+          <Link to="/connect" className={BTN_PRIMARY + ' mt-8'}>
             Choose your insurance
           </Link>
         </div>
@@ -253,33 +252,34 @@ export default function AppointmentsPage() {
 
       {!loading && !failed && data ? (
         <div>
-          <section aria-labelledby="coverage-heading">
-            <h2 id="coverage-heading" className="smallcaps text-micro text-clay">
+          <section
+            aria-labelledby="coverage-heading"
+            className="rounded-card bg-sunken px-6 py-6 sm:px-8 sm:py-7"
+          >
+            <h2 id="coverage-heading" className="smallcaps text-micro text-ink-2">
               Your insurance
             </h2>
-            <p className="display-tight mt-3 text-lg text-ink">
+            <p className="display-tight mt-2 text-lg text-ink">
               {data.payer_display || 'No insurance on file'}
             </p>
-            <p className="measure mt-4 text-ink">
+            <p className="measure mt-3 text-sm text-ink-2">
               {coverageLine(booked, unbooked)}
             </p>
             {contactWindow ? (
-              <p className="measure mt-3 text-sm text-ink-2">
+              <p className="measure mt-2 text-sm text-ink-2">
                 Calls only between {clockLabel(contactWindow.start)} and{' '}
                 {clockLabel(contactWindow.end)},{' '}
                 {zoneLabel(contactWindow.timezone)}.
               </p>
             ) : null}
-            <Rule />
           </section>
 
           <section aria-labelledby="visits-heading" className={SECTION}>
-            <h2 id="visits-heading" className="display text-2xl text-ink">
+            <h2 id="visits-heading" className="display text-xl text-ink">
               What your prescriber asked for
             </h2>
-            <Rule />
             {timeline.length ? (
-              <ol className="mt-9">
+              <ol className="mt-8">
                 {timeline.map((visit, index) => (
                   <Entry
                     key={visit.note_id}
@@ -289,7 +289,7 @@ export default function AppointmentsPage() {
                 ))}
               </ol>
             ) : (
-              <p className="measure mt-8 text-ink-2">
+              <p className="measure mt-6 text-ink-2">
                 Nothing is on file from your prescriber asking for a
                 follow-up visit.
               </p>
@@ -298,11 +298,10 @@ export default function AppointmentsPage() {
 
           {booked.length ? (
             <section aria-labelledby="how-heading" className={SECTION}>
-              <h2 id="how-heading" className="display text-2xl text-ink">
+              <h2 id="how-heading" className="display text-xl text-ink">
                 How these were booked
               </h2>
-              <Rule />
-              <p className="measure mt-6 text-sm text-ink-2">
+              <p className="measure mt-4 text-sm text-ink-2">
                 {data.disclosure}
               </p>
               <Link to="/call" className={BTN_PRIMARY + ' mt-7'}>

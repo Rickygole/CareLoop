@@ -7,7 +7,6 @@ import { CallHeading, DoseRows, Event, Spine } from '../components/DaySpine.jsx'
 import { Glance, GlanceTile } from '../components/DayGlance.jsx'
 import { InteractionPin } from '../components/InteractionFlags.jsx'
 import { LoadFailed, Loading, RefreshFailed } from '../components/LoadState.jsx'
-import { Rule } from '../components/Block.jsx'
 import { applyClockShift } from '../lib/clock.js'
 import { clockLabel } from '../lib/format.js'
 import {
@@ -162,15 +161,15 @@ export default function TodayPage() {
             Nothing on the record changed. Choose your insurance again below.
           </Notice>
         ) : null}
-        <div className={CARD + ' measure px-7 py-8'}>
-          <h2 className="display-tight text-xl text-ink">
+        <div className={CARD + ' max-w-[34rem] px-6 py-8 sm:px-9 sm:py-10'}>
+          <h2 className="display text-xl text-ink">
             Choose your insurance to see your day
           </h2>
-          <p className="mt-3 text-ink-2">
+          <p className="mt-4 text-ink-2">
             CareLoop reads the medicine list from the records your insurer
             holds, and works out when to call. You never type a medicine in.
           </p>
-          <Link to="/connect" className={BTN_PRIMARY + ' mt-7'}>
+          <Link to="/connect" className={BTN_PRIMARY + ' mt-8'}>
             Choose your insurance
           </Link>
         </div>
@@ -230,7 +229,7 @@ export default function TodayPage() {
       {!loading && !loadFailed && plan ? (
         <div>
           <section aria-labelledby="day-heading">
-            <h2 id="day-heading" className="display text-2xl text-ink">
+            <h2 id="day-heading" className="display text-lg text-ink-2">
               {dayLabel(plan)}
             </h2>
 
@@ -306,18 +305,17 @@ export default function TodayPage() {
           </section>
 
           <section aria-labelledby="calls-heading" className={SECTION}>
-            <h2 id="calls-heading" className="display text-2xl text-ink">
+            <h2 id="calls-heading" className="display text-xl text-ink">
               Your calls today
             </h2>
-            <Rule />
 
             <Spine>
               {events.length ? null : (
                 <Event index={0} time="Today" state="No calls" tone="ahead" last>
-                  <h3 className="display-tight text-xl text-ink">
+                  <h3 className="display-tight text-lg text-ink">
                     There are no calls on today's list
                   </h3>
-                  <p className="measure mt-3 text-sm text-ink-2">
+                  <p className="measure mt-2 text-sm text-ink-2">
                     There are no medicines on this record, so CareLoop has
                     nothing to ring you about. If that is wrong, refresh the
                     record from your insurer.
@@ -401,10 +399,10 @@ export default function TodayPage() {
                   state="Today"
                   tone="ahead"
                 >
-                  <h3 className="display-tight text-xl text-ink">
+                  <h3 className="display-tight text-lg text-ink">
                     No call is left today
                   </h3>
-                  <p className="measure mt-3 text-sm text-ink-2">
+                  <p className="measure mt-2 text-sm text-ink-2">
                     Every call CareLoop planned for today is behind you. The
                     next one is on tomorrow's list.
                   </p>
@@ -423,19 +421,18 @@ export default function TodayPage() {
           </section>
 
           <section aria-labelledby="ahead-heading" className={SECTION}>
-            <h2 id="ahead-heading" className="display text-2xl text-ink">
+            <h2 id="ahead-heading" className="display text-xl text-ink">
               Coming up
             </h2>
-            <Rule />
 
-            <div className={CARD + ' mt-8 px-6 py-7 sm:px-8'}>
+            <div className={CARD + ' mt-6 px-6 py-6 sm:px-8 sm:py-7'}>
               {visit ? (
                 <>
                   <p className="smallcaps text-micro text-mild">Booked</p>
-                  <h3 className="display-tight mt-3 text-xl text-ink">
+                  <h3 className="display-tight mt-3 text-lg text-ink">
                     {visit.provider_name}, {visit.specialty}
                   </h3>
-                  <p className="measure mt-3 text-base text-ink">
+                  <p className="measure mt-2 text-base text-ink-2">
                     {visit.slot_local}. Covered by{' '}
                     {visit.payer_display || (visits && visits.payer_display)}
                     {visit.in_network ? ', inside the network' : ''}.
@@ -462,16 +459,16 @@ export default function TodayPage() {
                 </>
               ) : (
                 <>
-                  <h3 className="display-tight text-xl text-ink">
+                  <h3 className="display-tight text-lg text-ink">
                     No visit is booked at the moment
                   </h3>
-                  <p className="measure mt-3 text-sm text-ink-2">
+                  <p className="measure mt-2 text-sm text-ink-2">
                     CareLoop books a visit only when it offers one on a call and
                     you say yes.
                   </p>
                 </>
               )}
-              <Link to="/appointments" className={BTN_SECONDARY + ' mt-7'}>
+              <Link to="/appointments" className={BTN_SECONDARY + ' mt-6'}>
                 All appointments
               </Link>
             </div>

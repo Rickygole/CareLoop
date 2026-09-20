@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
 
 import Notice from './Notice.jsx'
-import { BTN_HERO, BTN_QUIET, FIELD, PANEL } from '../lib/ui.js'
+import { BTN_PRIMARY, BTN_QUIET, FIELD, INSET } from '../lib/ui.js'
 
 export default function CheckIn({ busy, error, scenarios, onSubmit }) {
   const [text, setText] = useState('')
@@ -21,21 +21,21 @@ export default function CheckIn({ busy, error, scenarios, onSubmit }) {
 
   return (
     <form onSubmit={submit} className="mt-10">
-      <div className={PANEL + ' px-6 py-8 sm:px-10 sm:py-10'}>
-        <label htmlFor="free-text" className="display block text-xl text-ink">
+      <div className={INSET + ' px-5 py-7 sm:px-8 sm:py-8'}>
+        <label htmlFor="free-text" className="display block text-lg text-ink">
           Answer in writing
         </label>
-        <p className="measure mt-3 text-ink-2">
+        <p className="measure mt-2 text-sm text-ink-2">
           Say how you are feeling in your own words. There is no right way to
           put it.
         </p>
 
         {scenarios && scenarios.length ? (
-          <div className="mt-8">
-            <p className="smallcaps text-micro text-clay">
+          <div className="mt-7">
+            <p className="smallcaps text-micro text-ink-2">
               Not sure what to say? Borrow one of these
             </p>
-            <div className="mt-5 flex flex-wrap gap-5">
+            <div className="mt-4 flex flex-wrap gap-3">
               {scenarios.map((scenario) => (
                 <button
                   key={scenario.id}
@@ -63,14 +63,14 @@ export default function CheckIn({ busy, error, scenarios, onSubmit }) {
           }}
           placeholder="I have been dizzy for two days and my ankles are swollen"
           autoComplete="off"
-          className={FIELD + ' mt-8 block resize-y'}
+          className={FIELD + ' mt-7 block resize-y'}
         />
 
-        <div className="mt-7 flex flex-wrap items-center gap-x-10 gap-y-6">
+        <div className="mt-6 flex flex-wrap items-center gap-x-8 gap-y-4">
           <button
             type="submit"
             disabled={busy || !text.trim()}
-            className={BTN_HERO}
+            className={BTN_PRIMARY}
           >
             {busy ? 'Sending your answer...' : 'Send my answer'}
           </button>

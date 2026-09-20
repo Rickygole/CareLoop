@@ -154,7 +154,7 @@ export default function ConnectPage() {
             />
           </Glance>
 
-          <div className="mt-9">
+          <div className="mt-10">
             <Link to="/" className={BTN_HERO}>
               Go to Today
             </Link>
@@ -185,7 +185,7 @@ export default function ConnectPage() {
             <legend className="display text-xl text-ink">
               Who insures you?
             </legend>
-            <p className="measure mt-2 text-ink-2">
+            <p className="measure mt-3 text-ink-2">
               Every insurer, plan, patient and medicine here is fictional. Your
               choice decides which sample record CareLoop reads.
             </p>
@@ -199,8 +199,8 @@ export default function ConnectPage() {
                     className={
                       'pressable block cursor-pointer rounded-card border px-6 py-5 ' +
                       (picked
-                        ? 'ledge-strong border-brand bg-brand-wash'
-                        : 'ledge border-line bg-surface hover:border-line-strong')
+                        ? 'border-brand bg-brand-wash ring-1 ring-brand'
+                        : 'border-line bg-surface hover:border-line-strong hover:bg-sunken')
                     }
                   >
                     <span className="flex items-baseline justify-between gap-4">
@@ -241,22 +241,22 @@ export default function ConnectPage() {
           {chosen ? (
             <section
               aria-labelledby="plan-heading"
-              className={CARD + ' enter-fade measure mt-10 px-6 py-7 sm:px-8'}
+              className={CARD + ' enter-fade mt-8 px-6 py-7 sm:px-8'}
             >
-              <h2 id="plan-heading" className="display-tight text-xl text-ink">
+              <h2 id="plan-heading" className="display text-lg text-ink">
                 What {chosen.insurer} means here
               </h2>
-              <dl className="mt-6 flex flex-col gap-5">
+              <dl className="mt-6 grid gap-6 sm:grid-cols-2 sm:gap-x-12">
                 <div>
-                  <dt className="smallcaps text-micro text-clay">Plan</dt>
+                  <dt className="smallcaps text-micro text-ink-2">Plan</dt>
                   <dd className="mt-1 text-base text-ink">{chosen.plan}</dd>
                 </div>
                 <div>
-                  <dt className="smallcaps text-micro text-clay">Network</dt>
+                  <dt className="smallcaps text-micro text-ink-2">Network</dt>
                   <dd className="mt-1 text-base text-ink">{chosen.network}</dd>
                 </div>
                 <div>
-                  <dt className="smallcaps text-micro text-clay">
+                  <dt className="smallcaps text-micro text-ink-2">
                     Roughly what it covers
                   </dt>
                   <dd className="mt-2">
@@ -275,7 +275,7 @@ export default function ConnectPage() {
                   </dd>
                 </div>
                 <div>
-                  <dt className="smallcaps text-micro text-clay">
+                  <dt className="smallcaps text-micro text-ink-2">
                     Records CareLoop would read
                   </dt>
                   <dd className="mt-1 text-base text-ink">
@@ -298,11 +298,11 @@ export default function ConnectPage() {
           <button
             type="button"
             onClick={() => setConsentOpen(true)}
-            className={BTN_HERO + ' mt-10 w-full sm:w-auto'}
+            className={BTN_HERO + ' mt-9 w-full sm:w-auto'}
           >
             Connect {insurerName(patientId)} and load my records
           </button>
-          <p className="measure mt-4 text-ink-2">
+          <p className="measure mt-4 text-sm text-ink-2">
             Nothing is read until you press Allow.
           </p>
 

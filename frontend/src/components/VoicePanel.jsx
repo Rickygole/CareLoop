@@ -41,7 +41,7 @@ export default function VoicePanel({
 
   return (
     <section aria-labelledby="voice-heading">
-      <h2 id="voice-heading" className="display text-2xl text-ink">
+      <h2 id="voice-heading" className="display text-xl text-ink">
         CareLoop rings your telephone
       </h2>
       <p className={LEAD + ' mt-4'}>

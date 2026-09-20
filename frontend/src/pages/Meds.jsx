@@ -10,7 +10,6 @@ import PortalShared from '../components/PortalShared.jsx'
 import PortalUpdate from '../components/PortalUpdate.jsx'
 import RegimenSnapshot from '../components/RegimenSnapshot.jsx'
 import Screen from '../components/Screen.jsx'
-import { Rule } from '../components/Block.jsx'
 import { applyClockShift } from '../lib/clock.js'
 import { clockLabel, dateTimeLabel, groupSchedule } from '../lib/format.js'
 import {
@@ -164,15 +163,15 @@ export default function MedsPage() {
   if (!connected) {
     return (
       <Screen title="Medications">
-        <div className={CARD + ' measure px-7 py-8'}>
-          <h2 className="display-tight text-xl text-ink">
+        <div className={CARD + ' max-w-[34rem] px-6 py-8 sm:px-9 sm:py-10'}>
+          <h2 className="display text-xl text-ink">
             Choose your insurance to see your medicines
           </h2>
-          <p className="mt-3 text-ink-2">
+          <p className="mt-4 text-ink-2">
             The list comes from the records your insurer holds. You never type a
             medicine in.
           </p>
-          <Link to="/connect" className={BTN_PRIMARY + ' mt-7'}>
+          <Link to="/connect" className={BTN_PRIMARY + ' mt-8'}>
             Choose your insurance
           </Link>
         </div>
@@ -211,25 +210,34 @@ export default function MedsPage() {
             flash={cascading && stage >= 3}
           />
 
-          <div className="mt-12 grid gap-x-12 gap-y-14 lg:grid-cols-[minmax(0,1fr)_21rem]">
+          <div className={SECTION + ' grid gap-x-14 gap-y-12 lg:grid-cols-[minmax(0,1fr)_19rem]'}>
             <div className="min-w-0">
-              <h2 className="display text-2xl text-ink">Your medications</h2>
-              <Rule />
+              <h2 className="display text-xl text-ink">Your medications</h2>
 
               {list.length ? (
-                <ul className="mt-8 flex flex-col gap-6">
-                  {list.map((med, index) => (
-                    <MedicationCard key={med.key} med={med} index={index} />
-                  ))}
-                </ul>
+                <>
+                  <p className="mt-6 hidden grid-cols-[minmax(0,1fr)_minmax(0,17rem)] items-baseline gap-x-8 border-b border-line pb-2 sm:grid">
+                    <span className="smallcaps text-micro text-ink-2">
+                      Medicine
+                    </span>
+                    <span className="smallcaps text-micro text-ink-2">
+                      CareLoop calls at
+                    </span>
+                  </p>
+                  <ul className="flex flex-col border-t border-line sm:border-t-0">
+                    {list.map((med, index) => (
+                      <MedicationCard key={med.key} med={med} index={index} />
+                    ))}
+                  </ul>
+                </>
               ) : (
-                <p className="measure mt-8 text-ink-2">
+                <p className="measure mt-6 text-ink-2">
                   There are no medicines on this record.
                 </p>
               )}
             </div>
 
-            <aside className="lg:pt-2">
+            <aside>
               <PortalShared
                 allergies={portal && portal.allergies}
                 window={portal && portal.preferred_contact_window}
@@ -239,7 +247,7 @@ export default function MedsPage() {
 
           <InteractionLimits regimen={shownRegimen} />
 
-          <div className={FOLD + ' ' + SECTION}>
+          <div className={FOLD + ' mt-4'}>
             <button
               type="button"
               onClick={() => setToolsOpen((open) => !open)}
@@ -247,7 +255,7 @@ export default function MedsPage() {
               aria-controls="reviewer-panel"
               className={FOLD_TOGGLE}
             >
-              <span className="smallcaps text-micro text-clay">
+              <span className="smallcaps text-micro text-ink-2">
                 Record source
               </span>
               <span className="mt-2 block text-sm font-semibold text-ink">
@@ -263,11 +271,10 @@ export default function MedsPage() {
               className={FOLD_BODY}
             >
               <section aria-labelledby="change-heading">
-                <h2 id="change-heading" className="display text-2xl text-ink">
+                <h2 id="change-heading" className="display text-xl text-ink">
                   Where this list comes from
                   {syncedAt ? ', last read ' + dateTimeLabel(syncedAt) : ''}
                 </h2>
-                <Rule />
 
                 <PortalUpdate
                   syncedAt={syncedAt}
@@ -286,8 +293,8 @@ export default function MedsPage() {
                   className="mt-9 empty:hidden"
                 >
                   {cascading ? (
-                    <div className={'enter-fade ' + CARD + ' px-7 py-7'}>
-                      <p className="smallcaps text-micro text-clay">
+                    <div className={'enter-fade ' + CARD + ' px-6 py-6'}>
+                      <p className="smallcaps text-micro text-ink-2">
                         What that change updated
                       </p>
                       <ol className="mt-5 flex flex-col gap-3">
@@ -297,10 +304,8 @@ export default function MedsPage() {
                             <li
                               key={label}
                               className={
-                                'flex items-baseline gap-4 rounded-card border px-5 py-3 ' +
-                                (done
-                                  ? 'border-mild bg-mild-tint'
-                                  : 'border-line bg-sunken')
+                                'flex items-baseline gap-4 rounded-card px-5 py-3 ' +
+                                (done ? 'bg-mild-tint' : 'bg-sunken')
                               }
                             >
                               <span

@@ -47,7 +47,8 @@ export default function TriageResult({ result, latencyMs, booking }) {
       <section
         aria-labelledby="verdict-heading"
         className={
-          'enter-verdict overflow-hidden px-6 py-9 sm:px-10 sm:py-12 ' + PANEL
+          'enter-verdict ledge-strong overflow-hidden px-6 py-9 sm:px-10 sm:py-12 ' +
+          PANEL
         }
       >
         <p className="smallcaps text-micro text-ink-2">What CareLoop decided</p>
@@ -71,7 +72,7 @@ export default function TriageResult({ result, latencyMs, booking }) {
   return (
     <section
       aria-labelledby="verdict-heading"
-      className={'enter-verdict relative overflow-hidden ' + PANEL}
+      className={'enter-verdict ledge-strong relative overflow-hidden ' + PANEL}
     >
       <span
         aria-hidden="true"
@@ -97,7 +98,7 @@ export default function TriageResult({ result, latencyMs, booking }) {
 
         {emergency ? (
           <p
-            className="mt-8 flex items-start gap-4 rounded-card border border-emergency bg-emergency-tint px-6 py-5 text-lg font-semibold text-ink"
+            className="mt-8 flex items-start gap-4 rounded-card border-l-4 border-l-emergency bg-emergency-tint px-6 py-5 text-lg font-semibold text-ink"
           >
             <span aria-hidden="true" className="leading-[1.5] text-emergency">
               {String.fromCharCode(9679)}
@@ -110,8 +111,8 @@ export default function TriageResult({ result, latencyMs, booking }) {
           </p>
         ) : null}
 
-        <div className="mt-8 rounded-card border border-line bg-sunken px-6 py-6 sm:px-8">
-          <p className="smallcaps text-micro text-clay">
+        <div className="mt-8 rounded-card bg-sunken px-6 py-6 sm:px-8">
+          <p className="smallcaps text-micro text-ink-2">
             What CareLoop said to you
           </p>
           <p className="display-tight measure mt-4 text-lg text-ink">

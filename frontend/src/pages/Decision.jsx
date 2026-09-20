@@ -63,7 +63,7 @@ export default function DecisionPage() {
       />
 
       <section aria-labelledby="next-heading" className={SECTION}>
-        <h2 id="next-heading" className="display text-2xl text-ink">
+        <h2 id="next-heading" className="display text-xl text-ink">
           What to do next
         </h2>
         <Rule />
@@ -96,7 +96,7 @@ export default function DecisionPage() {
       </section>
 
       <section aria-labelledby="said-heading" className={SECTION}>
-        <h2 id="said-heading" className="display text-2xl text-ink">
+        <h2 id="said-heading" className="display text-xl text-ink">
           What you said
         </h2>
         <Rule />
@@ -127,7 +127,7 @@ export default function DecisionPage() {
       </section>
 
       <section aria-labelledby="working-heading" className={SECTION}>
-        <h2 id="working-heading" className="display text-2xl text-ink">
+        <h2 id="working-heading" className="display text-xl text-ink">
           How it got there
         </h2>
         <Rule />
@@ -150,7 +150,7 @@ export default function DecisionPage() {
 
       {history.length ? (
         <section aria-labelledby="history-heading" className={SECTION}>
-          <h2 id="history-heading" className="display text-2xl text-ink">
+          <h2 id="history-heading" className="display text-xl text-ink">
             Earlier check-ins on this record
           </h2>
           <Rule />
@@ -211,7 +211,7 @@ export default function DecisionPage() {
       ) : null}
 
       <section aria-labelledby="record-heading" className={SECTION}>
-        <h2 id="record-heading" className="display text-2xl text-ink">
+        <h2 id="record-heading" className="display text-xl text-ink">
           Activity log
         </h2>
         <Rule />

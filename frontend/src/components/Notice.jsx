@@ -2,31 +2,31 @@ const TONES = {
   info: {
     word: 'Note',
     glyph: String.fromCharCode(9679),
-    skin: 'border-brand bg-brand-wash',
+    skin: 'border-l-brand bg-brand-wash',
     accent: 'text-brand',
   },
   good: {
     word: 'All clear',
     glyph: String.fromCharCode(10003),
-    skin: 'border-mild bg-mild-tint',
+    skin: 'border-l-mild bg-mild-tint',
     accent: 'text-mild',
   },
   caution: {
     word: 'Heads up',
     glyph: String.fromCharCode(9651),
-    skin: 'border-moderate bg-moderate-tint',
+    skin: 'border-l-moderate bg-moderate-tint',
     accent: 'text-moderate',
   },
   alarm: {
     word: 'Problem',
     glyph: String.fromCharCode(9670),
-    skin: 'border-emergency bg-emergency-tint',
+    skin: 'border-l-emergency bg-emergency-tint',
     accent: 'text-emergency',
   },
   quiet: {
     word: '',
     glyph: String.fromCharCode(8213),
-    skin: 'border-line bg-sunken',
+    skin: 'border-l-line-strong bg-sunken',
     accent: 'text-ink-2',
   },
 }
@@ -46,15 +46,15 @@ export default function Notice({
     <div
       role={role}
       className={
-        'ledge-strong rounded-card border px-6 py-5 ' +
+        'rounded-card border-l-4 px-5 py-4 sm:px-6 sm:py-5 ' +
         meta.skin +
         ' ' +
         className
       }
     >
       {heading ? (
-        <p className={'flex items-center gap-3 ' + meta.accent}>
-          <span aria-hidden="true" className="text-[1.15em] leading-none">
+        <p className={'flex items-center gap-2.5 ' + meta.accent}>
+          <span aria-hidden="true" className="text-[1.1em] leading-none">
             {meta.glyph}
           </span>
           <span className="smallcaps text-micro">{heading}</span>
@@ -63,7 +63,7 @@ export default function Notice({
       <div
         className={
           'measure text-ink ' +
-          (heading ? 'mt-3 ' : '') +
+          (heading ? 'mt-2.5 ' : '') +
           (size === 'sm' ? 'text-sm' : '')
         }
       >

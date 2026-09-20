@@ -187,11 +187,11 @@ function Turn({ turn, index }) {
   return (
     <li
       className={
-        'enter-rise ledge-strong rounded-card px-6 py-5 ' +
+        'enter-rise rounded-card px-5 py-4 sm:px-6 sm:py-5 ' +
         (turn.booked
-          ? 'border-l-8 border border-l-brand border-line bg-surface sm:mr-10'
+          ? 'border-l-4 border-l-brand bg-brand-wash sm:mr-10'
           : mine
-            ? 'border border-line bg-sand sm:ml-10'
+            ? 'bg-brand-wash sm:ml-10'
             : 'border border-line bg-surface sm:mr-10')
       }
       style={{ '--i': index }}
@@ -207,14 +207,14 @@ function Turn({ turn, index }) {
       <p
         className={
           turn.booked
-            ? 'measure display-tight mt-3 text-xl text-ink'
-            : 'measure mt-3 text-ink'
+            ? 'measure display-tight mt-2 text-lg text-ink'
+            : 'measure mt-2 text-ink'
         }
       >
         {turn.text}
       </p>
       {turn.note ? (
-        <p className="measure mt-4 rounded-card border border-moderate bg-moderate-tint px-4 py-3 text-sm text-ink">
+        <p className="measure mt-4 rounded-card border-l-4 border-l-moderate bg-moderate-tint px-4 py-3 text-sm text-ink">
           <span aria-hidden="true" className="mr-3 text-moderate">
             {String.fromCharCode(9651)}
           </span>
@@ -410,7 +410,7 @@ export default function SimulatedCall({
   return (
     <div>
       <section aria-labelledby="simulated-call-heading">
-        <h2 id="simulated-call-heading" className="display text-2xl text-ink">
+        <h2 id="simulated-call-heading" className="display text-xl text-ink">
           {phoneLive
             ? 'CareLoop rings your telephone'
             : 'The check-in, in writing'}
@@ -464,7 +464,7 @@ export default function SimulatedCall({
           <SafetyNote className="mt-4" />
 
           {confirming ? (
-            <div className="enter-fade mt-7 rounded-card border border-line-strong bg-sand px-6 py-6">
+            <div className="enter-fade mt-7 rounded-card bg-sunken px-6 py-6">
               <h3 className="display-tight text-lg text-ink">
                 This will ring your telephone
               </h3>

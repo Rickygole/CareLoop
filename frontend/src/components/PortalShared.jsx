@@ -12,12 +12,15 @@ export default function PortalShared({ allergies, window: contactWindow }) {
   if (!list.length && !contactWindow) return null
 
   return (
-    <section aria-labelledby="shared-heading">
+    <section
+      aria-labelledby="shared-heading"
+      className="rounded-card bg-sunken px-6 py-6"
+    >
       <h2 id="shared-heading" className="display-tight text-lg text-ink">
         Also came across from MyHealth
       </h2>
 
-      <h3 className="smallcaps mt-6 text-micro text-clay">Allergies</h3>
+      <h3 className="smallcaps mt-6 text-micro text-ink-2">Allergies</h3>
       {list.length ? (
         <ul className="mt-3 flex flex-col gap-3">
           {list.map((item) => (
@@ -38,7 +41,7 @@ export default function PortalShared({ allergies, window: contactWindow }) {
 
       {contactWindow ? (
         <>
-          <h3 className="smallcaps mt-7 text-micro text-clay">
+          <h3 className="smallcaps mt-7 text-micro text-ink-2">
             When CareLoop may call
           </h3>
           <p className="mt-3 text-sm text-ink-2">

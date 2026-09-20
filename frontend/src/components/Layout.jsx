@@ -36,8 +36,7 @@ export default function Layout() {
         Skip to the main content
       </a>
 
-      <Masthead />
-      <FlowNav />
+      <Masthead nav={<FlowNav />} />
 
       <main id="main" ref={main} tabIndex={-1} className="focus:outline-none">
         <Outlet />

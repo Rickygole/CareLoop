@@ -4,7 +4,7 @@ import { Link, useLocation } from 'react-router-dom'
 import { TABS, cleanPath } from '../lib/flow.js'
 
 const TAB =
-  'flex min-h-[48px] items-center whitespace-nowrap rounded-control px-4 py-2 text-base font-semibold sm:px-5'
+  'pressable flex min-h-[44px] items-center whitespace-nowrap rounded-control px-3 text-sm font-semibold sm:px-4'
 
 export default function FlowNav() {
   const location = useLocation()
@@ -21,8 +21,11 @@ export default function FlowNav() {
   }, [here])
 
   return (
-    <nav aria-label="Sections" className="border-b border-line bg-surface">
-      <ul className="hold flex items-center gap-x-2 overflow-x-auto py-2 sm:gap-x-5 sm:overflow-x-visible sm:py-3">
+    <nav
+      aria-label="Sections"
+      className="-mx-1 w-full border-t border-line pt-1 sm:mx-0 sm:w-auto sm:border-0 sm:pt-0"
+    >
+      <ul className="flex items-center gap-x-1 overflow-x-auto pb-1 sm:gap-x-2 sm:overflow-x-visible sm:pb-0">
         {TABS.map((tab) => {
           const current = tab.path === here
 
@@ -33,10 +36,9 @@ export default function FlowNav() {
                 aria-current={current ? 'page' : undefined}
                 className={
                   TAB +
-                  ' pressable ' +
                   (current
-                    ? 'bg-brand text-brand-ink'
-                    : 'text-ink-2 hover:bg-sunken hover:text-ink')
+                    ? ' bg-sunken text-ink'
+                    : ' text-ink-2 hover:bg-sunken hover:text-ink')
                 }
               >
                 {tab.label}

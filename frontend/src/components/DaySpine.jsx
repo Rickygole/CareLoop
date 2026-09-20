@@ -18,32 +18,38 @@ const STATE_TONE = {
 }
 
 const CARD_SKIN = {
-  done: 'border border-line bg-sunken',
-  now: 'border-2 border-brand bg-surface ledge-strong',
-  alert: 'border-2 border-severe bg-surface ledge-strong',
-  later: 'border border-line-strong bg-surface',
-  ahead: 'border border-line-strong bg-surface',
+  done: 'px-0 py-0',
+  now: 'ledge-strong rounded-card border border-brand bg-surface px-5 py-5 sm:px-7 sm:py-7',
+  alert:
+    'rounded-card border border-line border-l-4 border-l-severe bg-surface px-5 py-5 sm:px-7 sm:py-6',
+  later: 'px-0 py-0',
+  ahead: 'px-0 py-0',
 }
 
 export function Spine({ children }) {
-  return <ol className="mt-9 flex flex-col">{children}</ol>
+  return <ol className="mt-8 flex flex-col">{children}</ol>
 }
 
 export function Event({ time, state, tone = 'later', last, index, children }) {
   const skin = NODE[tone] || NODE.later
+  const flat = tone !== 'now' && tone !== 'alert'
 
   return (
     <li
-      className="enter-rise grid grid-cols-[1.5rem_minmax(0,1fr)] gap-x-4 pb-8 last:pb-0 sm:grid-cols-[7rem_2.5rem_minmax(0,1fr)] sm:gap-x-5"
+      className={
+        'enter-rise grid grid-cols-[1.5rem_minmax(0,1fr)] gap-x-4 sm:grid-cols-[6rem_2rem_minmax(0,1fr)] sm:gap-x-5 ' +
+        (last ? 'pb-0' : 'pb-10 sm:pb-12')
+      }
       style={{ '--i': index || 0 }}
     >
-      <p className="col-start-2 row-start-1 flex flex-wrap items-baseline gap-x-4 sm:col-start-1 sm:row-start-1 sm:block sm:pt-1 sm:text-right">
+      <p className="col-start-2 row-start-1 flex flex-wrap items-baseline gap-x-4 sm:col-start-1 sm:row-start-1 sm:block sm:pt-0.5 sm:text-right">
         <span className="numeric display-tight text-lg text-ink sm:block">
           {time}
         </span>
         <span
           className={
-            'text-sm sm:block ' + (STATE_TONE[tone] || STATE_TONE.later)
+            'text-sm sm:mt-0.5 sm:block ' +
+            (STATE_TONE[tone] || STATE_TONE.later)
           }
         >
           {state}
@@ -54,13 +60,13 @@ export function Event({ time, state, tone = 'later', last, index, children }) {
         {last ? null : (
           <span
             aria-hidden="true"
-            className="absolute bottom-[-2.5rem] top-2 w-[2px] bg-line-strong"
+            className="absolute bottom-[-3.5rem] top-3 w-px bg-line"
           />
         )}
         <span
           aria-hidden="true"
           className={
-            'relative mt-1 h-[23px] w-[23px] shrink-0 rounded-full border-[3px] sm:mt-2 ' +
+            'relative mt-1.5 h-[18px] w-[18px] shrink-0 rounded-full border-[3px] ' +
             skin
           }
         />
@@ -68,7 +74,8 @@ export function Event({ time, state, tone = 'later', last, index, children }) {
 
       <div
         className={
-          'col-start-2 row-start-2 mt-3 min-w-0 rounded-card px-4 py-4 sm:col-start-3 sm:row-start-1 sm:mt-0 sm:px-7 sm:py-6 ' +
+          'col-start-2 row-start-2 min-w-0 sm:col-start-3 sm:row-start-1 ' +
+          (flat ? 'mt-2 sm:mt-0 ' : 'mt-3 sm:mt-0 ') +
           (CARD_SKIN[tone] || CARD_SKIN.later)
         }
       >
@@ -80,13 +87,11 @@ export function Event({ time, state, tone = 'later', last, index, children }) {
 
 export function CallHeading({ id, title, covers, mark }) {
   return (
-    <div className="flex flex-wrap items-baseline gap-x-5 gap-y-2">
-      <h3 id={id} className="display-tight text-xl text-ink">
+    <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
+      <h3 id={id} className="display-tight text-lg text-ink">
         {title}
       </h3>
-      {covers ? (
-        <p className="text-sm font-semibold text-ink-2">{covers}</p>
-      ) : null}
+      {covers ? <p className="text-sm text-ink-2">{covers}</p> : null}
       {mark ? <div className="sm:ml-auto">{mark}</div> : null}
     </div>
   )
@@ -96,7 +101,7 @@ export function DoseRows({ doses, note }) {
   if (!doses || !doses.length) return null
 
   return (
-    <ul className="mt-5 border-t border-line">
+    <ul className="mt-4 max-w-[44rem] border-t border-line">
       {doses.map((dose) => {
         const meta = doseMeta(dose.status)
         const extra = note ? note(dose) : null
@@ -104,7 +109,7 @@ export function DoseRows({ doses, note }) {
         return (
           <li
             key={dose.medication_id + dose.time}
-            className="flex flex-wrap items-baseline gap-x-5 gap-y-2 border-b border-line py-3"
+            className="flex flex-wrap items-baseline gap-x-5 gap-y-1 border-b border-line py-3"
           >
             <span className="text-base font-semibold text-ink sm:min-w-[12rem]">
               {dose.medication}
@@ -125,7 +130,7 @@ export function DoseRows({ doses, note }) {
               {meta.label}
             </span>
             {extra ? (
-              <span className="text-sm text-ink-2 sm:ml-auto">{extra}</span>
+              <span className="text-sm text-ink-2">{extra}</span>
             ) : null}
           </li>
         )

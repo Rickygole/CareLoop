@@ -44,7 +44,7 @@ export default function ClinicCall({ events, booking, tier }) {
     const known = tierMeta(level)
     return (
       <section aria-labelledby="clinic-heading" className={SECTION}>
-        <h2 id="clinic-heading" className="display text-2xl text-ink">
+        <h2 id="clinic-heading" className="display text-xl text-ink">
           No call to the clinic this time
         </h2>
         <Rule />
@@ -68,7 +68,7 @@ export default function ClinicCall({ events, booking, tier }) {
 
   return (
     <section aria-labelledby="clinic-heading" className={SECTION}>
-      <h2 id="clinic-heading" className="display text-2xl text-ink">
+      <h2 id="clinic-heading" className="display text-xl text-ink">
         The call CareLoop made for you
       </h2>
       <Rule />

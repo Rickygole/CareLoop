@@ -1,6 +1,5 @@
 import { useState } from 'react'
 
-import { Rule } from './Block.jsx'
 import { FOLD, FOLD_BODY, FOLD_TOGGLE, LEAD, SECTION } from '../lib/ui.js'
 
 const SEVERITY = {
@@ -8,28 +7,28 @@ const SEVERITY = {
     word: 'Should not be taken together',
     glyph: String.fromCharCode(9679),
     text: 'text-emergency',
-    skin: 'border-emergency bg-emergency-tint',
-    rail: 'border-l-8 border-l-emergency',
+    skin: 'bg-emergency-tint',
+    rail: 'border-l-4 border-l-emergency',
   },
   major: {
     word: 'Major interaction',
     glyph: String.fromCharCode(9670),
     text: 'text-severe',
-    skin: 'border-severe bg-severe-tint',
-    rail: 'border-l-8 border-l-severe',
+    skin: 'bg-severe-tint',
+    rail: 'border-l-4 border-l-severe',
   },
   moderate: {
     word: 'Moderate interaction',
     glyph: String.fromCharCode(9651),
     text: 'text-moderate',
-    skin: 'border-moderate bg-moderate-tint',
+    skin: 'bg-moderate-tint',
     rail: 'border-l-4 border-l-moderate',
   },
   minor: {
     word: 'Minor interaction',
     glyph: String.fromCharCode(9675),
     text: 'text-ink-2',
-    skin: 'border-line bg-sunken',
+    skin: 'bg-sunken',
     rail: 'border-l-4 border-l-line-strong',
   },
 }
@@ -52,7 +51,7 @@ export function InteractionPin({ finding, lead, children }) {
   return (
     <div
       className={
-        'mt-5 flex gap-x-3 rounded-card border border-l-8 px-4 py-4 sm:gap-x-4 sm:px-5 ' +
+        'mt-5 flex gap-x-3 rounded-card px-4 py-4 sm:gap-x-4 sm:px-5 ' +
         meta.skin +
         ' ' +
         meta.rail
@@ -90,17 +89,24 @@ export function InteractionLimits({ regimen }) {
 
   return (
     <section aria-labelledby="limits-heading" className={SECTION}>
-      <details>
-        <summary className="marker:text-clay cursor-pointer py-3">
-          <h2 id="limits-heading" className="display inline text-2xl text-ink">
+      <details className={FOLD}>
+        <summary className={FOLD_TOGGLE + ' fold-summary'}>
+          <span className="smallcaps text-micro text-ink-2">
+            The limits of this check
+          </span>
+          <h2
+            id="limits-heading"
+            className="mt-2 block text-sm font-semibold text-ink"
+          >
             What this check does not do
           </h2>
         </summary>
-        <Rule />
-        <p className="measure mt-5 text-ink-2">{regimen.limitations}</p>
+        <div className={FOLD_BODY}>
+          <p className="measure text-sm text-ink-2">{regimen.limitations}</p>
+        </div>
       </details>
 
-      <div className={FOLD + ' mt-10 text-ink'}>
+      <div className={FOLD + ' mt-4 text-ink'}>
         <button
           type="button"
           onClick={() => setHeldOpen((open) => !open)}
@@ -173,15 +179,14 @@ export default function InteractionFlags({ regimen, flash }) {
       aria-labelledby="flags-heading"
       className={flash ? 'trace-flash' : ''}
     >
-      <h2 id="flags-heading" className="display text-2xl text-ink">
+      <h2 id="flags-heading" className="display text-xl text-ink">
         {surfaced.length
           ? 'Something on this list is worth checking'
           : 'Nothing on this list conflicts'}
       </h2>
-      <Rule />
 
       {surfaced.length ? (
-        <div className="mt-8">
+        <div className="mt-6">
           <ul className="flex flex-col gap-6">
             {surfaced.map((finding, index) => {
               const meta = severityMeta(finding.severity)
@@ -189,7 +194,7 @@ export default function InteractionFlags({ regimen, flash }) {
                 <li
                   key={finding.ingredients.join('-')}
                   className={
-                    'enter-script ledge-strong rounded-card border px-7 py-7 ' +
+                    'enter-script rounded-card px-6 py-6 sm:px-7 ' +
                     meta.skin +
                     ' ' +
                     meta.rail
@@ -205,7 +210,7 @@ export default function InteractionFlags({ regimen, flash }) {
                     </span>
                     <span className="smallcaps text-sm">{meta.word}</span>
                   </p>
-                  <h3 className="display mt-4 text-2xl text-ink first-letter:uppercase">
+                  <h3 className="display mt-4 text-xl text-ink first-letter:uppercase">
                     {pairLabel(finding.labels || finding.ingredients)}
                   </h3>
                   <p className="measure mt-3 text-ink">
@@ -225,7 +230,7 @@ export default function InteractionFlags({ regimen, flash }) {
           </p>
         </div>
       ) : (
-        <p className="measure mt-8 text-ink-2">
+        <p className="measure mt-5 text-ink-2">
           CareLoop compared every pair of medicines on this list and found
           nothing it checks for. That is not the same as nothing being wrong.
           What this check does not cover is set out below.

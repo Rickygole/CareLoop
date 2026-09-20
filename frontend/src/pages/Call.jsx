@@ -220,11 +220,11 @@ export default function CallPage() {
     <Screen title="Check-in">
       <section aria-labelledby="call-day-heading">
         <div className="flex flex-wrap items-baseline justify-between gap-x-10 gap-y-2">
-          <h2 id="call-day-heading" className="display text-2xl text-ink">
+          <h2 id="call-day-heading" className="display text-lg text-ink-2">
             {dayLabel(plan)}
           </h2>
           {where ? (
-            <p className="text-lg font-semibold text-ink-2">{where}</p>
+            <p className="text-sm font-semibold text-ink-2">{where}</p>
           ) : null}
         </div>
 
