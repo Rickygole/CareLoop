@@ -63,6 +63,8 @@ def test_the_offer_then_confirm_flow_still_works_after_adding_unprompted_support
     offered = written(session, "I have been dizzy for two days and my ankles are swollen")
     assert offered["booking"] is None
     assert offered["booking_offered"] is True
+    proposed = written(session, "yes that works")
+    assert proposed["booking"] is None, "a specific slot must be proposed before booking"
     confirmed = written(session, "yes that works")
     assert confirmed["booking"], "the existing offer -> confirm path must keep working"
 
@@ -83,7 +85,11 @@ def test_the_phone_offer_then_confirm_flow_still_works():
     xml = spoken(session, "I have been dizzy for two days and my ankles are swollen")
     assert "would that be okay" in said_aloud(xml)
     xml2 = spoken(session, "yes that works")
-    assert "I have booked you with" in said_aloud(xml2)
+    assert "I have booked you with" not in said_aloud(xml2), (
+        "a specific slot must be proposed before booking"
+    )
+    xml3 = spoken(session, "yes that works")
+    assert "I have booked you with" in said_aloud(xml3)
 
 
 def test_the_webhook_books_an_unprompted_tool_call_without_a_prior_offer():

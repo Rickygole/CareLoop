@@ -30,6 +30,14 @@ def check_in_and_agree(session, transcript=WORRYING, patient_id="p1"):
         "the first turn must only offer, never book, because the patient has "
         "not answered the offer yet"
     )
+    proposed = client.post(
+        "/loop/run",
+        json={"patient_id": patient_id, "transcript": "yes that works"},
+        headers=headers(session),
+    ).json()
+    assert proposed.get("booking") is None, (
+        "a specific slot must be proposed and confirmed before it is booked"
+    )
     return client.post(
         "/loop/run",
         json={"patient_id": patient_id, "transcript": "yes that works"},

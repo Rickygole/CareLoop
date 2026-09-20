@@ -50,8 +50,12 @@ def test_the_offer_alone_never_books():
 def test_a_clear_yes_books(agreement):
     session = "consent-yes-" + agreement.replace(" ", "")
     written(session, WORRYING)
+    proposed = written(session, agreement)
+    assert proposed["booking"] is None, (
+        f"{agreement!r} should only propose a specific slot, not book it on the spot"
+    )
     body = written(session, agreement)
-    assert body["booking"], f"{agreement!r} should have booked"
+    assert body["booking"], f"accepting the proposed slot with {agreement!r} should have booked it"
 
 
 @pytest.mark.parametrize("refusal", [
@@ -137,9 +141,24 @@ def test_the_phone_offer_waits_for_an_answer_instead_of_hanging_up():
     assert "would that be okay" in said_aloud(xml)
 
 
-def test_the_phone_books_only_after_a_spoken_yes():
+def test_the_phone_proposes_a_specific_time_before_booking_it():
     session = "consent-phone-yes"
     spoken(session, WORRYING)
+    xml = spoken(session, "yes that works")
+    spokenText = said_aloud(xml)
+    assert "I have booked you with" not in spokenText, (
+        "the phone announced a booking before the patient ever heard the "
+        "specific time it was for"
+    )
+    assert "Does that work" in spokenText, (
+        "the patient should be asked whether the proposed time works"
+    )
+
+
+def test_the_phone_books_only_after_accepting_the_proposed_slot():
+    session = "consent-phone-yes-accept"
+    spoken(session, WORRYING)
+    spoken(session, "yes that works")
     xml = spoken(session, "yes that works")
     assert "I have booked you with" in said_aloud(xml)
 

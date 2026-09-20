@@ -248,6 +248,13 @@ def test_loop_run_offers_first_then_books_once_the_patient_agrees():
     )
     assert offered["booking_offered"] is True
 
+    proposed = client.post("/loop/run", json={
+        "patient_id": "p1", "transcript": "yes that works",
+    }).json()
+    assert proposed["booking"] is None, (
+        "a specific slot must be proposed and confirmed before it is booked"
+    )
+
     body = client.post("/loop/run", json={
         "patient_id": "p1", "transcript": "yes that works",
     }).json()
@@ -257,7 +264,7 @@ def test_loop_run_offers_first_then_books_once_the_patient_agrees():
 
     types = [e["event_type"] for e in client.get(trace_url(0)).json()["events"]]
     for expected in ["REMINDER_DUE", "PATIENT_SPEECH", "BOOKING_OFFERED",
-                     "CLINIC_CALL_INITIATED", "CLINIC_DESK_SPEECH",
+                     "BOOKING_PROPOSED", "CLINIC_CALL_INITIATED", "CLINIC_DESK_SPEECH",
                      "BOOKING_CONFIRMED", "PATIENT_CONFIRMED"]:
         assert expected in types, f"{expected} missing from the loop trace"
 
@@ -307,6 +314,9 @@ def test_loop_returns_its_own_events_for_stateless_hosts():
     headers = session_headers("stateless-events")
     client.post("/loop/run", json={
         "patient_id": "p1", "transcript": "I keep throwing up after every dose",
+    }, headers=headers)
+    client.post("/loop/run", json={
+        "patient_id": "p1", "transcript": "yes that works",
     }, headers=headers)
     body = client.post("/loop/run", json={
         "patient_id": "p1", "transcript": "yes that works",
@@ -800,6 +810,9 @@ def test_loop_run_does_not_dial_when_telephony_is_not_configured(monkeypatch):
         "patient_id": "p1",
         "transcript": "I have been throwing up after every dose for three days",
         "call_clinic": True,
+    }, headers=headers)
+    client.post("/loop/run", json={
+        "patient_id": "p1", "transcript": "yes that works", "call_clinic": True,
     }, headers=headers)
     body = client.post("/loop/run", json={
         "patient_id": "p1", "transcript": "yes that works", "call_clinic": True,

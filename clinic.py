@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import Iterable, List, Optional, Tuple
 
 from providers import find_provider, next_available
 
@@ -44,13 +44,21 @@ def reason_for_visit(tier: str, transcript: str) -> str:
 def plan_clinic_call(
     specialty: str, payer_id: Optional[str], payer_display: str,
     patient_name: str, tier: str, transcript: str,
+    exclude: Optional[Iterable[Tuple[str, str]]] = None,
 ) -> Optional[dict]:
-    choice = next_available(specialty, payer_id)
+    choice = next_available(specialty, payer_id, exclude)
     if choice is None:
         provider = find_provider(specialty, payer_id)
         if provider is None or not provider["available_slots"]:
             return None
-        slot = sorted(provider["available_slots"])[0]
+        excluded = set(exclude or ())
+        remaining = [
+            slot for slot in provider["available_slots"]
+            if (provider["provider_id"], slot) not in excluded
+        ]
+        if not remaining:
+            return None
+        slot = sorted(remaining)[0]
     else:
         provider = choice["provider"]
         slot = choice["slot"]

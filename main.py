@@ -752,9 +752,27 @@ async def run_loop(
 
     booking = None
     booking_offered = False
+    call = None
     pending = session.pending_bookings.get(body.patient_id)
 
-    if pending and _confirms_appointment(body.transcript):
+    if pending and not pending.get("proposed") and _confirms_appointment(body.transcript):
+        proposed_call = _propose_slot(patient, pending)
+        if proposed_call is None:
+            session.pending_bookings.pop(body.patient_id, None)
+            result["suggested_agent_response"] = (
+                BOOKING_NO_TIME_WORKS + " " + result["suggested_agent_response"]
+            )
+        else:
+            await session.bus.emit("BOOKING_PROPOSED", {
+                "patient_id": body.patient_id,
+                "provider_name": proposed_call["provider"]["name"],
+                "time": proposed_call["slot"],
+            })
+            result["suggested_agent_response"] = (
+                _propose_message(proposed_call, pending["offer_count"] == 1)
+                + " " + result["suggested_agent_response"]
+            )
+    elif pending and pending.get("proposed") and _confirms_appointment(body.transcript):
         session.pending_bookings.pop(body.patient_id, None)
         specialty = pending["specialty"]
         call = plan_clinic_call(
@@ -764,11 +782,30 @@ async def run_loop(
             patient["name"],
             pending["tier"],
             pending["transcript"],
+            exclude=_rejected_slot_keys(pending),
         )
         if not call:
             result["suggested_agent_response"] = (
                 "I could not find an opening right now, so please call the "
                 "clinic yourself. " + result["suggested_agent_response"]
+            )
+    elif pending and pending.get("proposed") and _wants_different_time(body.transcript):
+        _reject_proposed_slot(pending)
+        proposed_call = _propose_slot(patient, pending)
+        if proposed_call is None:
+            session.pending_bookings.pop(body.patient_id, None)
+            result["suggested_agent_response"] = (
+                BOOKING_NO_TIME_WORKS + " " + result["suggested_agent_response"]
+            )
+        else:
+            await session.bus.emit("BOOKING_PROPOSED", {
+                "patient_id": body.patient_id,
+                "provider_name": proposed_call["provider"]["name"],
+                "time": proposed_call["slot"],
+            })
+            result["suggested_agent_response"] = (
+                _propose_message(proposed_call, False)
+                + " " + result["suggested_agent_response"]
             )
     elif pending and _declines_appointment(body.transcript):
         session.pending_bookings.pop(body.patient_id, None)
@@ -776,7 +813,6 @@ async def run_loop(
         result["suggested_agent_response"] = (
             "No problem, I will not book anything. " + result["suggested_agent_response"]
         )
-        call = None
     elif (
         pending is None
         and not result["is_emergency"]
@@ -802,14 +838,14 @@ async def run_loop(
             "specialty": specialty,
             "tier": result["tier"],
             "transcript": body.transcript,
+            "proposed": None,
+            "rejected_slots": [],
+            "offer_count": 0,
         }
         booking_offered = True
         await session.bus.emit("BOOKING_OFFERED", {
             "patient_id": body.patient_id, "specialty": specialty,
         })
-        call = None
-    else:
-        call = None
 
     if call:
         await session.bus.emit("CLINIC_CALL_INITIATED", {
@@ -1395,6 +1431,9 @@ async def _keep_talking(
             "specialty": "Internal Medicine",
             "tier": "moderate",
             "transcript": recent[-1] if recent else "",
+            "proposed": None,
+            "rejected_slots": [],
+            "offer_count": 0,
         }
 
     return _loop_back(base_url, patient_id, session.session_id, said, closing)
@@ -1612,7 +1651,23 @@ async def voice_checkin_respond(
 
     pending = session.pending_bookings.get(patient_id)
 
-    if pending and _confirms_appointment(transcript):
+    if pending and not pending.get("proposed") and _confirms_appointment(transcript):
+        proposed_call = _propose_slot(patient, pending)
+        if proposed_call is None:
+            session.pending_bookings.pop(patient_id, None)
+            ack = BOOKING_NO_TIME_WORKS
+        else:
+            await session.bus.emit("BOOKING_PROPOSED", {
+                "patient_id": patient_id,
+                "provider_name": proposed_call["provider"]["name"],
+                "time": proposed_call["slot"],
+            })
+            ack = _propose_message(proposed_call, pending["offer_count"] == 1)
+        return _twiml(await _keep_talking(
+            session, patient, patient_id, str(request.base_url), ack, ask_model=False,
+        ))
+
+    if pending and pending.get("proposed") and _confirms_appointment(transcript):
         session.pending_bookings.pop(patient_id, None)
         call = plan_clinic_call(
             pending["specialty"],
@@ -1621,6 +1676,7 @@ async def voice_checkin_respond(
             patient["name"],
             pending["tier"],
             pending["transcript"],
+            exclude=_rejected_slot_keys(pending),
         )
         if call:
             _remember_booking(session, patient_id, {
@@ -1639,6 +1695,23 @@ async def voice_checkin_respond(
                 "I could not find an opening right now, so please call the "
                 "clinic yourself."
             )
+        return _twiml(await _keep_talking(
+            session, patient, patient_id, str(request.base_url), ack, ask_model=False,
+        ))
+
+    if pending and pending.get("proposed") and _wants_different_time(transcript):
+        _reject_proposed_slot(pending)
+        proposed_call = _propose_slot(patient, pending)
+        if proposed_call is None:
+            session.pending_bookings.pop(patient_id, None)
+            ack = BOOKING_NO_TIME_WORKS
+        else:
+            await session.bus.emit("BOOKING_PROPOSED", {
+                "patient_id": patient_id,
+                "provider_name": proposed_call["provider"]["name"],
+                "time": proposed_call["slot"],
+            })
+            ack = _propose_message(proposed_call, False)
         return _twiml(await _keep_talking(
             session, patient, patient_id, str(request.base_url), ack, ask_model=False,
         ))
@@ -1700,6 +1773,9 @@ async def voice_checkin_respond(
             "specialty": "Internal Medicine",
             "tier": result["tier"],
             "transcript": transcript,
+            "proposed": None,
+            "rejected_slots": [],
+            "offer_count": 0,
         }
         action = str(request.base_url).rstrip("/") + "/voice/checkin/respond?" + urlencode({
             "patient_id": patient_id, SESSION_QUERY_PARAM: session.session_id,
@@ -2100,6 +2176,28 @@ def _requests_appointment(transcript: str) -> bool:
     return bool(BOOKING_REQUEST.search(text))
 
 
+BOOKING_WANTS_DIFFERENT_TIME = re.compile(
+    r"\b(i'?m|i am) busy\b|"
+    r"\b(i )?(can'?t|cannot) make it\b|"
+    r"\b(that|it) (doesn'?t|does not|won'?t|will not) work\b|"
+    r"\b(do you have|is there) (an?other|a different) time\b|"
+    r"\bsomething else that day\b|"
+    r"\bi have a conflict\b|"
+    r"\b(can|could) we (do|find|pick|get) (an?other|a different) (time|day)\b",
+    re.IGNORECASE,
+)
+
+
+def _wants_different_time(transcript: str) -> bool:
+    text = (transcript or "").strip()
+    if not text:
+        return False
+    scrubbed = _strip_filler_no(text)
+    if BOOKING_NO.search(scrubbed) or NEGATED_YES.search(scrubbed):
+        return False
+    return bool(BOOKING_WANTS_DIFFERENT_TIME.search(text))
+
+
 END_CALL_REQUEST = re.compile(
     r"\b(bye|goodbye|good bye|talk to you later|gotta go|got to go)\b\W*$|"
     r"\b(that'?s|that is) (all|it)\b[\s,]*(thanks?|thank you)?\W*$|"
@@ -2134,6 +2232,63 @@ def _remember_booking(
         "reason_transcript": (transcript or "").strip()[:160],
     })
     del held[:-10]
+
+
+BOOKING_OFFER_CAP = 3
+BOOKING_NO_TIME_WORKS = (
+    "I'm not able to find a time that works right now, so please call the "
+    "clinic yourself to schedule."
+)
+
+
+def _rejected_slot_keys(pending: dict):
+    return {
+        (rejected["provider_id"], rejected["slot"])
+        for rejected in pending.get("rejected_slots", [])
+    }
+
+
+def _propose_slot(patient: dict, pending: dict) -> Optional[dict]:
+    if pending.get("offer_count", 0) >= BOOKING_OFFER_CAP:
+        return None
+    call = plan_clinic_call(
+        pending["specialty"],
+        patient["insurance_payer_id"],
+        patient.get("insurance_display_name", "their insurer"),
+        patient["name"],
+        pending["tier"],
+        pending["transcript"],
+        exclude=_rejected_slot_keys(pending),
+    )
+    if call is None:
+        return None
+    pending["proposed"] = {
+        "provider_id": call["provider"]["provider_id"],
+        "provider_name": call["provider"]["name"],
+        "specialty": call["provider"]["specialty"],
+        "slot": call["slot"],
+    }
+    pending["offer_count"] = pending.get("offer_count", 0) + 1
+    return call
+
+
+def _reject_proposed_slot(pending: dict) -> None:
+    proposed = pending.get("proposed")
+    if proposed:
+        pending.setdefault("rejected_slots", []).append(
+            {"provider_id": proposed["provider_id"], "slot": proposed["slot"]}
+        )
+    pending["proposed"] = None
+
+
+def _propose_message(call: dict, is_first_offer: bool) -> str:
+    when = followup.format_slot(call["slot"])
+    if is_first_offer:
+        return (
+            f"I can get you in with {call['provider']['name']} on {when}. "
+            "Does that work for you?"
+        )
+    return f"How about {call['provider']['name']} on {when}? Does that work?"
 
 
 def _booking_as_visit(patient: dict, booking: dict) -> dict:
