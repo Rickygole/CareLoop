@@ -4,7 +4,7 @@ import { Link, useLocation } from 'react-router-dom'
 import { TABS, cleanPath } from '../lib/flow.js'
 
 const TAB =
-  'pressable flex min-h-[44px] items-center whitespace-nowrap rounded-control px-3 text-sm font-semibold sm:px-4'
+  'pressable flex min-h-[44px] items-center whitespace-nowrap rounded-control px-2.5 text-sm font-semibold sm:px-4'
 
 export default function FlowNav() {
   const location = useLocation()

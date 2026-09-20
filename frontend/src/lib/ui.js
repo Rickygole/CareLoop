@@ -1,17 +1,17 @@
 export const BTN_BASE =
-  'pressable inline-flex items-center justify-center gap-3 rounded-control border border-transparent text-center font-semibold disabled:cursor-not-allowed'
+  'pressable inline-flex items-center justify-center gap-3 rounded-control text-center font-semibold disabled:cursor-not-allowed'
 
 const BTN_OFF =
-  ' disabled:border-line disabled:bg-sunken disabled:text-ink-2 disabled:shadow-none'
+  ' border border-brand disabled:border-line-strong disabled:bg-sunken disabled:text-ink-2 disabled:shadow-none'
 
 export const BTN_HERO =
   BTN_BASE +
-  ' ledge-ink min-h-[56px] bg-brand px-8 py-4 text-lg text-brand-ink hover:bg-brand-deep' +
+  ' ledge-ink min-h-[56px] bg-brand px-8 py-4 text-lg text-brand-ink hover:border-brand-deep hover:bg-brand-deep' +
   BTN_OFF
 
 export const BTN_PRIMARY =
   BTN_BASE +
-  ' ledge-ink min-h-[52px] bg-brand px-7 py-3 text-base text-brand-ink hover:bg-brand-deep' +
+  ' ledge-ink min-h-[52px] bg-brand px-7 py-3 text-base text-brand-ink hover:border-brand-deep hover:bg-brand-deep' +
   BTN_OFF
 
 export const BTN_SECONDARY =

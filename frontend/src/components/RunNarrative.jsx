@@ -1,6 +1,5 @@
 import { narrateByStep } from '../lib/narrate.js'
 import { clockShort } from '../lib/trace.js'
-import { CARD } from '../lib/ui.js'
 
 const MARK = {
   said: String.fromCharCode(8213),
@@ -25,17 +24,17 @@ export default function RunNarrative({ events, startIndex = 0 }) {
   let order = startIndex
 
   return (
-    <div className="mt-10 flex flex-col gap-8">
+    <div className="mt-7 border-t border-line">
       {steps.map((step) => {
         const headIndex = order
         return (
           <div
             key={step.id}
-            className={'enter-step ' + CARD + ' px-6 py-6 sm:px-8'}
+            className="enter-step border-b border-line py-5"
             style={{ '--i': headIndex }}
           >
             <h4 className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
-              <span className="numeric display-tight text-lg text-clay">
+              <span className="numeric display-tight text-lg text-ink-2">
                 {step.number}
               </span>
               <span className="smallcaps text-micro text-ink-2">
@@ -43,7 +42,7 @@ export default function RunNarrative({ events, startIndex = 0 }) {
               </span>
             </h4>
 
-            <ul className="mt-5 flex flex-col gap-4">
+            <ul className="mt-4 flex flex-col gap-3">
               {step.lines.map((line) => {
                 const index = order
                 order += 1

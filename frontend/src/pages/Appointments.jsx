@@ -175,7 +175,7 @@ function Entry({ visit, last }) {
       {booked ? (
         <Reminders reminders={visit.reminders || []} />
       ) : (
-        <div className="mt-5 rounded-card bg-sunken px-5 py-4">
+        <div className="mt-5 max-w-[42rem] rounded-card bg-sunken px-5 py-4">
           <p className="smallcaps text-micro text-ink-2">
             Why CareLoop did not book it
           </p>
@@ -254,7 +254,7 @@ export default function AppointmentsPage() {
         <div>
           <section
             aria-labelledby="coverage-heading"
-            className="rounded-card bg-sunken px-6 py-6 sm:px-8 sm:py-7"
+            className="max-w-[38rem] rounded-card bg-sunken px-6 py-6 sm:px-8 sm:py-7"
           >
             <h2 id="coverage-heading" className="smallcaps text-micro text-ink-2">
               Your insurance

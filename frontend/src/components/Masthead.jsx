@@ -39,7 +39,7 @@ export default function Masthead({ nav }) {
   }, [location.pathname])
 
   return (
-    <header className="sticky top-0 z-30">
+    <header className="z-30 sm:sticky sm:top-0">
       <div className="console-scope bg-console-bg">
         <div className="hold flex flex-wrap items-center justify-between gap-x-6 gap-y-1 py-1.5">
           <p className="text-2xs text-console-muted">
@@ -76,7 +76,7 @@ export default function Masthead({ nav }) {
               id="masthead-account"
               className={
                 (open ? 'flex' : 'hidden') +
-                ' w-full flex-col items-start gap-y-1 border-t border-line py-2 sm:ml-auto sm:flex sm:w-auto sm:flex-row sm:items-center sm:gap-x-1 sm:border-0 sm:py-0'
+                ' w-full flex-col items-start gap-y-1 border-t border-line py-2 sm:ml-auto sm:flex sm:w-auto sm:flex-row sm:items-center sm:gap-x-1 sm:border-l sm:border-t-0 sm:py-0 sm:pl-3'
               }
             >
               <p className="px-3 text-sm text-ink-2 sm:hidden">

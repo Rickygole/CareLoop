@@ -6,7 +6,6 @@ import Screen from '../components/Screen.jsx'
 import TechnicalDetail from '../components/TechnicalDetail.jsx'
 import TierBadge from '../components/TierBadge.jsx'
 import TriageResult from '../components/TriageResult.jsx'
-import { Rule } from '../components/Block.jsx'
 import { dateTimeLabel } from '../lib/format.js'
 import { actionSentence, quoted } from '../lib/narrate.js'
 import { BTN_PRIMARY, CARD, LEAD, SECTION } from '../lib/ui.js'
@@ -66,14 +65,13 @@ export default function DecisionPage() {
         <h2 id="next-heading" className="display text-xl text-ink">
           What to do next
         </h2>
-        <Rule />
         {tier === 'emergency' ? (
-          <p className={LEAD + ' mt-6'}>
+          <p className={LEAD + ' mt-5'}>
             No appointment exists and an appointment would be too slow anyway.
             If you have not already, call 911 now.
           </p>
         ) : needsClinic ? (
-          <p className={LEAD + ' mt-6'}>
+          <p className={LEAD + ' mt-5'}>
             No appointment exists. Any booking call shown above was simulated,
             and no real clinic was contacted. In a real deployment CareLoop
             would book you in. Here it cannot, so please telephone your clinic
@@ -81,7 +79,7 @@ export default function DecisionPage() {
             emergency, call 911.
           </p>
         ) : (
-          <p className={LEAD + ' mt-6'}>
+          <p className={LEAD + ' mt-5'}>
             Nothing was booked, and on this answer nothing needed to be. If
             anything changes, take another check-in or telephone your clinic.
           </p>
@@ -99,23 +97,22 @@ export default function DecisionPage() {
         <h2 id="said-heading" className="display text-xl text-ink">
           What you said
         </h2>
-        <Rule />
 
-        <blockquote className={CARD + ' mt-8 px-7 py-7 sm:px-9'}>
-          <p className="display-tight measure text-xl text-ink">
+        <blockquote className={CARD + ' mt-6 px-6 py-6 sm:px-8'}>
+          <p className="display-tight measure text-lg text-ink">
             {quoted(triage.transcript)}
           </p>
-          <p className="numeric mt-5 text-sm text-ink-2">
+          <p className="numeric mt-4 text-sm text-ink-2">
             Recorded {dateTimeLabel(run.at)}
           </p>
         </blockquote>
 
         {triage.normalized_text ? (
-          <div className="mt-10">
-            <h3 className="smallcaps text-micro text-clay">
+          <div className="mt-8">
+            <h3 className="smallcaps text-micro text-ink-2">
               Written down in clinical terms as
             </h3>
-            <p className="display-tight measure mt-4 rounded-card border border-line bg-sunken px-6 py-5 text-lg text-ink">
+            <p className="display-tight measure mt-3 rounded-card bg-sunken px-6 py-5 text-lg text-ink">
               {triage.normalized_text}
             </p>
             <p className="measure mt-4 text-sm text-ink-2">
@@ -130,16 +127,15 @@ export default function DecisionPage() {
         <h2 id="working-heading" className="display text-xl text-ink">
           How it got there
         </h2>
-        <Rule />
         {rules.length ? (
-          <p className="measure mt-8 text-ink-2">
+          <p className="measure mt-5 text-ink-2">
             A fixed safety rule matched on {ruleWords(rules)}. A matched rule
             settles the severity on its own, which is why the answer came back
             without waiting for a model. The model may raise that severity
             afterwards. It may never lower it.
           </p>
         ) : (
-          <p className="measure mt-8 text-ink-2">
+          <p className="measure mt-5 text-ink-2">
             No fixed safety rule matched these words, so the question went on
             to the model. A matched rule would have settled the severity on its
             own.
@@ -153,13 +149,12 @@ export default function DecisionPage() {
           <h2 id="history-heading" className="display text-xl text-ink">
             Earlier check-ins on this record
           </h2>
-          <Rule />
-          <p className="measure mt-6 text-ink-2">
+          <p className="measure mt-4 text-ink-2">
             These calls arrived with the sample record as an example of what a
             week looks like. You did not take them, and nothing here was said
             by you.
           </p>
-          <ul className="mt-8 flex flex-col gap-5">
+          <ul className="mt-6 flex flex-col gap-4">
             {notableHistory.map((item, index) => (
               <li
                 key={item.call_id || index}
@@ -214,8 +209,7 @@ export default function DecisionPage() {
         <h2 id="record-heading" className="display text-xl text-ink">
           Activity log
         </h2>
-        <Rule />
-        <p className="measure mt-8 text-ink-2">
+        <p className="measure mt-4 text-ink-2">
           Every step of this check-in, in the order it happened.
         </p>
         <TechnicalDetail

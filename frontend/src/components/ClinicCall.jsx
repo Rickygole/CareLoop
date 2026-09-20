@@ -1,4 +1,3 @@
-import { Rule } from './Block.jsx'
 import { SECTION } from '../lib/ui.js'
 import { humanizeTimes } from '../lib/narrate.js'
 import { tierMeta } from './TierBadge.jsx'
@@ -27,7 +26,7 @@ function bookingTurnIndex(turns) {
 function Disclosure({ text, className = '' }) {
   return (
     <div className={className}>
-      <p className="smallcaps text-micro text-clay">About this call</p>
+      <p className="smallcaps text-micro text-ink-2">About this call</p>
       <p className="measure mt-2 text-sm text-ink-2">{text}</p>
       <p className="measure mt-2 text-sm text-ink-2">
         No confirmation was sent to anyone. The front desk here is simulated,
@@ -47,8 +46,7 @@ export default function ClinicCall({ events, booking, tier }) {
         <h2 id="clinic-heading" className="display text-xl text-ink">
           No call to the clinic this time
         </h2>
-        <Rule />
-        <p className="measure mt-6 text-ink-2">
+        <p className="measure mt-4 text-ink-2">
           {level === 'emergency'
             ? 'CareLoop never books an appointment for an emergency. An appointment is too slow, so it tells you to get help now and writes down the alert it would send. Nobody is notified by this prototype.'
             : known
@@ -71,16 +69,15 @@ export default function ClinicCall({ events, booking, tier }) {
       <h2 id="clinic-heading" className="display text-xl text-ink">
         The call CareLoop made for you
       </h2>
-      <Rule />
 
-      <p className="measure mt-6 text-ink-2">
+      <p className="measure mt-4 text-ink-2">
         You did not have to phone anyone. CareLoop ran the booking call with{' '}
         {booking.provider_name}, waited for the front desk, and took the time it
         was offered. The front desk on the other end was simulated, as the note
         below says.
       </p>
 
-      <ol className="mt-9 flex flex-col gap-7">
+      <ol className="mt-8 flex flex-col gap-5">
         {turns.map((event, index) => {
           const desk = event.event_type === 'CLINIC_DESK_SPEECH'
 
@@ -88,13 +85,13 @@ export default function ClinicCall({ events, booking, tier }) {
             return (
               <li
                 key={event.seq}
-                className="enter-rise border-l-8 border-l-brand pl-6 sm:pl-7"
+                className="enter-rise border-l-4 border-l-brand pl-5 sm:pl-6"
                 style={{ '--i': index }}
               >
                 <p className="smallcaps text-micro text-brand">
                   The front desk booked it
                 </p>
-                <p className="display-tight measure mt-3 text-xl text-ink">
+                <p className="display-tight measure mt-2 text-lg text-ink">
                   {humanizeTimes(textOf(event))}
                 </p>
                 <Disclosure text={booking.disclosure} className="mt-6" />
@@ -110,7 +107,7 @@ export default function ClinicCall({ events, booking, tier }) {
             >
               <p
                 className={
-                  'smallcaps text-micro ' + (desk ? 'text-clay' : 'text-ink')
+                  'smallcaps text-micro ' + (desk ? 'text-ink-2' : 'text-ink')
                 }
               >
                 {speakerLabel(event.event_type)}

@@ -80,8 +80,8 @@ export default function ConsentModal({ open, insurerName, busy, onAllow, onDeny 
         onKeyDown={handleKey}
         className="enter-land flex max-h-full w-full max-w-2xl flex-col overflow-hidden rounded-panel border border-line bg-surface shadow-modal"
       >
-        <div className="shrink-0 border-b border-line bg-brand-wash px-7 py-6 sm:px-10">
-          <p className="smallcaps text-micro text-ink">
+        <div className="shrink-0 border-b border-line px-6 py-6 sm:px-9">
+          <p className="smallcaps text-micro text-brand">
             We ask before we read anything
           </p>
           <h2 id="consent-title" className="display mt-3 text-xl text-ink">
@@ -99,11 +99,11 @@ export default function ConsentModal({ open, insurerName, busy, onAllow, onDeny 
               MyHealth will share with CareLoop
               {insurerName ? ', from your ' + insurerName + ' record' : ''}:
             </p>
-            <ul className="mt-6 flex flex-col gap-3">
+            <ul className="mt-5 border-t border-line">
               {SHARED_ITEMS.map((item) => (
                 <li
                   key={item}
-                  className="flex items-center gap-4 rounded-card border border-line bg-sunken px-5 py-3.5 text-sm font-semibold text-ink"
+                  className="flex items-center gap-4 border-b border-line py-3 text-base font-semibold text-ink"
                 >
                   <span aria-hidden="true" className="text-brand">
                     {String.fromCharCode(9679)}
@@ -112,19 +112,19 @@ export default function ConsentModal({ open, insurerName, busy, onAllow, onDeny 
                 </li>
               ))}
             </ul>
-            <p className="measure mt-7 text-ink-2">
+            <p className="measure mt-6 text-ink-2">
               Nothing else is read, and nothing is shared back. CareLoop uses
               this to know when to call you and what to ask about.
             </p>
           </div>
 
-          <p className="measure mt-7 text-sm text-ink-2">
+          <p className="measure mt-5 text-sm text-ink-2">
             MyHealth is a fictional portal built for this demonstration, and
             every record behind it is fictional too.
           </p>
         </div>
 
-        <div className="flex shrink-0 flex-col gap-y-4 border-t border-line bg-sunken px-7 py-6 sm:gap-y-6 sm:py-8 sm:flex-row sm:justify-end sm:gap-x-12 sm:px-10">
+        <div className="flex shrink-0 flex-col gap-y-3 border-t border-line bg-sunken px-6 py-5 sm:flex-row sm:justify-end sm:gap-x-4 sm:gap-y-0 sm:px-9 sm:py-6">
           <button type="button" onClick={onDeny} className={BTN_SECONDARY}>
             Deny
           </button>

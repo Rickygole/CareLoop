@@ -51,7 +51,7 @@ export function InteractionPin({ finding, lead, children }) {
   return (
     <div
       className={
-        'mt-5 flex gap-x-3 rounded-card px-4 py-4 sm:gap-x-4 sm:px-5 ' +
+        'mt-5 flex gap-x-2.5 rounded-card px-3 py-4 sm:gap-x-4 sm:px-5 ' +
         meta.skin +
         ' ' +
         meta.rail

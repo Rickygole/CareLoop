@@ -425,7 +425,7 @@ export default function TodayPage() {
               Coming up
             </h2>
 
-            <div className={CARD + ' mt-6 px-6 py-6 sm:px-8 sm:py-7'}>
+            <div className={CARD + ' mt-6 max-w-[44rem] px-6 py-6 sm:px-8 sm:py-7'}>
               {visit ? (
                 <>
                   <p className="smallcaps text-micro text-mild">Booked</p>

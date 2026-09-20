@@ -19,9 +19,9 @@ const STATE_TONE = {
 
 const CARD_SKIN = {
   done: 'px-0 py-0',
-  now: 'ledge-strong rounded-card border border-brand bg-surface px-5 py-5 sm:px-7 sm:py-7',
+  now: 'ledge-strong rounded-card border border-brand bg-surface px-4 py-5 sm:px-7 sm:py-7',
   alert:
-    'rounded-card border border-line border-l-4 border-l-severe bg-surface px-5 py-5 sm:px-7 sm:py-6',
+    'rounded-card border border-line border-l-4 border-l-severe bg-surface px-4 py-5 sm:px-7 sm:py-6',
   later: 'px-0 py-0',
   ahead: 'px-0 py-0',
 }
