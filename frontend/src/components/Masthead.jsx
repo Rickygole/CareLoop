@@ -39,7 +39,7 @@ export default function Masthead() {
             <Mark />
             <span className="display text-xl text-ink">CareLoop</span>
           </span>
-          <p className="text-sm text-ink-2">
+          <p className="border-l border-line pl-5 text-sm text-ink-2">
             Demo system. All patient data is synthetic.
           </p>
         </div>

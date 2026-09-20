@@ -1,9 +1,8 @@
 import SimulatedCall from './SimulatedCall.jsx'
 import VoiceAgent from './VoiceAgent.jsx'
+import { SafetyNote } from './Disclaimers.jsx'
+import { LEAD } from '../lib/ui.js'
 import { isConfigured } from '../lib/voice.js'
-
-const SAFETY =
-  'Please do not describe your own real health. This is a demonstration and every record in it is made up.'
 
 export default function VoicePanel({
   patientId,
@@ -45,16 +44,11 @@ export default function VoicePanel({
       <h2 id="voice-heading" className="display text-2xl text-ink">
         CareLoop rings your telephone
       </h2>
-      <p className="measure mt-4 text-lg leading-[1.45] text-ink">
+      <p className={LEAD + ' mt-4'}>
         You can answer out loud, the way you would on the phone.
       </p>
 
-      <p className="measure mt-4 flex items-start gap-3 text-sm text-ink">
-        <span aria-hidden="true" className="leading-[1.6] text-moderate">
-          {String.fromCharCode(9651)}
-        </span>
-        <span>{SAFETY}</span>
-      </p>
+      <SafetyNote className="mt-4" />
 
       <div className="voice-mount mt-6">
         <VoiceAgent patientId={patientId} patientName={firstName} />

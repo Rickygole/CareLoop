@@ -44,8 +44,8 @@ export default function RegimenSnapshot({ hash, previousHash, count, flash }) {
           ) : null}
         </p>
         <p className="measure mt-3 text-sm text-ink-2">
-          This code is for engineers. It is a fingerprint of the list, not
-          something you need to read or remember.
+          A fingerprint of the list, for engineers. Nothing you need to read
+          or remember.
         </p>
       </div>
     </section>

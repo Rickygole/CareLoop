@@ -75,7 +75,7 @@ export default function CheckIn({ busy, error, scenarios, onSubmit }) {
             {busy ? 'Sending your answer...' : 'Send my answer'}
           </button>
           <p className="max-w-[30ch] text-sm text-ink-2">
-            Your answer is written to a made up patient record, not to you.
+            Your answer is written to a sample patient record, not to you.
           </p>
         </div>
 

@@ -112,7 +112,7 @@ export default function ConsentModal({ open, insurerName, busy, onAllow, onDeny 
 
           <p className="measure mt-7 text-sm text-ink-2">
             MyHealth is a fictional portal built for this demonstration, and
-            every record behind it is made up.
+            every record behind it is fictional too.
           </p>
         </div>
 

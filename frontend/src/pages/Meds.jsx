@@ -288,7 +288,7 @@ export default function MedsPage() {
                   {cascading ? (
                     <div className={'enter-fade ' + CARD + ' px-7 py-7'}>
                       <p className="smallcaps text-micro text-clay">
-                        What that change set off
+                        What that change updated
                       </p>
                       <ol className="mt-5 flex flex-col gap-3">
                         {CASCADE_STEPS.map((label, index) => {

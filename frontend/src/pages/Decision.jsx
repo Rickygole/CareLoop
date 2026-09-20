@@ -76,8 +76,8 @@ export default function DecisionPage() {
           </p>
         )}
         <p className="measure mt-5 text-ink-2">
-          CareLoop has written this check-in down on the made up record. It has
-          not told anyone, and nothing in this prototype runs on a timer.
+          CareLoop has written this check-in down on the sample record. It has
+          told nobody, and nothing in this prototype runs on a timer.
         </p>
         <Link to="/" className={BTN_PRIMARY + ' mt-7'}>
           Back to Today
@@ -124,14 +124,14 @@ export default function DecisionPage() {
           <p className="measure mt-8 text-ink-2">
             A fixed safety rule matched on {ruleWords(rules)}. A matched rule
             settles the severity on its own, which is why the answer came back
-            without waiting for a model. The model is allowed to raise a
-            severity afterwards. It is never allowed to lower one.
+            without waiting for a model. The model may raise that severity
+            afterwards. It may never lower it.
           </p>
         ) : (
           <p className="measure mt-8 text-ink-2">
-            No fixed safety rule matched these words, so the question went on to
-            the model. Had a rule matched, it would have settled the severity on
-            its own.
+            No fixed safety rule matched these words, so the question went on
+            to the model. A matched rule would have settled the severity on its
+            own.
           </p>
         )}
         <RunNarrative events={run.events} startIndex={2} />
@@ -140,13 +140,13 @@ export default function DecisionPage() {
       {history.length ? (
         <section aria-labelledby="history-heading" className={SECTION}>
           <h2 id="history-heading" className="display text-2xl text-ink">
-            Earlier check-ins on this made up record
+            Earlier check-ins on this record
           </h2>
           <Rule />
           <p className="measure mt-6 text-ink-2">
-            These rows arrived with the made up record. They are examples of
-            what a week of check-ins looks like. You did not take these calls,
-            and nothing here was said by you.
+            These calls arrived with the sample record as an example of what a
+            week looks like. You did not take them, and nothing here was said
+            by you.
           </p>
           <ul className="mt-8 flex flex-col gap-5">
             {history.map((item, index) => (

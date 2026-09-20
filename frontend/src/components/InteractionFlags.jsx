@@ -227,8 +227,8 @@ export default function InteractionFlags({ regimen, flash }) {
       ) : (
         <p className="measure mt-8 text-ink-2">
           CareLoop compared every pair of medicines on this list and found
-          nothing that it checks for. That is not the same as nothing being
-          wrong, which is what the section at the foot of this page is about.
+          nothing it checks for. That is not the same as nothing being wrong.
+          What this check does not cover is set out below.
         </p>
       )}
     </section>

@@ -179,8 +179,8 @@ export default function TodayPage() {
                 </h3>
                 <p className="measure mt-3 text-sm text-ink-2">
                   There are no medicines on this record, so CareLoop has nothing
-                  to ring you about. If that is wrong, read the record again
-                  from your insurer.
+                  to ring you about. If that is wrong, refresh the record from
+                  your insurer.
                 </p>
                 <Link to="/meds" className={BTN_SECONDARY + ' mt-6'}>
                   Go to medications
@@ -297,9 +297,9 @@ export default function TodayPage() {
               ) : visitsFailed ? (
                 <>
                   <Notice role="alert" tone="alarm" word="Not loaded" size="sm">
-                    CareLoop could not read your appointments just now. This is
-                    not a statement that you have none. Press Try again, or call
-                    your clinic directly if this is urgent.
+                    CareLoop could not read your appointments just now, which
+                    does not mean you have none. Press Try again, or call your
+                    clinic directly if this is urgent.
                   </Notice>
                   <button
                     type="button"
