@@ -19,10 +19,10 @@ export default function Layout() {
       first.current = false
       return
     }
+    if (main.current) main.current.focus({ preventScroll: true })
     if (typeof document !== 'undefined') {
       document.documentElement.scrollTop = 0
     }
-    if (main.current) main.current.focus()
   }, [location.pathname])
 
   if (!signedIn) return <Navigate to="/signup" replace />

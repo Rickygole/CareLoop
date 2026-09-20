@@ -46,14 +46,18 @@ export default function ConsentModal({ open, insurerName, busy, onAllow, onDeny 
 
     opener.current = document.activeElement
     const body = document.body
+    const root = document.documentElement
     const previousOverflow = body.style.overflow
+    const previousRootOverflow = root.style.overflow
     body.style.overflow = 'hidden'
+    root.style.overflow = 'hidden'
 
     const firstButton = panel.current && panel.current.querySelector('button')
-    if (firstButton) firstButton.focus()
+    if (firstButton) firstButton.focus({ preventScroll: true })
 
     return () => {
       body.style.overflow = previousOverflow
+      root.style.overflow = previousRootOverflow
       if (opener.current && opener.current.focus) opener.current.focus()
     }
   }, [open])
@@ -62,7 +66,7 @@ export default function ConsentModal({ open, insurerName, busy, onAllow, onDeny 
 
   return (
     <div
-      className="enter-fade fixed inset-0 z-50 flex max-h-dvh items-end justify-center overflow-y-auto overscroll-contain bg-ink/70 p-4 sm:items-center"
+      className="enter-fade fixed inset-0 z-50 flex items-end justify-center overscroll-contain bg-ink/70 p-4 sm:items-center"
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) onDeny()
       }}
@@ -74,9 +78,9 @@ export default function ConsentModal({ open, insurerName, busy, onAllow, onDeny 
         aria-labelledby="consent-title"
         aria-describedby="consent-body"
         onKeyDown={handleKey}
-        className="enter-land my-auto w-full max-w-2xl overflow-hidden rounded-panel border border-line bg-surface shadow-modal"
+        className="enter-land flex max-h-full w-full max-w-2xl flex-col overflow-hidden rounded-panel border border-line bg-surface shadow-modal"
       >
-        <div className="border-b border-line bg-brand-wash px-7 py-6 sm:px-10">
+        <div className="shrink-0 border-b border-line bg-brand-wash px-7 py-6 sm:px-10">
           <p className="smallcaps text-micro text-ink">
             We ask before we read anything
           </p>
@@ -85,7 +89,11 @@ export default function ConsentModal({ open, insurerName, busy, onAllow, onDeny 
           </h2>
         </div>
 
-        <div className="px-7 py-8 sm:px-10">
+        <div
+          data-scroll="consent"
+          tabIndex={0}
+          className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-7 py-8 sm:px-10"
+        >
           <div id="consent-body" className="text-ink-2">
             <p className="measure text-ink">
               MyHealth will share with CareLoop
@@ -116,7 +124,7 @@ export default function ConsentModal({ open, insurerName, busy, onAllow, onDeny 
           </p>
         </div>
 
-        <div className="flex flex-col gap-y-6 border-t border-line bg-sunken px-7 py-8 sm:flex-row sm:justify-end sm:gap-x-12 sm:px-10">
+        <div className="flex shrink-0 flex-col gap-y-4 border-t border-line bg-sunken px-7 py-6 sm:gap-y-6 sm:py-8 sm:flex-row sm:justify-end sm:gap-x-12 sm:px-10">
           <button type="button" onClick={onDeny} className={BTN_SECONDARY}>
             Deny
           </button>
