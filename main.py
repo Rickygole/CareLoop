@@ -1261,10 +1261,11 @@ def _dose_timing(patient: Optional[dict]) -> tuple:
     dose = build_day_plan(patient)["next_dose"]
     if not dose:
         return "due today", False
+    spoken = datetime.strptime(dose["time"], "%H:%M").strftime("%-I %p").lower()
     if dose["status"] in ("due_now", "due_soon"):
         return "due at about this time", True
-    hour, _, minute = dose["time"].partition(":")
-    spoken = datetime.strptime(dose["time"], "%H:%M").strftime("%-I %p").lower()
+    if dose["status"] == "missed":
+        return f"was due earlier today, around {spoken}", False
     return f"due later today, at {spoken}", False
 
 
@@ -2079,7 +2080,7 @@ def _record_dose_taken(session: SessionState, patient_id: str, transcript: str) 
     if patient is None:
         return None
     dose = build_day_plan(patient)["next_dose"]
-    if not dose or dose["status"] not in ("due_now", "due_soon"):
+    if not dose or dose["status"] not in ("due_now", "due_soon", "missed"):
         return None
     entry = {
         "call_id": "call-" + uuid.uuid4().hex[:8],

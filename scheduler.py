@@ -157,6 +157,10 @@ def build_day_plan(patient: dict, now: Optional[datetime] = None) -> dict:
         call["moved_into_contact_window"] = moved
 
     next_dose = next((d for d in doses if d["status"] in ("upcoming", "due_soon", "due_now")), None)
+    if next_dose is None:
+        missed_today = [d for d in doses if d["status"] == "missed"]
+        if missed_today:
+            next_dose = missed_today[-1]
     next_call = None
     if next_dose:
         group = next(

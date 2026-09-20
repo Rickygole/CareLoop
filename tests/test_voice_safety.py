@@ -167,8 +167,9 @@ def test_the_call_never_claims_a_later_dose_is_due_now():
         spoken = said(xml)
         plan_due = "due at about this time" in spoken
         later = "due later today" in spoken
-        assert plan_due or later, f"{patient_id} did not say when the dose is due"
-        assert not (plan_due and later), "the call cannot say both"
+        earlier = "was due earlier today" in spoken
+        assert plan_due or later or earlier, f"{patient_id} did not say when the dose is due"
+        assert sum([plan_due, later, earlier]) == 1, "the call cannot say more than one of these"
 
 
 def test_the_emergency_line_never_claims_it_notified_anyone():

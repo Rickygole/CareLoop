@@ -85,11 +85,16 @@ def test_a_clear_no_does_not_book_and_is_acknowledged(refusal):
 def test_an_unrelated_no_elsewhere_in_a_yes_does_not_flip_it_to_a_decline(agreement):
     session = "consent-yes-unrelated-no-" + agreement[:10].replace(" ", "").replace(",", "").replace(".", "")
     written(session, WORRYING)
-    body = written(session, agreement)
-    assert body["booking"], (
+    proposed = written(session, agreement)
+    assert proposed["booking"] is None, (
+        f"{agreement!r} should only propose a specific slot, not book it on the spot"
+    )
+    assert "I will not book anything" not in proposed["triage"]["suggested_agent_response"], (
         f"{agreement!r} is a clear yes, but an unrelated word elsewhere in the "
         "sentence that happens to contain no/not was read as a refusal"
     )
+    body = written(session, agreement)
+    assert body["booking"], f"accepting the proposed slot with {agreement!r} should have booked it"
 
 
 @pytest.mark.parametrize("refusal", [
