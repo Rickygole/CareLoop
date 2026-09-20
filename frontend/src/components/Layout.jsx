@@ -1,7 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { Navigate, Outlet, useLocation } from 'react-router-dom'
 
-import DemoStrip from './DemoStrip.jsx'
 import FlowNav from './FlowNav.jsx'
 import Masthead from './Masthead.jsx'
 import { DashboardFooter } from './Disclaimers.jsx'
@@ -38,7 +37,6 @@ export default function Layout() {
         Skip to the main content
       </a>
 
-      <DemoStrip />
       <Masthead />
       <FlowNav />
 

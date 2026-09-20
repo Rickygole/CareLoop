@@ -395,16 +395,6 @@ test('the dashboard shows the next call, the medicines and the next appointment'
   expect(screen.getByText('CareLoop rings your telephone')).toBeTruthy()
   await screen.findByText(/Tuesday, September 22 at 12:00 PM/, {}, { timeout: 4000 })
   expect(screen.getByText(/Covered by Aetna/)).toBeTruthy()
-  expect(
-    screen.queryByText(/Demonstration controls, not part of the patient product/),
-  ).toBe(null)
-  const strip = screen.getByRole('complementary', { name: 'Demonstration' })
-  expect(strip.textContent).toMatch(
-    /Every patient, medicine and clinic on this page is made up for the demonstration/,
-  )
-  expect(
-    within(strip).getByRole('button', { name: 'Move the clock to the next dose' }),
-  ).toBeTruthy()
 }, 10000)
 
 test('the appointments section shows the booking, the reminders and the refusal', async () => {
@@ -437,7 +427,6 @@ test('the medicines section renders what the portal sent', async () => {
   expect(screen.getByText('Penicillin')).toBeTruthy()
   expect(screen.getByText(/8:00 AM to 7:00 PM/)).toBeTruthy()
   expect(screen.getByText('First sync. The medication list came across from the portal.')).toBeTruthy()
-  expect(screen.getByText('Move the clock to the next dose')).toBeTruthy()
   expect(screen.getByRole('heading', { name: /Nothing on this list conflicts/ })).toBeTruthy()
 }, 10000)
 
@@ -670,7 +659,6 @@ test('every control on the medicines section is a button the accessibility tree 
 
   expect(screen.getByRole('button', { name: /Check MyHealth for updates/ })).toBeTruthy()
   expect(screen.getByRole('button', { name: /Get the new prescription from MyHealth/ })).toBeTruthy()
-  expect(screen.getByRole('button', { name: /Move the clock to the next dose/ })).toBeTruthy()
   expect(screen.getByRole('button', { name: /detected and held back/ })).toBeTruthy()
 }, 15000)
 
@@ -711,7 +699,6 @@ test('the appointments and today sections expose named controls too', async () =
     expect(accessibleName(control).length).toBeGreaterThan(0)
     expect(['BUTTON', 'A']).toContain(control.tagName)
   }
-  expect(screen.getByRole('button', { name: /Move the clock to the next dose/ })).toBeTruthy()
 }, 20000)
 
 test('withTimeout turns a hang into a failure and aborts the request', async () => {
@@ -930,28 +917,6 @@ test('the flagged pair is a heading a screen reader can jump to', async () => {
   expect(pair.tagName).toBe('H3')
 }, 20000)
 
-test('moving the clock on Today is announced to a live region', async () => {
-  startAtFirstScreen()
-  render(<HashRouter><App /></HashRouter>)
-  signUp()
-  connect()
-  await screen.findByRole('heading', { level: 1, name: /Today/ }, { timeout: 15000 })
-
-  const move = screen.getByRole('button', { name: 'Move the clock to the next dose' })
-  const region = move.closest('section').querySelector('[role="status"]')
-  expect(region).toBeTruthy()
-  expect(region.getAttribute('aria-live')).toBe('polite')
-  expect(region.textContent.trim()).toBe('')
-
-  fireEvent.click(move)
-  expect(region.textContent).toMatch(/The clock moved forward to/)
-  expect(region.textContent).toMatch(/The next call is at/)
-  expect(region.textContent).toMatch(/behind you/)
-
-  fireEvent.click(screen.getByRole('button', { name: 'Put the clock back' }))
-  expect(region.textContent).toMatch(/The clock is back to now/)
-}, 20000)
-
 test('a reload keeps the reviewer signed in and the records connected', async () => {
   startAtFirstScreen()
   render(<HashRouter><App /></HashRouter>)
@@ -1009,13 +974,6 @@ test('the medicines section keeps its reviewer panels collapsed', async () => {
   const panel = document.getElementById(disclosure.getAttribute('aria-controls'))
   expect(disclosure.getAttribute('aria-expanded')).toBe('false')
   expect(panel.hidden).toBe(true)
-  const clock = screen.getByRole('button', {
-    name: /Move the clock to the next dose/,
-  })
-  expect(panel.contains(clock)).toBe(false)
-  expect(
-    clock.closest('[aria-label="Demonstration"]'),
-  ).toBeTruthy()
 
   fireEvent.click(disclosure)
   expect(disclosure.getAttribute('aria-expanded')).toBe('true')
