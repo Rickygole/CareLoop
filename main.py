@@ -628,7 +628,11 @@ async def elevenlabs_webhook(body: ToolCall, session: SessionState = Depends(get
         return await run_triage(session, body.transcript or "", body.patient_id)
 
     if body.tool_name == "book_appointment":
-        if body.transcript is not None and not _confirms_appointment(body.transcript):
+        if (
+            body.transcript is not None
+            and not _confirms_appointment(body.transcript)
+            and not _requests_appointment(body.transcript)
+        ):
             raise HTTPException(
                 422,
                 "book_appointment was called without the patient clearly agreeing. "
@@ -773,6 +777,25 @@ async def run_loop(
             "No problem, I will not book anything. " + result["suggested_agent_response"]
         )
         call = None
+    elif (
+        pending is None
+        and not result["is_emergency"]
+        and _requests_appointment(body.transcript)
+    ):
+        specialty = "Internal Medicine"
+        call = plan_clinic_call(
+            specialty,
+            patient["insurance_payer_id"],
+            patient.get("insurance_display_name", "their insurer"),
+            patient["name"],
+            result["tier"],
+            body.transcript,
+        )
+        if not call:
+            result["suggested_agent_response"] = (
+                "I could not find an opening right now, so please call the "
+                "clinic yourself. " + result["suggested_agent_response"]
+            )
     elif body.auto_book and result["tier"] in ("moderate", "severe") and not result["is_emergency"]:
         specialty = "Internal Medicine"
         session.pending_bookings[body.patient_id] = {
@@ -1631,6 +1654,36 @@ async def voice_checkin_respond(
             "No problem, I will not book anything.", ask_model=False,
         ))
 
+    if pending is None and _requests_appointment(transcript):
+        call = plan_clinic_call(
+            "Internal Medicine",
+            patient["insurance_payer_id"],
+            patient.get("insurance_display_name", "their insurer"),
+            patient["name"],
+            result["tier"],
+            transcript,
+        )
+        if call:
+            _remember_booking(session, patient_id, {
+                "provider_name": call["provider"]["name"],
+                "specialty": call["provider"]["specialty"],
+                "time": call["slot"],
+                "disclosure": call["disclosure"],
+                "simulated_front_desk": call["simulated"],
+            }, transcript)
+            ack = (
+                f"Sure, I have booked you with {call['provider']['name']} at "
+                f"{followup.format_slot(call['slot'])}."
+            )
+        else:
+            ack = (
+                "I could not find an opening right now, so please call the "
+                "clinic yourself."
+            )
+        return _twiml(await _keep_talking(
+            session, patient, patient_id, str(request.base_url), ack, ask_model=False,
+        ))
+
     if result["tier"] in ("moderate", "severe"):
         if pending is None:
             try:
@@ -2025,6 +2078,27 @@ def _declines_appointment(transcript: str) -> bool:
     if not text:
         return False
     return bool(BOOKING_NO.search(_strip_filler_no(text)))
+
+
+BOOKING_REQUEST = re.compile(
+    r"\b(book|schedule|set up|line up|get|make) (me |us )?(an?|the) "
+    r"(appointment|follow[- ]?up|visit)\b|"
+    r"\b(i want|i need|i'?d like|i would like) (an?|the) "
+    r"(appointment|follow[- ]?up|visit)\b|"
+    r"\b(i'?d like to|i would like to|i want to|i need to) (go )?see "
+    r"(a |the |my )?(doctor|physician|provider|someone)\b",
+    re.IGNORECASE,
+)
+
+
+def _requests_appointment(transcript: str) -> bool:
+    text = (transcript or "").strip()
+    if not text:
+        return False
+    scrubbed = _strip_filler_no(text)
+    if BOOKING_NO.search(scrubbed) or NEGATED_YES.search(scrubbed):
+        return False
+    return bool(BOOKING_REQUEST.search(text))
 
 
 def _remember_booking(
