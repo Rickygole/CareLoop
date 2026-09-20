@@ -68,6 +68,49 @@ def test_a_clear_no_does_not_book_and_is_acknowledged(refusal):
     )
 
 
+@pytest.mark.parametrize("agreement", [
+    "Yes please, I have no other questions",
+    "Yes, book it. I have no insurance though",
+    "Yeah go ahead, no rush",
+    "Yes, no one else is home to drive me but I will manage",
+    "Absolutely",
+    "Definitely",
+    "Mhm",
+    "Uh huh",
+])
+def test_an_unrelated_no_elsewhere_in_a_yes_does_not_flip_it_to_a_decline(agreement):
+    session = "consent-yes-unrelated-no-" + agreement[:10].replace(" ", "").replace(",", "").replace(".", "")
+    written(session, WORRYING)
+    body = written(session, agreement)
+    assert body["booking"], (
+        f"{agreement!r} is a clear yes, but an unrelated word elsewhere in the "
+        "sentence that happens to contain no/not was read as a refusal"
+    )
+
+
+@pytest.mark.parametrize("refusal", [
+    "absolutely not",
+    "definitely not",
+    "sure, not now actually",
+])
+def test_a_yes_word_immediately_reversed_still_declines(refusal):
+    session = "consent-reversed-" + refusal.replace(" ", "").replace(",", "")
+    written(session, WORRYING)
+    body = written(session, refusal)
+    assert body["booking"] is None, f"{refusal!r} should not have booked"
+
+
+def test_an_unrelated_no_in_a_weak_yes_is_not_wrongly_treated_as_a_refusal():
+    session = "consent-weak-yes-unrelated-no"
+    written(session, WORRYING)
+    body = written(session, "Sure, I have no preference")
+    assert body["booking"] is None, "an unclear answer must never be treated as consent"
+    assert "I will not book anything" not in body["triage"]["suggested_agent_response"], (
+        "'no preference' has no bearing on the appointment itself and must not "
+        "be read as the patient refusing it outright"
+    )
+
+
 def test_an_ambiguous_answer_books_nothing():
     session = "consent-ambiguous"
     written(session, WORRYING)

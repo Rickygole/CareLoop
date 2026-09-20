@@ -2026,22 +2026,24 @@ BOOKING_YES_STRONG = re.compile(
 )
 BOOKING_YES_WEAK = re.compile(
     r"\b(sure|okay|ok|please|that works|sounds good|"
-    r"go ahead|works for me)\b",
+    r"go ahead|works for me|absolutely|definitely|mhm|mm-?hmm|uh[- ]?huh)\b",
     re.IGNORECASE,
 )
 BOOKING_YES_SHORT_ANSWER_WORDS = 3
 
 BOOKING_NO = re.compile(
-    r"\b(no|nope|nah|not now|not today|not necessary|not needed|"
+    r"\b(nope|nah|not now|not today|not necessary|not needed|"
     r"i'?ll pass|rather not|don'?t book|do not book|no thanks|"
-    r"don'?t want|do not want|not interested)\b",
+    r"don'?t want|do not want|not interested)\b|"
+    r"\bno\b(?!\s*[a-zA-Z])",
     re.IGNORECASE,
 )
 
 
 NEGATED_YES = re.compile(
     r"\b(not|isn'?t|aren'?t|won'?t|can'?t|never|no)\s+\w{0,6}\s?"
-    r"(yes|sure|okay|ok|good|fine)\b",
+    r"(yes|sure|okay|ok|good|fine|absolutely|definitely)\b|"
+    r"\b(absolutely|definitely|sure|okay|ok)\s+(not|never)\b",
     re.IGNORECASE,
 )
 
@@ -2099,10 +2101,11 @@ def _requests_appointment(transcript: str) -> bool:
 
 
 END_CALL_REQUEST = re.compile(
-    r"\b(bye|goodbye|good bye|talk to you later|gotta go|got to go)\b|"
-    r"\b(that'?s|that is) (all|it)\b|"
-    r"\bnothing else\b|"
-    r"\bi'?m (good|done)\b|\bi am (good|done)\b",
+    r"\b(bye|goodbye|good bye|talk to you later|gotta go|got to go)\b\W*$|"
+    r"\b(that'?s|that is) (all|it)\b[\s,]*(thanks?|thank you)?\W*$|"
+    r"\bnothing else\b[\s,]*(thanks?|thank you)?\W*$|"
+    r"\bi'?m (good|done)\b[\s,]*(thanks?|thank you)?\W*$|"
+    r"\bi am (good|done)\b[\s,]*(thanks?|thank you)?\W*$",
     re.IGNORECASE,
 )
 

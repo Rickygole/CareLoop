@@ -414,3 +414,27 @@ def test_fear_is_not_a_hypothetical(transcript):
     """
     result = triage(transcript, llm_classifier=exploding_llm)
     assert result.severity is Severity.EMERGENCY, f"suppressed a real emergency: {transcript!r}"
+
+
+HEDGED_NON_CRISIS_EMERGENCY = [
+    "I don't know, my chest is really crushing",
+    "I dont know, I cant breathe",
+    "not gonna lie, my face is drooping",
+    "no joke, Im bleeding heavily",
+    "Im not sure but I passed out",
+    "never mind that, my chest is crushing",
+]
+
+
+@pytest.mark.parametrize("transcript", HEDGED_NON_CRISIS_EMERGENCY)
+def test_a_hedge_before_a_non_crisis_emergency_cannot_silence_it(transcript):
+    """The same hedge-silences-a-disclosure bug that was fixed for crisis
+    rules also applied to every other emergency rule, and unlike crisis it had
+    never been fixed there. The negation guard's proximity gap crossed comma
+    and "but" clause boundaries, so "I don't know, my chest is really
+    crushing" read the "don't" from an unrelated clause as negating the chest
+    pain three words later and downgraded a heart attack to a routine
+    follow-up offer.
+    """
+    result = triage(transcript, llm_classifier=exploding_llm)
+    assert result.severity is Severity.EMERGENCY, f"emergency silenced by a hedge: {transcript!r}"

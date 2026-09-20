@@ -154,7 +154,7 @@ _NEGATION_BEFORE = re.compile(
     r"do(n'?t| not)|does(n'?t| not)|did(n'?t| not)|have(n'?t| not)|has(n'?t| not)|"
     r"is(n'?t| not)|are(n'?t| not)|was(n'?t| not)|were(n'?t| not)|"
     r"used to|if i|if you|in case|watch for|warn\w*|ask\w* if|told me to|"
-    r"call if|supposed to|any sign of)\b[^.!?]{0,15}$",
+    r"call if|supposed to|any sign of)\b(?![^.!?,;]{0,15}\bbut\b)[^.!?,;]{0,15}$",
     re.IGNORECASE,
 )
 _HISTORY_AFTER = re.compile(
