@@ -1218,14 +1218,7 @@ def _next_dose_is_flagged(patient: Optional[dict]) -> Optional[List[str]]:
     ]
     if not surfaced:
         return None
-    plan = build_day_plan(patient)
-    dose = plan["next_dose"]
-    name = (dose or {}).get("medication") or _demo_medication_name(patient)
-    resolved = set(active_ingredients([{"medication": name, "status": "active"}]))
-    for finding in surfaced:
-        if resolved & set(finding["ingredients"]):
-            return finding["ingredients"]
-    return None
+    return surfaced[0]["ingredients"]
 
 
 def _telephony_not_configured(missing: List[str]) -> dict:
